@@ -3,10 +3,31 @@ import requests
 from base64 import b64encode
 import os
 from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+
+
 load_dotenv()
 
 
 app = Flask(__name__)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+
+class Listing(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ebay_item_id = db.Column(db.String(50), unique=True)
+    title = db.Column(db.Text)
+    price = db.Column(db.Float)
+    currency = db.Column(db.String(10))
+
+# used to create the tables. Remove later
+# with app.app_context():
+#     db.create_all()
 
 # Production credentials
 
@@ -34,27 +55,50 @@ def get_thinkpads():
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
     }
-    params = {"q": "thinkpad", "limit": "5"}
+    params = {"q": "thinkpad", "limit": "10"}
     resp = requests.get(url, headers=headers, params=params)
     return resp.json().get("itemSummaries", [])
+
+def save_listings(items):
+    for item in items:
+        # Skip if this eBay item already exists in DB
+        if Listing.query.filter_by(ebay_item_id=item["itemId"]).first():
+            continue
+
+        listing = Listing(
+            ebay_item_id=item["itemId"],
+            title=item.get("title"),
+            price=float(item["price"]["value"]),
+            currency=item["price"]["currency"]
+        )
+        db.session.add(listing)
+    db.session.commit()
+
 
 @app.route("/")
 def index():
     items = get_thinkpads()
+    
+    # Save to DB
+    save_listings(items)
+
+    # display items from db
+    listings = Listing.query.limit(10).all()
+
     html = """
     <h1>ThinkPad Prices</h1>
     <table border="1">
         <tr><th>Title</th><th>Price</th><th>Currency</th></tr>
-        {% for item in items %}
+        {% for item in listings %}
         <tr>
             <td>{{item.title}}</td>
-            <td>{{item.price.value}}</td>
-            <td>{{item.price.currency}}</td>
+            <td>{{item.price}}</td>
+            <td>{{item.currency}}</td>
         </tr>
         {% endfor %}
     </table>
     """
-    return render_template_string(html, items=items)
+    return render_template_string(html, listings=listings)
 
 if __name__ == "__main__":
     app.run(debug=True)
