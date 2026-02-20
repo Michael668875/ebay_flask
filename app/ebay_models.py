@@ -30,6 +30,7 @@ class Listing(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)  # money values
     currency = db.Column(db.String(10), nullable=False)
     condition = db.Column(db.String(50))
+    listing_type = db.Column(db.String(50))
     url = db.Column(db.Text)
     last_updated = db.Column(
         db.DateTime(timezone=True),

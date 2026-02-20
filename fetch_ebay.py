@@ -1,4 +1,4 @@
-from app.init import create_app
+from app import create_app
 from app.extensions import db
 from app.ebay_models import Product, Listing, PriceHistory
 import requests
@@ -68,53 +68,7 @@ def parse_product_details(title: str):
     return model, cpu, ram, storage
     
 
-"""# This handles duplicates automatically and keeps a full price history.
-def save_thinkpads(items):
-    with app.app_context():
-        for item in items:
-            ebay_id = item["itemId"]
-            title = item["title"]
-            price = float(item["price"]["value"])
-            currency = item["price"]["currency"]
-
-            # Check if listing exists
-            listing = Listing.query.filter_by(ebay_item_id=ebay_id).first()
-
-            if listing:
-                # Update only if price changed
-                if listing.price != price:
-                    listing.price = price
-                    listing.title = title  # optional, in case title changed
-                    db.session.add(listing)
-
-                    # Add price history
-                    history = PriceHistory(
-                        ebay_item_id=ebay_id,
-                        price=price
-                    )
-                    db.session.add(history)
-            else:
-                # New listing
-                new_listing = Listing(
-                    ebay_item_id=ebay_id,
-                    title=title,
-                    price=price,
-                    currency=currency
-                )
-                db.session.add(new_listing)
-
-                # Add initial price history
-                history = PriceHistory(
-                    ebay_item_id=ebay_id,
-                    price=price
-                )
-                db.session.add(history)
-
-        db.session.commit()
-"""
-
-
-
+# This handles duplicates automatically and keeps a full price history.
 def save_thinkpads(items):
     """
     Save ThinkPad items into Product, Listing, and PriceHistory.
@@ -165,12 +119,16 @@ def save_thinkpads(items):
             # --- Check or create Listing ---
             listing = Listing.query.filter_by(ebay_item_id=ebay_id).first()
 
+            listing_type = ",".join(item.get("buyingOptions", []))  # Usually ["FIXED_PRICE"]
+
             if listing:
                 # Update listing if price changed
                 if listing.price != price:
                     listing.price = price
                     listing.title = title
                     listing.currency = currency
+                    listing.condition = item.get("condition")
+                    listing.listing_type = listing_type
                     listing.last_updated = datetime.now(timezone.utc)
                     db.session.add(listing)
 
@@ -188,7 +146,9 @@ def save_thinkpads(items):
                     ebay_item_id=ebay_id,
                     title=title,
                     price=price,
-                    currency=currency
+                    currency=currency,
+                    condition=item.get("condition"),
+                    listing_type=listing_type
                 )
                 db.session.add(new_listing)
                 db.session.flush()  # get new_listing.id
