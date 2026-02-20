@@ -4,7 +4,7 @@ from base64 import b64encode
 import os
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -18,16 +18,31 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+
 class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    ebay_item_id = db.Column(db.String(50), unique=True)
-    title = db.Column(db.Text)
-    price = db.Column(db.Float)
-    currency = db.Column(db.String(10))
+    ebay_item_id = db.Column(db.String(50), unique=True, nullable=False)
+    title = db.Column(db.Text, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(10), nullable=False)
+    last_updated = db.Column(
+        db.DateTime(timezone=True), 
+        default=datetime.now(timezone.utc), 
+        onupdate=datetime.now(timezone.utc)
+    )
+
+class PriceHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ebay_item_id = db.Column(db.String(50), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(
+        db.DateTime(timezone=True), 
+        default=lambda: datetime.now(timezone.utc)
+    )
 
 # used to create the tables. Remove later
 # with app.app_context():
-#     db.create_all()
+#    db.create_all()
 
 # Production credentials
 
@@ -55,11 +70,11 @@ def get_thinkpads():
         "Authorization": f"Bearer {token}",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
     }
-    params = {"q": "thinkpad", "limit": "10"}
+    params = {"q": "thinkpad", "limit": "100"}
     resp = requests.get(url, headers=headers, params=params)
     return resp.json().get("itemSummaries", [])
 
-def save_listings(items):
+"""def save_listings(items):
     for item in items:
         # Skip if this eBay item already exists in DB
         if Listing.query.filter_by(ebay_item_id=item["itemId"]).first():
@@ -72,24 +87,59 @@ def save_listings(items):
             currency=item["price"]["currency"]
         )
         db.session.add(listing)
-    db.session.commit()
+    db.session.commit()"""
 
+# This handles duplicates automatically and keeps a full price history.
+def save_thinkpads(items):
+    for item in items:
+        ebay_id = item["itemId"]
+        title = item["title"]
+        price = float(item["price"]["value"])
+        currency = item["price"]["currency"]
+
+        # Check if listing exists
+        listing = Listing.query.filter_by(ebay_item_id=ebay_id).first()
+
+        if listing:
+            # Update only if price changed
+            if listing.price != price:
+                listing.price = price
+                listing.title = title  # optional, in case title changed
+                db.session.add(listing)
+
+                # Add price history
+                history = PriceHistory(
+                    ebay_item_id=ebay_id,
+                    price=price
+                )
+                db.session.add(history)
+        else:
+            # New listing
+            new_listing = Listing(
+                ebay_item_id=ebay_id,
+                title=title,
+                price=price,
+                currency=currency
+            )
+            db.session.add(new_listing)
+
+            # Add initial price history
+            history = PriceHistory(
+                ebay_item_id=ebay_id,
+                price=price
+            )
+            db.session.add(history)
+
+    db.session.commit()
 
 @app.route("/")
 def index():
-    items = get_thinkpads()
-    
-    # Save to DB
-    save_listings(items)
-
-    # display items from db
-    listings = Listing.query.limit(10).all()
-
+    listings = Listing.query.order_by(Listing.price.asc()).all()
     html = """
     <h1>ThinkPad Prices</h1>
     <table border="1">
         <tr><th>Title</th><th>Price</th><th>Currency</th></tr>
-        {% for item in listings %}
+        {% for item in items %}
         <tr>
             <td>{{item.title}}</td>
             <td>{{item.price}}</td>
@@ -98,7 +148,7 @@ def index():
         {% endfor %}
     </table>
     """
-    return render_template_string(html, listings=listings)
+    return render_template_string(html, items=listings)
 
 if __name__ == "__main__":
     app.run(debug=True)
