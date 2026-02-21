@@ -6,10 +6,10 @@ class Product(db.Model):
     __tablename__ = 'products'
 
     id = db.Column(db.Integer, primary_key=True)
-    model_name = db.Column(db.String(100), nullable=False)
-    cpu = db.Column(db.String(100))
-    ram = db.Column(db.String(50))
-    storage = db.Column(db.String(50))
+    model_name = db.Column(db.String(100), unique=True, nullable=False)
+    cpu = db.Column(db.String(100), nullable=True)
+    ram = db.Column(db.String(50), nullable=True)
+    storage = db.Column(db.String(50), nullable=True)
 
     # Relationship: Product -> Listings
     listings = db.relationship(
@@ -32,8 +32,8 @@ class Listing(db.Model):
     condition = db.Column(db.String(50))
     listing_type = db.Column(db.String(50))
     status = db.Column(db.String, default="ACTIVE") # ACTIVE, SOLD, ENDED
-    first_seen = db.Column(db.DateTime)
-    last_seen = db.Column(db.DateTime)
+    first_seen = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
+    last_seen = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
     sold_at = db.Column(db.DateTime, nullable=True)
     url = db.Column(db.Text)
     last_updated = db.Column(
