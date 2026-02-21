@@ -31,7 +31,7 @@ class Listing(db.Model):
     currency = db.Column(db.String(10), nullable=False)
     condition = db.Column(db.String(50))
     listing_type = db.Column(db.String(50))
-    status = db.Column(db.String, default="ACTIVE")
+    status = db.Column(db.String, default="ACTIVE") # ACTIVE, SOLD, ENDED
     first_seen = db.Column(db.DateTime)
     last_seen = db.Column(db.DateTime)
     sold_at = db.Column(db.DateTime, nullable=True)

@@ -1,11 +1,15 @@
-from app.init import create_app
+from app import create_app
 from app.extensions import db
 from app.ebay_models import Product, Listing, PriceHistory
+from fetch_ebay import get_thinkpads
+from app.ebay_sync import upsert_listings
 
 app = create_app()
 
 with app.app_context():
-    db.create_all()  # <-- This creates all tables in your database
+    #db.create_all()  # <-- This creates all tables in your database
+    data = get_thinkpads()
+    upsert_listings(data)
 
 
 # Use these commands after changing the database instead of running this file
