@@ -3,120 +3,88 @@ from app.ebay_models import Product, Listing, PriceHistory
 from datetime import datetime, timezone
 
 def mark_missing_as_sold(current_ids):
+    """Mark ACTIVE listings not seen in the latest fetch as SOLD."""
     now = datetime.now(timezone.utc)
-    active_listings = Listing.query.filter_by(status="ACTIVE").all()
-    for listing in active_listings:
-        if listing.status == "ACTIVE" and listing.ebay_item_id not in current_ids:
+    for listing in Listing.query.filter_by(status="ACTIVE").all():
+        if listing.ebay_item_id not in current_ids:
             listing.status = "SOLD"
             listing.sold_at = now
             listing.last_updated = now
     db.session.commit()
 
+
 def parse_product_details(title: str):
-    """
-    Fallback parser if itemSpecifics are missing.
-    Tries to extract model, CPU, RAM, storage from title.
-    """
-    model = " ".join(title.split()[0:3])  # crude first 3 words as model
-    cpu = ram = storage = "Unknown"
-
+    """Fallback parser if eBay item specifics are missing."""
+    words = title.split()
+    model = " ".join(words[:3]) if len(words) >= 3 else title
     title_lower = title.lower()
-    if "i7" in title_lower:
-        cpu = "i7"
-    elif "i5" in title_lower:
-        cpu = "i5"
 
-    if "16gb" in title_lower:
-        ram = "16GB"
-    elif "8gb" in title_lower:
-        ram = "8GB"
-
-    if "512gb" in title_lower:
-        storage = "512GB SSD"
-    elif "256gb" in title_lower:
-        storage = "256GB SSD"
+    cpu = "i7" if "i7" in title_lower else "i5" if "i5" in title_lower else "Unknown"
+    ram = "16GB" if "16gb" in title_lower else "8GB" if "8gb" in title_lower else "Unknown"
+    storage = "512GB SSD" if "512gb" in title_lower else "256GB SSD" if "256gb" in title_lower else "Unknown"
 
     return model, cpu, ram, storage
-    
 
-# This handles duplicates automatically and keeps a full price history.
+
 def save_thinkpads(items, app):
     """
     Save ThinkPad items into Product, Listing, and PriceHistory.
-    Uses eBay itemSpecifics first, falls back to title parsing.
+    Handles new listings, updates, price history, and marking missing listings as SOLD.
     """
     with app.app_context():
-        current_ids = set()
         now = datetime.now(timezone.utc)
+        current_ids = set()
+
         for item in items:
             ebay_id = item["itemId"]
             title = item["title"]
-            current_ids.add(ebay_id)
-
-            # price info
             price = float(item["price"]["value"])
             currency = item["price"]["currency"]
-            
-            # condition can be a string or a dict
-            condition_data = item.get("condition")
-            if isinstance(condition_data, dict):
-                condition = condition_data.get("conditionDisplayName")
-            else:
-                condition = condition_data
+            current_ids.add(ebay_id)
 
-             # Try to parse model name, CPU, RAM, Storage from item specifics
+            # Condition can be a dict or string
+            condition_data = item.get("condition")
+            condition = condition_data.get("conditionDisplayName") if isinstance(condition_data, dict) else condition_data
+
+            # Parse eBay item specifics
             specifics = item.get("itemSpecifics", {}).get("nameValues", [])
             specifics_dict = {s["name"].lower(): s["value"][0] for s in specifics if s.get("value")}
-            model_name = specifics_dict.get("model", title.split(",")[0])
-            cpu = specifics_dict.get("processor", None)
-            ram = specifics_dict.get("ram", None)
-            storage = specifics_dict.get("storage capacity", None)            
+            model_name = specifics_dict.get("model") or " ".join(title.split()[:3])
+            cpu = specifics_dict.get("processor")
+            ram = specifics_dict.get("ram")
+            storage = specifics_dict.get("storage capacity")
 
-            # --- Fallback to title parsing if any missing ---
+            # Fallback to title parsing if any missing
             if not cpu or not ram or not storage:
                 model_name_fallback, cpu_fallback, ram_fallback, storage_fallback = parse_product_details(title)
+                model_name = model_name or model_name_fallback
                 cpu = cpu or cpu_fallback
                 ram = ram or ram_fallback
                 storage = storage or storage_fallback
-                model_name = model_name_fallback
-            else:
-                # If item specifics exist, use first 3 words as model_name
-                model_name = " ".join(title.split()[0:3])
 
-            # --- Check or create Product ---
+            # --- Get or create Product ---
             product = Product.query.filter_by(model_name=model_name).first()
             if not product:
                 product = Product(model_name=model_name, cpu=cpu, ram=ram, storage=storage)
                 db.session.add(product)
-                db.session.flush()  # get product.id
+                db.session.flush()  # product.id now available
 
-            # --- Check or create Listing ---
+            # --- Get or create Listing ---
             listing = Listing.query.filter_by(ebay_item_id=ebay_id).first()
-
-            url = item.get("itemWebUrl", None)
-
-            listing_type = ",".join(item.get("buyingOptions", []))  # Usually ["FIXED_PRICE"]
+            listing_type = ",".join(item.get("buyingOptions", []))
+            url = item.get("itemWebUrl")
 
             if listing:
-                # Update listing if anything changed
+                # Update if anything changed
                 changed = False
-                if listing.price != price:
-                    listing.price = price
-                    changed = True
-                if listing.title != title:
-                    listing.title = title
-                    changed = True
-                if listing.condition != condition:
-                    listing.condition = condition
-                    changed = True
-                if listing.listing_type != listing_type:
-                    listing.listing_type = listing_type
-                    changed = True
-
+                for attr, value in [("price", price), ("title", title), ("condition", condition), ("listing_type", listing_type)]:
+                    if getattr(listing, attr) != value:
+                        setattr(listing, attr, value)
+                        changed = True
                 if changed:
                     listing.last_updated = now
                     db.session.add(listing)
-                    # Add price history
+                    # Add price history only if price changed
                     db.session.add(PriceHistory(listing_id=listing.id, price=price, currency=currency, checked_at=now))
 
                 listing.url = url
@@ -124,7 +92,7 @@ def save_thinkpads(items, app):
 
             else:
                 # New listing
-                new_listing = Listing(
+                listing = Listing(
                     product_id=product.id,
                     ebay_item_id=ebay_id,
                     title=title,
@@ -138,18 +106,14 @@ def save_thinkpads(items, app):
                     last_seen=now,
                     last_updated=now
                 )
-                db.session.add(new_listing)
-                db.session.flush()  # get new_listing.id
+                db.session.add(listing)
+                db.session.flush()  # listing.id available
 
-                # Add initial price history
-                db.session.add(PriceHistory(
-                    listing_id=new_listing.id,
-                    price=price,
-                    currency=currency,
-                    checked_at=now
-                ))
+                # Initial price history
+                db.session.add(PriceHistory(listing_id=listing.id, price=price, currency=currency, checked_at=now))
 
-    # --- Mark missing listings as SOLD ---
-    mark_missing_as_sold(current_ids)
-    # Commit everything
-    db.session.commit()
+        # Mark missing listings as SOLD
+        mark_missing_as_sold(current_ids)
+
+        # Commit everything
+        db.session.commit()
