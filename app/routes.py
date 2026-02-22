@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template_string
-from app.ebay_models import Listing
+from app.models import Listing
 
 bp = Blueprint("main", __name__)
 
