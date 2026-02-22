@@ -29,7 +29,7 @@ def index():
             <td>{{item.product.cpu}}</td>
             <td>{{item.product.ram}}</td>
             <td>{{item.product.storage}}</td>
-            <td>{{item.title}}</td>
+            <td><a href = {{item.url}} target="_blank">{{item.title}}</a></td>
             <td>{{item.price}}</td>
             <td>{{item.currency}}</td>
             <td>{{item.condition}}</td>

@@ -1,6 +1,8 @@
 from app.extensions import db
-from app.ebay_models import Product, Listing, PriceHistory
+from app.models import Product, Listing, PriceHistory
 from datetime import datetime, timezone
+from app.services.model_parser import parse_model_from_title, is_real_laptop
+
 
 def mark_missing_as_sold(current_ids):
     """Mark ACTIVE listings not seen in the latest fetch as SOLD."""
@@ -49,7 +51,16 @@ def save_thinkpads(items, app):
             # Parse eBay item specifics
             specifics = item.get("itemSpecifics", {}).get("nameValues", [])
             specifics_dict = {s["name"].lower(): s["value"][0] for s in specifics if s.get("value")}
-            model_name = specifics_dict.get("model") or " ".join(title.split()[:3])
+            # listing is your item from eBay API
+            if not is_real_laptop(item.get("itemSpecifics", {})):
+                # Skip batteries / chargers / accessories
+                continue
+
+            # Now parse the model name safely
+            model_name = parse_model_from_title(    # gets model from a list if it's not in ebay specifics
+                listing.get("title", ""), 
+                listing.get("itemSpecifics", {}).get("model")
+            )
             cpu = specifics_dict.get("processor")
             ram = specifics_dict.get("ram")
             storage = specifics_dict.get("storage capacity")
@@ -117,3 +128,5 @@ def save_thinkpads(items, app):
 
         # Commit everything
         db.session.commit()
+
+        
