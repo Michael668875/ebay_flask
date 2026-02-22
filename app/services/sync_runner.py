@@ -1,5 +1,5 @@
 from app import create_app
-from app.ebay_sync import save_thinkpads
+from ebay_sync import save_thinkpads
 from fetch_ebay import get_thinkpads
 
 app = create_app()

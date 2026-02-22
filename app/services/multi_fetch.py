@@ -87,3 +87,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Use these commands after changing the database 
+
+# flask db init
+# flask db migrate -m "Initial schema"
+# flask db upgrade
+
+# If Flask complains about not finding the app, set:
+# set FLASK_APP=run.py
