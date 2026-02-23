@@ -1,7 +1,19 @@
 from flask import Blueprint, render_template_string
 from app.models import Listing
+import os
 
 bp = Blueprint("main", __name__)
+CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
+
+def affiliate_link(url):
+    separator = "&" if "?" in url else "?"
+    return (
+        f"{url}{separator}"
+        f"mkcid=1&"
+        f"mkrid=711-53200-19255-0&"
+        f"siteid=0&"
+        f"campid={CAMPAIGN_ID}"
+    )
 
 @bp.route("/")
 def index():
@@ -29,7 +41,7 @@ def index():
             <td>{{item.product.cpu}}</td>
             <td>{{item.product.ram}}</td>
             <td>{{item.product.storage}}</td>
-            <td><a href = {{item.url}} target="_blank">{{item.title}}</a></td>
+            <td><a href = "{{item.url}}" target =" _blank">{{item.title}}</a></td>
             <td>{{item.price}}</td>
             <td>{{item.currency}}</td>
             <td>{{item.condition}}</td>
@@ -38,4 +50,5 @@ def index():
         </tr>
         {% endfor %}
     </table>
-    """, items=listings)
+    """, items=listings, affiliate_link=affiliate_link)
+

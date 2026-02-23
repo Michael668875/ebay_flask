@@ -8,10 +8,13 @@ load_dotenv()
 
 app = create_app()
 
+
+
 # Production credentials
 
 CLIENT_ID = os.environ.get("EBAY_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET")
+CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
 
 def get_token():
     auth = b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
@@ -33,7 +36,8 @@ def get_thinkpads(limit=100):
     url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
     headers = {
         "Authorization": f"Bearer {token}",
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+        "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
     }
     params = {"q": "thinkpad", "limit": "100"}
     resp = requests.get(url, headers=headers, params=params)

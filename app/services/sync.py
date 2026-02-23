@@ -27,6 +27,22 @@ def parse_product_details(title: str):
 
     return model, cpu, ram, storage
 
+def extract_aspects(item):
+    """
+    Extract model, cpu, ram, and storage from eBay Browse API localizedAspects.
+    Returns a dict with keys: model, cpu, ram, storage
+    """
+    aspects_list = item.get("localizedAspects", [])
+
+    # Convert list of {"name": "...", "value": "..."} to dict
+    aspects = {a["name"].lower(): a["value"] for a in aspects_list}
+
+    return {
+        "model": aspects.get("model"),
+        "cpu": aspects.get("processor"),
+        "ram": aspects.get("ram size") or aspects.get("ram for multitasking"),
+        "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity"),
+    }
 
 def save_thinkpads(items, app):
     """
@@ -44,26 +60,33 @@ def save_thinkpads(items, app):
             currency = item["price"]["currency"]
             current_ids.add(ebay_id)
 
+            # get category id
+            category_id = item["categories"][0]["categoryId"] if item.get("categories") else None
+
             # Condition can be a dict or string
             condition_data = item.get("condition")
             condition = condition_data.get("conditionDisplayName") if isinstance(condition_data, dict) else condition_data
 
             # Parse eBay item specifics
-            specifics = item.get("itemSpecifics", {}).get("nameValues", [])
-            specifics_dict = {s["name"].lower(): s["value"][0] for s in specifics if s.get("value")}
-            # listing is your item from eBay API
-            if not is_real_laptop(item.get("itemSpecifics", {})):
-                # Skip batteries / chargers / accessories
-                continue
+            # --- Extract aspects from Browse API ---
+            aspects = extract_aspects(item)
 
-            # Now parse the model name safely
-            model_name = parse_model_from_title(    # gets model from a list if it's not in ebay specifics
-                listing.get("title", ""), 
-                listing.get("itemSpecifics", {}).get("model")
-            )
-            cpu = specifics_dict.get("processor")
-            ram = specifics_dict.get("ram")
-            storage = specifics_dict.get("storage capacity")
+            model_name = aspects["model"]
+            cpu = aspects["cpu"]
+            ram = aspects["ram"]
+            storage = aspects["storage"]
+
+            # listing is your item from eBay API
+            item_specifics = {
+                "model": model_name,
+                "cpu": cpu,
+                "ram": ram,
+                "storage": storage,
+            }
+
+            if not is_real_laptop(item_specifics):
+                continue
+                # Skip batteries / chargers / accessories
 
             # Fallback to title parsing if any missing
             if not cpu or not ram or not storage:
@@ -88,7 +111,12 @@ def save_thinkpads(items, app):
             if listing:
                 # Update if anything changed
                 changed = False
-                for attr, value in [("price", price), ("title", title), ("condition", condition), ("listing_type", listing_type)]:
+                for attr, value in [("price", price), 
+                                    ("title", title), 
+                                    ("condition", condition), 
+                                    ("listing_type", listing_type),
+                                    ("category_id", category_id),
+                                    ]:
                     if getattr(listing, attr) != value:
                         setattr(listing, attr, value)
                         changed = True
@@ -106,6 +134,7 @@ def save_thinkpads(items, app):
                 listing = Listing(
                     product_id=product.id,
                     ebay_item_id=ebay_id,
+                    category_id=category_id,
                     title=title,
                     price=price,
                     currency=currency,
