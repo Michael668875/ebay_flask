@@ -7,7 +7,8 @@ from app.services.model_parser import parse_model_from_title, is_real_laptop
 def mark_missing_as_sold(current_ids):
     """Mark ACTIVE listings not seen in the latest fetch as SOLD."""
     now = datetime.now(timezone.utc)
-    for listing in Listing.query.filter_by(status="ACTIVE").all():
+    active_listing = Listing.query.filter_by(status="ACTIVE").all()
+    for listing in active_listing:
         if listing.ebay_item_id not in current_ids:
             listing.status = "SOLD"
             listing.sold_at = now

@@ -3,7 +3,8 @@ from app.models import Listing
 import os
 
 bp = Blueprint("main", __name__)
-CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
+
+"""CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
 
 def affiliate_link(url):
     separator = "&" if "?" in url else "?"
@@ -13,7 +14,7 @@ def affiliate_link(url):
         f"mkrid=711-53200-19255-0&"
         f"siteid=0&"
         f"campid={CAMPAIGN_ID}"
-    )
+    )"""
 
 @bp.route("/")
 def index():
@@ -50,5 +51,6 @@ def index():
         </tr>
         {% endfor %}
     </table>
-    """, items=listings, affiliate_link=affiliate_link)
+    """, items=listings)
 
+# , affiliate_link=affiliate_link -add this at the end of render_template_string if using affiliate_link function
