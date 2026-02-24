@@ -47,7 +47,7 @@ def extract_aspects(item):
         "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity"),
     }
 
-def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_itmes.jsonl"):
+def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"):
     """
     Save ThinkPad items into Product, Listing, and PriceHistory.
     Handles new listings, updates, price history, and marking missing listings as SOLD.
@@ -197,8 +197,7 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_itmes.jsonl"
                 }
 
                 # Log failed item to a file in JSON Lines format
-                with fail_log_file.open("a", encoding="utf-8") as f:
-                    log_entry = {"item": item, "error": str(e)}
+                with fail_log_file.open("a", encoding="utf-8") as f:                    
                     f.write(json.dumps(log_entry) + "\n")
                 print(f"Failed to save item {item.get('itemId')}: {e}")
 

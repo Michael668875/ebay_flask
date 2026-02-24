@@ -3,8 +3,7 @@
 
 import json
 from pathlib import Path
-from sync import save_thinkpads
-from app import create_app
+from app.services.sync import save_thinkpads
 
 FAIL_FILE = Path("failed_items.jsonl")
 DEAD_FILE = Path("dead_letter.jsonl")
@@ -22,8 +21,7 @@ def load_failed_items():
     return failed_items
 
 # Then call save_thinkpads(failed_items, app)
-def retry_failed():
-    app = create_app()
+def retry_failed(app):    
     failed_items = load_failed_items()
 
     if not failed_items:
