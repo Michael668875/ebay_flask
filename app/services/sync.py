@@ -108,28 +108,41 @@ def save_thinkpads(items, app):
             listing = Listing.query.filter_by(ebay_item_id=ebay_id).first()
             listing_type = ",".join(item.get("buyingOptions", []))
             url = item.get("itemWebUrl")
+            listing.url = url
+            listing.last_seen = now
 
             if listing:
                 # Update if anything changed
-                changed = False
-                for attr, value in [("price", price), 
-                                    ("title", title), 
-                                    ("condition", condition), 
-                                    ("listing_type", listing_type),
-                                    ("category_id", category_id),
-                                    ]:
+                changed = False                              
+                price_changed = listing.price != price
+
+                if price_changed: # separate price changes from other attributes for PriceHistory
+                    listing.price = price
+
+                # Check other fields (excluding price)
+                for attr, value in [
+                    ("title", title),
+                    ("condition", condition),
+                    ("listing_type", listing_type),
+                    ("category_id", category_id),
+                ]:
                     if getattr(listing, attr) != value:
                         setattr(listing, attr, value)
                         changed = True
-                if changed:
+
+                if changed or price_changed:
                     listing.last_updated = now
                     db.session.add(listing)
-                    # Add price history only if price changed
-                    db.session.add(PriceHistory(listing_id=listing.id, price=price, currency=currency, checked_at=now))
 
-                listing.url = url
-                listing.last_seen = now
-
+                if price_changed:
+                    db.session.add(
+                        PriceHistory(
+                            listing_id=listing.id,
+                            price=price,
+                            currency=currency,
+                            checked_at=now
+                        )
+                    )
             else:
                 # New listing
                 listing = Listing(
