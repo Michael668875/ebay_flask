@@ -1,7 +1,7 @@
 from app.extensions import db
 from app.models import Product, Listing, PriceHistory
 from datetime import datetime, timezone
-from app.services.model_parser import parse_model_from_title, is_real_laptop
+from app.services.model_parser import is_real_laptop
 import json
 from pathlib import Path
 
@@ -187,6 +187,15 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_itmes.jsonl"
 
             except Exception as e:
                 db.session.rollback()
+
+                # set number of times to retry
+                retry_count = item.get("retry_count", 0) + 1
+                log_entry = {
+                    "item": item,
+                    "error": str(e),
+                    "retry_count": retry_count
+                }
+
                 # Log failed item to a file in JSON Lines format
                 with fail_log_file.open("a", encoding="utf-8") as f:
                     log_entry = {"item": item, "error": str(e)}
