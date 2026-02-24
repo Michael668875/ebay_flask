@@ -1,6 +1,6 @@
 from app import create_app
 from app.services.sync import save_thinkpads
-from app.services.fetch import get_thinkpads
+from app.services.fetch import get_markets
 from app.services.retry_failed_items import retry_failed
 
 def run_sync():
@@ -8,12 +8,13 @@ def run_sync():
     
     with app.app_context():
         print("Fetching items from ebay...")
-        items = get_thinkpads()
+        items = get_markets()
 
         print(f"Fetched {len(items)} items.")
+        print("SAVE_THINKPADS STARTED") # temp
         save_thinkpads(items, app)
 
-        print("Runing retry cycle...")
+        print("Running retry cycle...")
         retry_failed(app)
 
         print(f"Synced {len(items)} ThinkPad listings.")

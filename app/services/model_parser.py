@@ -43,28 +43,6 @@ def parse_model_from_title(title: str, specifics_model: str = None) -> str:
 # filter out batteries and other junk from the listings
 REQUIRED_SPEC_KEYS = ["model", "processor", "ram", "storage"]
 
-#def is_real_laptop(specifics_dict: dict) -> bool:
-#    """
-#    Returns True if the listing has at least one key spec indicating it's a real ThinkPad laptop.
-#    
-#    :param specifics_dict: dictionary from eBay item specifics
-#    """
-#    for key in REQUIRED_SPEC_KEYS:
-#        # Check if key exists and has a non-empty value
-#        if key in specifics_dict and specifics_dict[key]:
-#            return True
-#    return False
-
-#def is_real_laptop(specifics_dict: dict) -> bool:
-#    """
-#    Returns True if the listing has key specifics indicating it's a real ThinkPad laptop.
-#    
-#    :param specifics_dict: dictionary from eBay item specifics
-#    """
-#    specs = ["model", "processor", "ram", "storage"]
-#    present = [key for key in specs if key in specifics_dict and specifics_dict[key]]
-#    return len(present) >= 2  # require at least 2 key specs
-
 def is_real_laptop(product_dict: dict) -> bool:
     """
     Returns True if this product looks like a real laptop.

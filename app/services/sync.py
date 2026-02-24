@@ -37,14 +37,19 @@ def extract_aspects(item):
     """
     aspects_list = item.get("localizedAspects", [])
 
-    # Convert list of {"name": "...", "value": "..."} to dict
-    aspects = {a["name"].lower(): a["value"] for a in aspects_list}
+    aspects = {}
+
+    for a in aspects_list:
+        name = a.get("name", "").lower()
+        values = a.get("values", [])
+        if values:
+            aspects[name] = values[0]
 
     return {
         "model": aspects.get("model"),
-        "cpu": aspects.get("processor"),
-        "ram": aspects.get("ram size") or aspects.get("ram for multitasking"),
-        "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity"),
+        "cpu": aspects.get("processor") or aspects.get("processor type"),
+        "ram": aspects.get("ram size") or aspects.get("memory"),
+        "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity") or aspects.get("storage capacity"),
     }
 
 def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"):
@@ -66,6 +71,9 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
         processed_count = 0 # track items to commit in batches
 
         for item in items:
+            print("RAW ITEM KEYS:", item.keys()) # temp
+            print("RAW localizedAspects:", item.get("localizedAspects")) # temp
+            break # temp
             try:
                 ebay_id = item["itemId"]
                 title = item["title"]
@@ -83,10 +91,10 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                 # Parse eBay item specifics
                 aspects = extract_aspects(item)
 
-                model_name = aspects["model"]
-                cpu = aspects["cpu"]
-                ram = aspects["ram"]
-                storage = aspects["storage"]
+                model_name = aspects.get("model")
+                cpu = aspects.get("cpu")
+                ram = aspects.get("ram")
+                storage = aspects.get("storage")
 
                 # listing is your item from eBay API
                 item_specifics = {
@@ -98,6 +106,8 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
 
                 if not is_real_laptop(item_specifics):
                     continue # Skip batteries, chargers, accessories etc
+                print("Processing:", ebay_id) # temp
+                print("Passed filter:", model_name, cpu, ram, storage) # temp
 
                 # Fallback to title parsing if any missing
                 if not cpu or not ram or not storage:
@@ -119,9 +129,7 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                 listing = listing_lookup.get(ebay_id)
                 listing_type = ",".join(item.get("buyingOptions", []))
                 url = item.get("itemWebUrl")
-                listing.url = url
-                listing.last_seen = now
-
+                
                 if listing:
                     # Update if anything changed
                     changed = False                              
@@ -178,6 +186,10 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                     db.session.add(PriceHistory(listing_id=listing.id, price=price, currency=currency, checked_at=now))
                     listing_lookup[ebay_id] = listing # add this so later items can reference
 
+                    # update url and last_seen for all listings
+                    listing.url = url
+                    listing.last_seen = now
+
                     processed_count += 1
 
                     #--- Commit in batches ---
@@ -206,5 +218,9 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
 
         # Mark missing listings as SOLD
         mark_missing_as_sold(current_ids)
+
+        print("Before final commit:", Listing.query.count()) # temp
+        db.session.commit() # temp
+        print("After final commit:", Listing.query.count()) # temp
 
         
