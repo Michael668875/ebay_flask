@@ -26,12 +26,12 @@ def index():
     <table border="1">
         <tr>
             <th>Model</th>
+            <th>Price</th>
+            <th>Currency</th>
             <th>CPU</th>
             <th>RAM</th>
             <th>Storage</th>
             <th>Title</th>
-            <th>Price</th>
-            <th>Currency</th>
             <th>Condition</th>
             <th>Listing Type</th>
             <th>Last Updated</th>
@@ -39,12 +39,12 @@ def index():
         {% for item in items %}
         <tr>
             <td>{{item.product.model_name}}</td>
+            <td>${{item.price}}</td>
+            <td>{{item.currency}}</td>
             <td>{{item.product.cpu}}</td>
             <td>{{item.product.ram}}</td>
             <td>{{item.product.storage}}</td>
             <td><a href = "{{item.url}}" target =" _blank">{{item.title}}</a></td>
-            <td>{{item.price}}</td>
-            <td>{{item.currency}}</td>
             <td>{{item.condition}}</td>
             <td>{{item.listing_type}}</td>
             <td>{{item.last_updated}}</td>
