@@ -1,7 +1,7 @@
 from app.extensions import db
 from app.models import Product, Listing, PriceHistory
 from datetime import datetime, timezone, timedelta
-from app.services.model_parser import is_real_laptop
+from app.services.model_parser import is_real_laptop, parse_product_details
 import json
 from pathlib import Path
 
@@ -23,19 +23,6 @@ def mark_missing_as_sold():
         listing.last_updated = now
 
     db.session.commit()
-
-
-def parse_product_details(title: str):
-    """Fallback parser if eBay item specifics are missing."""
-    words = title.split()
-    model = " ".join(words[:3]) if len(words) >= 3 else title
-    title_lower = title.lower()
-
-    cpu = "i7" if "i7" in title_lower else "i5" if "i5" in title_lower else "Unknown"
-    ram = "16GB" if "16gb" in title_lower else "8GB" if "8gb" in title_lower else "Unknown"
-    storage = "512GB SSD" if "512gb" in title_lower else "256GB SSD" if "256gb" in title_lower else "Unknown"
-
-    return model, cpu, ram, storage
 
 def extract_aspects(item):    
     """
