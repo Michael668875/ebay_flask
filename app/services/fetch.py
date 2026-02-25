@@ -17,10 +17,32 @@ CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
 CATEGORY_ID = "177"
 MARKET_PLACES = {
     "US": "EBAY_US",
-    "UK": "EBAY_UK",
+    "UK": "EBAY_GB",
     "DE": "EBAY_DE",
     "AU": "EBAY_AU",
 }
+
+def get_item_details(token, item_id, marketplace_id):
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": marketplace_id
+    }
+
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def enrich_with_aspects(token, items):
+    for item in items:
+        details = get_item_details(
+            token,
+            item["itemId"],
+            item["marketplace_id"]
+        )
+        item["localizedAspects"] = details.get("localizedAspects", [])
+    return items
 
 def get_token():
     auth = b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
@@ -37,7 +59,7 @@ def get_token():
     resp.raise_for_status()
     return resp.json()["access_token"]
 
-def get_thinkpads(token, marketplace_id, limit=100):
+def get_thinkpads(token, marketplace_id, limit=10):  
     url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -54,25 +76,21 @@ def get_markets():
     all_items = []
 
     for country, marketplace_id in MARKET_PLACES.items():
-        print(f"Fetching items for {country}...")
         try:
             items = get_thinkpads(token, marketplace_id)
 
-            # Attach country metadata for DB
             for item in items:
                 item["marketplace_country"] = country
                 item["marketplace_id"] = marketplace_id
 
+            items = enrich_with_aspects(token, items)
+
             all_items.extend(items)
 
-            print(f"Fetched {len(items)} items for {country}")
-
         except requests.RequestException as e:
-            print(f"Failed fetching {country}: (e)")
-    
-    print(f"Total items fetched: {len(all_items)}")
-    return all_items
+            print(f"Failed fetching {country}: {e}")
 
+    return all_items
 
 
 

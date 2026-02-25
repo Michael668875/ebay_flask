@@ -1,20 +1,27 @@
 from app.extensions import db
 from app.models import Product, Listing, PriceHistory
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.services.model_parser import is_real_laptop
 import json
 from pathlib import Path
 
 
-def mark_missing_as_sold(current_ids):
-    """Mark ACTIVE listings not seen in the latest fetch as SOLD."""
+def mark_missing_as_sold():
     now = datetime.now(timezone.utc)
-    active_listing = Listing.query.filter_by(status="ACTIVE").all()
-    for listing in active_listing:
-        if listing.ebay_item_id not in current_ids:
-            listing.status = "SOLD"
-            listing.sold_at = now
-            listing.last_updated = now
+
+    # Only consider listings not seen recently
+    threshold = now - timedelta(hours=24)
+
+    stale_listings = Listing.query.filter(
+        Listing.status == "ACTIVE",
+        Listing.last_seen < threshold
+    ).all()
+
+    for listing in stale_listings:
+        listing.status = "SOLD"
+        listing.sold_at = now
+        listing.last_updated = now
+
     db.session.commit()
 
 
@@ -30,26 +37,21 @@ def parse_product_details(title: str):
 
     return model, cpu, ram, storage
 
-def extract_aspects(item):
+def extract_aspects(item):    
     """
     Extract model, cpu, ram, and storage from eBay Browse API localizedAspects.
     Returns a dict with keys: model, cpu, ram, storage
     """
-    aspects_list = item.get("localizedAspects", [])
+    aspects_list = item.get("localizedAspects", []) 
 
-    aspects = {}
-
-    for a in aspects_list:
-        name = a.get("name", "").lower()
-        values = a.get("values", [])
-        if values:
-            aspects[name] = values[0]
-
+    # Convert list of {"name": "...", "value": "..."} to dict
+    aspects = {a["name"].lower(): a["value"] for a in aspects_list}
+    
     return {
         "model": aspects.get("model"),
-        "cpu": aspects.get("processor") or aspects.get("processor type"),
-        "ram": aspects.get("ram size") or aspects.get("memory"),
-        "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity") or aspects.get("storage capacity"),
+        "cpu": aspects.get("processor"),
+        "ram": aspects.get("ram size") or aspects.get("ram for multitasking"),
+        "storage": aspects.get("ssd capacity") or aspects.get("hard drive capacity"),
     }
 
 def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"):
@@ -60,7 +62,6 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
     fail_log_file = Path(fail_log_path)
     with app.app_context():
         now = datetime.now(timezone.utc)
-        current_ids = set()
         ebay_ids = [item["itemId"] for item in items]
         model_names = [extract_aspects(item)["model"] for item in items]
         existing_listings = Listing.query.filter(Listing.ebay_item_id.in_(ebay_ids)).all()
@@ -71,15 +72,11 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
         processed_count = 0 # track items to commit in batches
 
         for item in items:
-            print("RAW ITEM KEYS:", item.keys()) # temp
-            print("RAW localizedAspects:", item.get("localizedAspects")) # temp
-            break # temp
             try:
                 ebay_id = item["itemId"]
                 title = item["title"]
                 price = float(item["price"]["value"])
                 currency = item["price"]["currency"]
-                current_ids.add(ebay_id)
 
                 # get category id
                 category_id = item["categories"][0]["categoryId"] if item.get("categories") else None
@@ -90,13 +87,13 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
 
                 # Parse eBay item specifics
                 aspects = extract_aspects(item)
+                #print(aspects)
 
-                model_name = aspects.get("model")
-                cpu = aspects.get("cpu")
-                ram = aspects.get("ram")
-                storage = aspects.get("storage")
+                model_name = aspects["model"]
+                cpu = aspects["cpu"]
+                ram = aspects["ram"]
+                storage = aspects["storage"]
 
-                # listing is your item from eBay API
                 item_specifics = {
                     "model": model_name,
                     "cpu": cpu,
@@ -104,10 +101,8 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                     "storage": storage,
                 }
 
-                if not is_real_laptop(item_specifics):
+                if not is_real_laptop(item_specifics):                   
                     continue # Skip batteries, chargers, accessories etc
-                print("Processing:", ebay_id) # temp
-                print("Passed filter:", model_name, cpu, ram, storage) # temp
 
                 # Fallback to title parsing if any missing
                 if not cpu or not ram or not storage:
@@ -131,6 +126,7 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                 url = item.get("itemWebUrl")
                 
                 if listing:
+                    listing.last_seen = now
                     # Update if anything changed
                     changed = False                              
                     price_changed = listing.price != price
@@ -167,6 +163,7 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                     listing = Listing(
                         product_id=product.id,
                         ebay_item_id=ebay_id,
+                        marketplace=item.get("marketplace_id"),
                         category_id=category_id,
                         title=title,
                         price=price,
@@ -186,7 +183,6 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                     db.session.add(PriceHistory(listing_id=listing.id, price=price, currency=currency, checked_at=now))
                     listing_lookup[ebay_id] = listing # add this so later items can reference
 
-                    # update url and last_seen for all listings
                     listing.url = url
                     listing.last_seen = now
 
@@ -217,10 +213,6 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
         db.session.commit()
 
         # Mark missing listings as SOLD
-        mark_missing_as_sold(current_ids)
-
-        print("Before final commit:", Listing.query.count()) # temp
-        db.session.commit() # temp
-        print("After final commit:", Listing.query.count()) # temp
+        mark_missing_as_sold()
 
         

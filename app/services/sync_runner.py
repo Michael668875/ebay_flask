@@ -7,14 +7,14 @@ def run_sync():
     app = create_app()
     
     with app.app_context():
-        print("Fetching items from ebay...")
+        #print("Fetching items from ebay...")
         items = get_markets()
+        #items = get_thinkpads()
 
-        print(f"Fetched {len(items)} items.")
-        print("SAVE_THINKPADS STARTED") # temp
+        #print(f"Fetched {len(items)} items.")
         save_thinkpads(items, app)
 
-        print("Running retry cycle...")
+        #print("Running retry cycle...")
         retry_failed(app)
 
         print(f"Synced {len(items)} ThinkPad listings.")
