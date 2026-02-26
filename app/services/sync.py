@@ -88,8 +88,8 @@ def save_thinkpads(items, app, batch_size=50, fail_log_path="failed_items.jsonl"
                     "storage": storage,
                 }
 
-                if not is_real_laptop(item_specifics):                   
-                    continue # Skip batteries, chargers, accessories etc
+                #if not is_real_laptop(item_specifics):              # this won't work with item summaries. parse from titles instead     
+                #    continue # Skip batteries, chargers, accessories etc
 
                 # Fallback to title parsing if any missing
                 if not cpu or not ram or not storage:

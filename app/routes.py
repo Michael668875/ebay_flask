@@ -1,20 +1,9 @@
 from flask import Blueprint, render_template_string
 from app.models import Listing
-import os
 
 bp = Blueprint("main", __name__)
 
-"""CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
 
-def affiliate_link(url):
-    separator = "&" if "?" in url else "?"
-    return (
-        f"{url}{separator}"
-        f"mkcid=1&"
-        f"mkrid=711-53200-19255-0&"
-        f"siteid=0&"
-        f"campid={CAMPAIGN_ID}"
-    )"""
 
 @bp.route("/")
 def index():
@@ -53,4 +42,3 @@ def index():
     </table>
     """, items=listings)
 
-# , affiliate_link=affiliate_link -add this at the end of render_template_string if using affiliate_link function

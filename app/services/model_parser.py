@@ -1,19 +1,11 @@
 import re
-import os
+from app.models import ThinkPadModel, CPU, RAM, Storage
 
-# Known ThinkPad models
-def load_models(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
+MODEL = [m.name for m in ThinkPadModel.query.all()]
+PROCESSOR = [c.name for c in CPU.query.all()]
+MEMORY = [r.size for r in RAM.query.all()]
+STORAGE = [s.size for s in Storage.query.all()]
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FILE_PATH = os.path.join(BASE_DIR, "..", "data", "thinkpad_models.txt")
-CPU_FILE_PATH = os.path.join(BASE_DIR, "..", "data", "cpu_list.txt")
-RAM_FILE_PATH = os.path.join(BASE_DIR, "..", "data", "ram_sizes.txt")
-SSD_FILE_PATH = os.path.join(BASE_DIR, "..", "data", "storage_sizes.txt")
-
-
-THINKPAD_MODELS = load_models(FILE_PATH)
 
 def parse_model_from_title(title: str, specifics_model: str = None) -> str:
     """
@@ -30,7 +22,7 @@ def parse_model_from_title(title: str, specifics_model: str = None) -> str:
     title_lower = title.lower()
 
     # Check for known models in title
-    for model in THINKPAD_MODELS:
+    for model in MODEL:
         # Word boundary to avoid partial matches
         pattern = r"\b" + re.escape(model) + r"\b"
         if re.search(pattern, title_lower):
@@ -42,7 +34,7 @@ def parse_model_from_title(title: str, specifics_model: str = None) -> str:
 # filter out batteries and other junk from the listings
 REQUIRED_SPEC_KEYS = ["model", "processor", "ram", "storage"]
 
-def is_real_laptop(product_dict: dict) -> bool:
+def is_real_laptop(product_dict: dict) -> bool: # this won't work with the browse api as it doesn't return item specifics
     """
     Returns True if this product looks like a real laptop.
     Requires:
@@ -60,11 +52,6 @@ def is_real_laptop(product_dict: dict) -> bool:
     # Otherwise, treat as junk
     return False
 
-# Example CPU, RAM, Storage lists
-CPUS = load_models(CPU_FILE_PATH)
-RAM_SIZES = load_models(RAM_FILE_PATH)
-STORAGE_SIZES = load_models(SSD_FILE_PATH)
-
 def parse_product_details(title: str):
     """
     Parse ThinkPad title to extract model, CPU, RAM, and storage.
@@ -74,28 +61,28 @@ def parse_product_details(title: str):
     # ----- Model -----
     model = "Unknown"
     longest_match_len = 0
-    for m in THINKPAD_MODELS:
+    for m in MODEL:
         if m.lower() in title_lower and len(m) > longest_match_len:
             model = m
             longest_match_len = len(m)
 
     # ----- CPU -----
     cpu = "Unknown"
-    for c in CPUS:
+    for c in PROCESSOR:
         if c.lower() in title_lower:
             cpu = c
             break
 
     # ----- RAM -----
     ram = "Unknown"
-    for r in RAM_SIZES:
+    for r in MEMORY:
         if r.lower() in title_lower:
             ram = r
             break
 
     # ----- Storage -----
     storage = "Unknown"
-    for s in STORAGE_SIZES:
+    for s in STORAGE:
         # Remove spaces for more robust matching
         if s.lower().replace(" ", "") in title_lower.replace(" ", ""):
             storage = s

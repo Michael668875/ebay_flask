@@ -61,3 +61,35 @@ class PriceHistory(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)
     currency = db.Column(db.String(10), nullable=False)
     checked_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class Marketplace(db.Model):
+    __tablename__ = "marketplaces"
+
+    id = db.Column(db.Integer, primary_key=True)
+    country_code = db.Column(db.String(10), nullable=False)   # "US"
+    marketplace_id = db.Column(db.String(20), nullable=False, unique=True)  # "EBAY_US"
+    enabled = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Marketplace {self.marketplace_id}>"
+    
+class ThinkPadModel(db.Model):
+    __tablename__ = "models"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+
+class CPU(db.Model):
+    __tablename__ = "cpu"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True, nullable=False)
+
+class RAM(db.Model):
+    __tablename__ = "ram"
+    id = db.Column(db.Integer, primary_key=True)
+    size = db.Column(db.String(20), unique=True, nullable=False)
+
+class Storage(db.Model):
+    __tablename__ = "storage"
+    id = db.Column(db.Integer, primary_key=True)
+    size = db.Column(db.String(20), unique=True, nullable=False)
