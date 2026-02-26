@@ -15,7 +15,7 @@ CLIENT_ID = os.environ.get("EBAY_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET")
 CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
 CATEGORY_ID = "177"
-MARKET_PLACES = {
+MARKET_PLACES = {   # add a button to select country. Only fetch the country selected.
     "US": "EBAY_US",
     "UK": "EBAY_GB",
     "DE": "EBAY_DE",
