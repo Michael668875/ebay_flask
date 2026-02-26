@@ -60,6 +60,5 @@ def get_thinkpads(limit=10):
         
         except requests.RequestException as e:
                 print(f"Failed fetching {market.marketplace_id}: {e}")
-
     return all_items
 

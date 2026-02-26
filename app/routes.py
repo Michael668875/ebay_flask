@@ -30,9 +30,9 @@ def index():
             <td>{{item.product.model_name}}</td>
             <td>${{item.price}}</td>
             <td>{{item.currency}}</td>
-            <td>{{item.product.cpu}}</td>
+            <td>{{item.product.cpu}} {{item.product.cpu_freq}}</td>
             <td>{{item.product.ram}}</td>
-            <td>{{item.product.storage}}</td>
+            <td>{{item.product.storage}} {{item.product.storage_type}}</td>
             <td><a href = "{{item.url}}" target =" _blank">{{item.title}}</a></td>
             <td>{{item.condition}}</td>
             <td>{{item.listing_type}}</td>

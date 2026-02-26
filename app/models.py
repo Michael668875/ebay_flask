@@ -8,8 +8,10 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
     cpu = db.Column(db.String(100), nullable=True)
+    cpu_freq = db.Column(db.String(10), nullable=True)
     ram = db.Column(db.String(50), nullable=True)
     storage = db.Column(db.String(50), nullable=True)
+    storage_type = db.Column(db.String(20), nullable=True)
 
     # Relationship: Product -> Listings
     listings = db.relationship(

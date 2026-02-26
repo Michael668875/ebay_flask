@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from app.services.sync import save_thinkpads
 
-FAIL_FILE = Path("failed_items.jsonl")
-DEAD_FILE = Path("dead_letter.jsonl")
+FAIL_FILE = Path(__file__).parent / "failed_items.jsonl"
+DEAD_FILE = Path(__file__).parent / "dead_letter.jsonl"
 MAX_RETRIES = 3
 
 def load_failed_items():
