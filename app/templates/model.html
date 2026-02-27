@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>
+        ThinkPad {{ model_slug|replace('-', ' ')|upper }} Price in {{ country|upper }}
+    </title>
+
+    <meta name="description"
+          content="Compare current prices for ThinkPad {{ model_slug|replace('-', ' ')|upper }} in {{ country|upper }}. Updated daily.">
+</head>
+<body>
+
+<h1>
+ThinkPad {{ model_slug|replace('-', ' ')|upper }}
+({{ country|upper }})
+</h1>
+
+<!-- Country Switcher -->
+<select onchange="location = this.value;">
+    <option value="/us/{{ model_slug }}/">United States</option>
+    <option value="/uk/{{ model_slug }}/">United Kingdom</option>
+    <option value="/de/{{ model_slug }}/">Germany</option>
+</select>
+
+<table border="1">
+    <tr>
+        <th>Price</th>
+        <th>Currency</th>
+        <th>CPU</th>
+        <th>RAM</th>
+        <th>Storage</th>
+        <th>Condition</th>
+        <th>Listing</th>
+        <th>Last Updated</th>
+    </tr>
+
+    {% for item in listings %}
+    <tr>
+        <td>{{ item.price }}</td>
+        <td>{{ item.currency }}</td>
+        <td>{{ item.product.cpu }} {{ item.product.cpu_freq }}</td>
+        <td>{{ item.product.ram }}</td>
+        <td>{{ item.product.storage }} {{ item.product.storage_type }}</td>
+        <td>{{ item.condition }}</td>
+        <td>
+            <a href="{{ item.url }}" target="_blank">
+                {{ item.title }}
+            </a>
+        </td>
+        <td>{{ item.last_updated }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

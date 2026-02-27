@@ -1,70 +1,77 @@
 import re
 
-    
-def is_storage_match(text, model):
-    pattern = rf"\b{model}gb\b"
-    return re.search(pattern, text) is not None
-
-
 def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, STORAGE):
-    title_lower = f"{title} {short_description}".lower()
+    """
+    Parse ThinkPad listing to extract:
+    - model_name (prefer longest alphanumeric)
+    - CPU
+    - CPU frequency
+    - RAM
+    - Storage
+    - Storage type
+    """
 
-    # Model
+    # Normalize text
+    title_lower = (title + " " + short_description).lower()
+    search_area = re.sub(r'["/,|.-]', ' ', title_lower)
+
+    # Only search after 'thinkpad' if present
+    if 'thinkpad' in search_area:
+        search_area = search_area.split('thinkpad', 1)[1]
+
     matches = []
-
-    search_area = title_lower
-
-    # If ThinkPad exists, only search after it
-    if "thinkpad" in title_lower:
-        search_area = title_lower.split("thinkpad", 1)[1]
-
     for pre_model in MODEL:
-        if (
-            pre_model.lower() in search_area
-            and not is_storage_match(title_lower, pre_model)
-        ):
+        # match model followed by space, punctuation, or end-of-string
+        # numeric-only models must be followed by space or end-of-string
+        # alphanumeric models can match normally
+        if any(c.isalpha() for c in pre_model):
+            pattern = rf'{re.escape(pre_model.lower())}(?:\s|$)'
+        else:
+            # numeric-only model: only match if followed by space/end or preceded by non-digit
+            pattern = rf'(?<!\d){re.escape(pre_model.lower())}(?:\s|$)'
+
+        if re.search(pattern, search_area):
             matches.append(pre_model)
 
+    # Determine model: prefer longest alphanumeric, fallback to numeric if necessary
     model = "Unknown"
-
     if matches:
-        # Prefer models containing letters (avoid pure numeric like 320)
         letter_models = [m for m in matches if any(c.isalpha() for c in m)]
         if letter_models:
-            # choose the longest match (X131e > X1)
-            model = max(letter_models, key=len)
+            model = max(letter_models, key=len)  # longest alphanumeric
         else:
-            # fallback to numeric matches if nothing else
-            model = max(matches, key=len)
+            model = max(matches, key=len)  # fallback numeric-only
 
     # CPU
-    cpu = next((c for c in PROCESSOR if c.lower() in title_lower), "Unknown")
+    cpu = next(
+        (c for c in PROCESSOR if re.search(rf'\b{re.escape(c.lower())}\b', search_area)),
+        "Unknown"
+    )
 
-    # Detect CPU frequency (e.g., 2.6GHz, 2.60 GHz)
-    cpu_freq_match = re.search(r'(\d+(\.\d+)?\s?ghz)', title_lower)
+    # CPU frequency
+    cpu_freq_match = re.search(r'(\d+(\.\d+)?\s?ghz)', search_area)
     cpu_freq = cpu_freq_match.group(1) if cpu_freq_match else ""
 
     # RAM
-    ram = next((r for r in MEMORY if r.lower() in title_lower), "Unknown")
+    ram = next(
+        (r for r in MEMORY if re.search(rf'\b{re.escape(r.lower())}\b', search_area)),
+        "Unknown"
+    )
 
     # Storage
-    storage = next((s for s in STORAGE if s.lower().replace(" ", "") in title_lower.replace(" ", "")), "Unknown")
+    storage = next(
+        (s for s in STORAGE if re.search(rf'\b{re.escape(s.lower().replace(" ", ""))}\b', search_area.replace(" ", ""))),
+        "Unknown"
+    )
 
-    # Detect storage type
-    if "nvme" in title_lower:
+    # Storage type
+    if 'nvme' in search_area:
         storage_type = "NVME"
-    elif "ssd" in title_lower:
+    elif 'ssd' in search_area:
         storage_type = "SSD"
-    elif "hdd" in title_lower or "hard drive" in title_lower:
+    elif 'hdd' in search_area or 'hard drive' in search_area:
         storage_type = "HDD"
     else:
         storage_type = ""
 
     return model, cpu, cpu_freq, ram, storage, storage_type
-
-
-
-
-
-
-

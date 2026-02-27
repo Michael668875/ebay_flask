@@ -1,65 +1,94 @@
-from flask import Blueprint, render_template_string, render_template, abort
-from app.models import Listing, Marketplace
+from flask import (
+    Blueprint,
+    render_template,
+    redirect,
+    url_for,
+    abort,
+    request,
+    make_response
+)
+
+from app.models import Listing, Marketplace, Product
 
 bp = Blueprint("main", __name__)
 
-def get_markets():
-    from app.models import Marketplace
-    return Marketplace.query.filter_by(enabled=True).all()
+
+# -------------------------------------------------
+# Helpers
+# -------------------------------------------------
+
+def get_enabled_markets():
+    """Return enabled marketplaces as dict keyed by country code."""
+    markets = Marketplace.query.filter_by(enabled=True).all()
+    return {m.country_code.lower(): m for m in markets}
+
+
+# -------------------------------------------------
+# Root → Redirect to preferred country
+# -------------------------------------------------
 
 @bp.route("/")
 def index():
-    # Query listings with their related product info
-    listings = Listing.query.join(Listing.product).order_by(Listing.price.asc()).all()
+    preferred = request.cookies.get("preferred_country", "us")
+    return redirect(url_for("main.country_home", country=preferred))
 
-    return render_template_string("""
-    <h1>ThinkPad Prices</h1>
-    <table border="1">
-        <tr>
-            <th>Model</th>
-            <th>Price</th>
-            <th>Currency</th>
-            <th>CPU</th>
-            <th>RAM</th>
-            <th>Storage</th>
-            <th>Title</th>
-            <th>Condition</th>
-            <th>Listing Type</th>
-            <th>Last Updated</th>
-        </tr>
-        {% for item in items %}
-        <tr>
-            <td>{{item.product.model_name}}</td>
-            <td>${{item.price}}</td>
-            <td>{{item.currency}}</td>
-            <td>{{item.product.cpu}} {{item.product.cpu_freq}}</td>
-            <td>{{item.product.ram}}</td>
-            <td>{{item.product.storage}} {{item.product.storage_type}}</td>
-            <td><a href = "{{item.url}}" target =" _blank">{{item.title}}</a></td>
-            <td>{{item.condition}}</td>
-            <td>{{item.listing_type}}</td>
-            <td>{{item.last_updated}}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    """, items=listings)
+
+# -------------------------------------------------
+# Country Home Page
+# Example: /us/
+# -------------------------------------------------
+
+@bp.route("/<country>/")
+def country_home(country):
+    country = country.lower()
+    markets = get_enabled_markets()
+
+    if country not in markets:
+        abort(404)
+
+    marketplace = markets[country]
+
+    # Show cheapest active listings in that country
+    listings = (
+        Listing.query
+        .filter_by(marketplace=marketplace.marketplace_id, status="ACTIVE")
+        .join(Listing.product)
+        .order_by(Listing.price.asc())
+        .limit(50)
+        .all()
+    )
+
+    return render_template(
+        "home.html",
+        listings=listings,
+        country=country
+    )
+
+
+# -------------------------------------------------
+# Model Page
+# Example: /us/thinkpad-t480/
+# -------------------------------------------------
 
 @bp.route("/<country>/<model_slug>/")
 def model_page(country, model_slug):
     country = country.lower()
+    markets = get_enabled_markets()
 
-    market = get_markets()
-
-    if country not in market:
+    if country not in markets:
         abort(404)
 
-    marketplace = market[country]
+    marketplace = markets[country]
 
     listings = (
         Listing.query
-        .filter_by(model_slug=model_slug,
-                   marketplace=marketplace,
-                   status="ACTIVE")
+        .join(Listing.product)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace == marketplace.marketplace_id,
+            Product.slug == model_slug
+        )
+        .order_by(Listing.price.asc())
         .all()
     )
 
@@ -72,3 +101,23 @@ def model_page(country, model_slug):
         country=country,
         model_slug=model_slug
     )
+
+
+# -------------------------------------------------
+# Set Preferred Country Cookie
+# -------------------------------------------------
+
+@bp.route("/set-country/<country>/")
+def set_country(country):
+    country = country.lower()
+    markets = get_enabled_markets()
+
+    if country not in markets:
+        abort(404)
+
+    response = make_response(
+        redirect(request.referrer or url_for("main.country_home", country=country))
+    )
+    response.set_cookie("preferred_country", country, max_age=60 * 60 * 24 * 30)
+
+    return response

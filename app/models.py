@@ -21,7 +21,7 @@ class Product(db.Model):
     # Relationship: Product -> Listings
     listings = db.relationship(
         'Listing',
-        backref='product',
+        back_populates='product',
         cascade="all, delete-orphan",
         lazy=True
     )
@@ -34,13 +34,13 @@ class Listing(db.Model):
     category_id = db.Column(db.String(20), nullable=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     ebay_item_id = db.Column(db.String(50), nullable=False, unique=True)
-    marketplace = db.Column(db.String(10), nullable=False)
+    marketplace = db.Column(db.String(10), nullable=False, index=True)
     title = db.Column(db.Text, nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)  # money values
     currency = db.Column(db.String(10), nullable=False)
     condition = db.Column(db.String(50))
     listing_type = db.Column(db.String(50))
-    status = db.Column(db.String, default="ACTIVE") # ACTIVE, SOLD, ENDED
+    status = db.Column(db.String, default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     sold_at = db.Column(db.DateTime, nullable=True)
@@ -57,6 +57,10 @@ class Listing(db.Model):
         backref='listing',
         cascade="all, delete-orphan",
         lazy=True
+    )
+    product = db.relationship(
+        "Product", 
+        back_populates="listings"
     )
 
 
