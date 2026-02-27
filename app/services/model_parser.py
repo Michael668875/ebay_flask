@@ -1,20 +1,41 @@
-from app.models import ThinkPadModel, CPU, RAM, Storage
 import re
 
-def get_specs():
-    MODEL = [m.name for m in ThinkPadModel.query.all()]
-    PROCESSOR = [c.name for c in CPU.query.all()]
-    MEMORY = [r.size for r in RAM.query.all()]
-    STORAGE = [s.size for s in Storage.query.all()]
-    return MODEL, PROCESSOR, MEMORY, STORAGE
+    
+def is_storage_match(text, model):
+    pattern = rf"\b{model}gb\b"
+    return re.search(pattern, text) is not None
 
-def parse_product_details(title: str, short_description: str = ""):
+
+def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, STORAGE):
     title_lower = f"{title} {short_description}".lower()
 
-    MODEL, PROCESSOR, MEMORY, STORAGE = get_specs()
-
     # Model
-    model = max((m for m in MODEL if m.lower() in title_lower), key=len, default="Unknown")
+    matches = []
+
+    search_area = title_lower
+
+    # If ThinkPad exists, only search after it
+    if "thinkpad" in title_lower:
+        search_area = title_lower.split("thinkpad", 1)[1]
+
+    for pre_model in MODEL:
+        if (
+            pre_model.lower() in search_area
+            and not is_storage_match(title_lower, pre_model)
+        ):
+            matches.append(pre_model)
+
+    model = "Unknown"
+
+    if matches:
+        # Prefer models containing letters (avoid pure numeric like 320)
+        letter_models = [m for m in matches if any(c.isalpha() for c in m)]
+        if letter_models:
+            # choose the longest match (X131e > X1)
+            model = max(letter_models, key=len)
+        else:
+            # fallback to numeric matches if nothing else
+            model = max(matches, key=len)
 
     # CPU
     cpu = next((c for c in PROCESSOR if c.lower() in title_lower), "Unknown")
@@ -40,4 +61,10 @@ def parse_product_details(title: str, short_description: str = ""):
         storage_type = ""
 
     return model, cpu, cpu_freq, ram, storage, storage_type
+
+
+
+
+
+
 

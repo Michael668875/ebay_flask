@@ -4,7 +4,36 @@ from datetime import datetime, timezone, timedelta
 from app.services.model_parser import parse_product_details
 import json
 from pathlib import Path
+from slugify import slugify
+from sqlalchemy.orm import Session
+from app.models import ThinkPadModel, CPU, RAM, Storage
 
+
+def get_specs():
+    MODEL = [m.name for m in ThinkPadModel.query.all()]
+    PROCESSOR = [c.name for c in CPU.query.all()]
+    MEMORY = [r.size for r in RAM.query.all()]
+    STORAGE = [s.size for s in Storage.query.all()]
+    return MODEL, PROCESSOR, MEMORY, STORAGE
+
+def ensure_product_slug(product: Product):
+    """
+    Generate a slug for a product if it doesn't have one.
+    """
+    if product.slug:
+        return  # already has slug
+
+    session: Session = db.session
+    base_slug = slugify(f"thinkpad {product.model_name}")
+    slug = base_slug
+    counter = 1
+
+    # ensure uniqueness
+    while session.query(Product).filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    product.slug = slug
 
 def mark_missing_as_sold():
     now = datetime.now(timezone.utc)
@@ -36,6 +65,9 @@ def save_thinkpads(items, app, batch_size=50):
         existing_listings = Listing.query.filter(Listing.ebay_item_id.in_(ebay_ids)).all()
         listing_lookup = {l.ebay_item_id: l for l in existing_listings}
 
+        MODEL, PROCESSOR, MEMORY, STORAGE = get_specs()
+
+
         for item in items:
             try:
                 title = item["title"]
@@ -45,15 +77,17 @@ def save_thinkpads(items, app, batch_size=50):
                     raise ValueError(f"Missing marketplace_id for item {item['itemId']}")
 
                 # Parse all specs
-                model_name, cpu, cpu_freq, ram, storage, storage_type = parse_product_details(title, short_desc)
+                model_name, cpu, cpu_freq, ram, storage, storage_type = parse_product_details(title, short_desc, MODEL, PROCESSOR, MEMORY, STORAGE)
 
                 # --- Get or create Product ---
                 product = Product.query.filter_by(model_name=model_name).first()
+                
                 if not product:
                     product = Product(model_name=model_name, cpu=cpu, cpu_freq=cpu_freq, ram=ram, storage=storage, storage_type=storage_type)
                     db.session.add(product)
+                    ensure_product_slug(product)
                     db.session.flush()  # get product.id
-
+                    
                 # --- Get or create/update Listing ---
                 listing = listing_lookup.get(item["itemId"])
                 price = float(item["price"]["value"])

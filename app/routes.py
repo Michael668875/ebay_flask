@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template_string
-from app.models import Listing
+from flask import Blueprint, render_template_string, render_template, abort
+from app.models import Listing, Marketplace
 
 bp = Blueprint("main", __name__)
 
-
+def get_markets():
+    from app.models import Marketplace
+    return Marketplace.query.filter_by(enabled=True).all()
 
 @bp.route("/")
 def index():
@@ -42,3 +44,31 @@ def index():
     </table>
     """, items=listings)
 
+@bp.route("/<country>/<model_slug>/")
+def model_page(country, model_slug):
+    country = country.lower()
+
+    market = get_markets()
+
+    if country not in market:
+        abort(404)
+
+    marketplace = market[country]
+
+    listings = (
+        Listing.query
+        .filter_by(model_slug=model_slug,
+                   marketplace=marketplace,
+                   status="ACTIVE")
+        .all()
+    )
+
+    if not listings:
+        abort(404)
+
+    return render_template(
+        "model.html",
+        listings=listings,
+        country=country,
+        model_slug=model_slug
+    )

@@ -1,5 +1,9 @@
 from app.extensions import db
 from datetime import datetime, timezone
+from slugify import slugify
+from sqlalchemy import event
+from sqlalchemy.orm import Session
+
 
 
 class Product(db.Model):
@@ -7,6 +11,7 @@ class Product(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(120), unique=True, index=True)
     cpu = db.Column(db.String(100), nullable=True)
     cpu_freq = db.Column(db.String(10), nullable=True)
     ram = db.Column(db.String(50), nullable=True)
@@ -95,3 +100,19 @@ class Storage(db.Model):
     __tablename__ = "storage"
     id = db.Column(db.Integer, primary_key=True)
     size = db.Column(db.String(20), unique=True, nullable=False)
+
+
+@event.listens_for(Product, "before_insert")
+def generate_unique_slug(mapper, connection, target):
+    if not target.slug:
+        # Prepend "thinkpad" for SEO in URL
+        base_slug = slugify(f"thinkpad {target.model_name}")
+        slug = base_slug
+        counter = 1
+
+        session = Session.object_session(target)
+        while session.query(Product).filter_by(slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        target.slug = slug
