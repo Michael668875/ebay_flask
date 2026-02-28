@@ -17,6 +17,7 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
 
 <!-- Country Switcher -->
 <select onchange="location = this.value;">
+    <option value="/">Choose Country</option>
     <option value="/us/{{ model_slug }}/">United States</option>
     <option value="/uk/{{ model_slug }}/">United Kingdom</option>
     <option value="/de/{{ model_slug }}/">Germany</option>

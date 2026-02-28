@@ -13,6 +13,8 @@ from app.models import Listing, Marketplace, Product
 bp = Blueprint("main", __name__)
 
 
+
+
 # -------------------------------------------------
 # Helpers
 # -------------------------------------------------
@@ -93,14 +95,17 @@ def model_page(country, model_slug):
     )
 
     if not listings:
-        abort(404)
-
-    return render_template(
+        #abort(404)
+        page = render_template("none.html")
+    else:
+        page = render_template(
         "model.html",
         listings=listings,
         country=country,
         model_slug=model_slug
     )
+
+    return page
 
 
 # -------------------------------------------------
