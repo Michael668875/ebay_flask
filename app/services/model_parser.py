@@ -42,27 +42,36 @@ def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, ST
         else:
             model = max(matches, key=len)  # fallback numeric-only
 
+    search_area = re.sub(re.escape(model.lower()), '', search_area, count=1)
+
     # CPU
-    cpu = next(
-        (c for c in PROCESSOR if re.search(rf'\b{re.escape(c.lower())}\b', search_area)),
-        "Unknown"
-    )
+    cpu_matches = [c for c in PROCESSOR if re.search(rf'\b{re.escape(c.lower())}\b', search_area)]
+    cpu = max(cpu_matches, key=len) if cpu_matches else "Unknown"
+
+    search_area = re.sub(re.escape(cpu.lower()), '', search_area, count=1)
+
 
     # CPU frequency
     cpu_freq_match = re.search(r'(\d+(\.\d+)?\s?ghz)', search_area)
     cpu_freq = cpu_freq_match.group(1) if cpu_freq_match else ""
+    if cpu_freq:
+            search_area = re.sub(re.escape(cpu_freq.lower()), '', search_area, count=1)
+
+
 
     # RAM
-    ram = next(
-        (r for r in MEMORY if re.search(rf'\b{re.escape(r.lower())}\b', search_area)),
-        "Unknown"
-    )
+    ram_matches = [r for r in MEMORY if re.search(rf'\b{re.escape(r.lower())}\b', search_area)]
+    ram = max(ram_matches, key=len) if ram_matches else "Unknown"
+    
+    search_area = re.sub(re.escape(ram.lower()), '', search_area, count=1)
+
+
 
     # Storage
-    storage = next(
-        (s for s in STORAGE if re.search(rf'\b{re.escape(s.lower().replace(" ", ""))}\b', search_area.replace(" ", ""))),
-        "Unknown"
-    )
+    storage_matches = [s for s in STORAGE if re.search(rf'\b{re.escape(s.lower())}\b', search_area)]
+    storage = max(storage_matches, key=len) if storage_matches else "Unknown"
+    
+
 
     # Storage type
     if 'nvme' in search_area:
