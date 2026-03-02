@@ -2,9 +2,12 @@ from app.extensions import db
 from datetime import datetime, timezone
 from slugify import slugify
 from sqlalchemy import event
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, validates
+import re
 
-
+def clean_text(text: str) -> str:
+    # Remove emojis and other non-ASCII symbols
+    return re.sub(r'[^\x00-\x7F]+', '', text)
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -62,6 +65,10 @@ class Listing(db.Model):
         "Product", 
         back_populates="listings"
     )
+
+@validates('title')
+def sanitize_title(self, key, value):
+    return clean_text(value)
 
 
 class PriceHistory(db.Model):

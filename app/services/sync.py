@@ -7,6 +7,7 @@ from pathlib import Path
 from slugify import slugify
 from sqlalchemy.orm import Session
 from app.models import ThinkPadModel, CPU, RAM, Storage
+from decimal import Decimal, ROUND_HALF_UP
 
 
 def get_specs():
@@ -90,7 +91,12 @@ def save_thinkpads(items, app, batch_size=50):
                     
                 # --- Get or create/update Listing ---
                 listing = listing_lookup.get(item["itemId"])
-                price = float(item["price"]["value"])
+                # Assume item is the eBay API listing JSON
+                price_str = item["price"]["value"]   # e.g. "258.92" or "258.9166667"
+
+                # Convert to Decimal and round to 2 decimal places
+                price = Decimal(price_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
                 currency = item["price"]["currency"]
                 condition = item.get("condition", "Unknown")
                 listing_type = ",".join(item.get("buyingOptions", []))

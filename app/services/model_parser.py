@@ -12,73 +12,60 @@ def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, ST
     """
 
     # Normalize text
-    title_lower = (title + " " + short_description).lower()
-    search_area = re.sub(r'["/,|.-]', ' ', title_lower)
+    search_area = (title + " " + short_description).lower()
+    search_area = re.sub(r'["/,|.-]', ' ', search_area)
 
     # Only search after 'thinkpad' if present
     if 'thinkpad' in search_area:
         search_area = search_area.split('thinkpad', 1)[1]
 
+    # ----------------- MODEL -----------------
     matches = []
     for pre_model in MODEL:
-        # match model followed by space, punctuation, or end-of-string
-        # numeric-only models must be followed by space or end-of-string
-        # alphanumeric models can match normally
-        if any(c.isalpha() for c in pre_model):
-            pattern = rf'{re.escape(pre_model.lower())}(?:\s|$)'
-        else:
-            # numeric-only model: only match if followed by space/end or preceded by non-digit
-            pattern = rf'(?<!\d){re.escape(pre_model.lower())}(?:\s|$)'
-
+        pattern = (
+            rf'{re.escape(pre_model.lower())}(?:\s|$)'
+            if any(c.isalpha() for c in pre_model)
+            else rf'(?<!\d){re.escape(pre_model.lower())}(?:\s|$)'
+        )
         if re.search(pattern, search_area):
             matches.append(pre_model)
 
-    # Determine model: prefer longest alphanumeric, fallback to numeric if necessary
     model = "Unknown"
     if matches:
         letter_models = [m for m in matches if any(c.isalpha() for c in m)]
-        if letter_models:
-            model = max(letter_models, key=len)  # longest alphanumeric
-        else:
-            model = max(matches, key=len)  # fallback numeric-only
+        model = max(letter_models, key=len) if letter_models else max(matches, key=len)
 
     search_area = re.sub(re.escape(model.lower()), '', search_area, count=1)
 
-    # CPU
+    # ----------------- CPU -----------------
     cpu_matches = [c for c in PROCESSOR if re.search(rf'\b{re.escape(c.lower())}\b', search_area)]
     cpu = max(cpu_matches, key=len) if cpu_matches else "Unknown"
+    if cpu != "Unknown":
+        search_area = re.sub(re.escape(cpu.lower()), '', search_area, count=1)
 
-    search_area = re.sub(re.escape(cpu.lower()), '', search_area, count=1)
-
-
-    # CPU frequency
+    # ----------------- CPU Frequency -----------------
     cpu_freq_match = re.search(r'(\d+(\.\d+)?\s?ghz)', search_area)
     cpu_freq = cpu_freq_match.group(1) if cpu_freq_match else ""
     if cpu_freq:
-            search_area = re.sub(re.escape(cpu_freq.lower()), '', search_area, count=1)
+        search_area = re.sub(re.escape(cpu_freq.lower()), '', search_area, count=1)
 
-
-
-    # RAM
+    # ----------------- RAM -----------------
     ram_matches = [r for r in MEMORY if re.search(rf'\b{re.escape(r.lower())}\b', search_area)]
     ram = max(ram_matches, key=len) if ram_matches else "Unknown"
-    
-    search_area = re.sub(re.escape(ram.lower()), '', search_area, count=1)
+    if ram != "Unknown":
+        search_area = re.sub(re.escape(ram.lower()), '', search_area, count=1)
 
-
-
-    # Storage
+    # ----------------- STORAGE -----------------
     storage_matches = [s for s in STORAGE if re.search(rf'\b{re.escape(s.lower())}\b', search_area)]
     storage = max(storage_matches, key=len) if storage_matches else "Unknown"
-    
 
-
-    # Storage type
-    if 'nvme' in search_area:
+    # ----------------- STORAGE TYPE -----------------
+    search_area_lower = search_area.lower()
+    if 'nvme' in search_area_lower:
         storage_type = "NVME"
-    elif 'ssd' in search_area:
+    elif 'ssd' in search_area_lower:
         storage_type = "SSD"
-    elif 'hdd' in search_area or 'hard drive' in search_area:
+    elif 'hdd' in search_area_lower or 'hard drive' in search_area_lower:
         storage_type = "HDD"
     else:
         storage_type = ""

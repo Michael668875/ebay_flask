@@ -32,7 +32,7 @@ def get_token():
     resp.raise_for_status()
     return resp.json()["access_token"]
 
-def get_thinkpads(limit=10):  
+def get_thinkpads(limit=50):  
     token = get_token()
     all_items = []
 

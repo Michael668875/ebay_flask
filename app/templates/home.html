@@ -21,6 +21,7 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     <option value="/us/{{ model_slug }}/">United States</option>
     <option value="/uk/{{ model_slug }}/">United Kingdom</option>
     <option value="/de/{{ model_slug }}/">Germany</option>
+    <option value="/au/{{ model_slug }}/">Australia</option>
 </select>
 
 <table border="1">
@@ -30,7 +31,6 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
             <th>Currency</th>
             <th>CPU</th>
             <th>RAM</th>
-            <th>Storage</th>
             <th>Title</th>
             <th>Condition</th>
             <th>Listing Type</th>
@@ -45,9 +45,8 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
             </a></td>
         <td>${{item.price}}</td>
         <td>{{item.currency}}</td>
-        <td>{{item.product.cpu}} {{item.product.cpu_freq}}</td>
+        <td>{{item.product.cpu}}</td>
         <td>{{item.product.ram}}</td>
-        <td>{{item.product.storage}} {{item.product.storage_type}}</td>
         <td><a href = "{{item.url}}" target =" _blank">{{item.title}}</a></td>
         <td>{{item.condition}}</td>
         <td>{{item.listing_type}}</td>
