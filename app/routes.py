@@ -56,7 +56,7 @@ def country_home(country):
         .filter_by(marketplace=marketplace.marketplace_id, status="ACTIVE")
         .join(Listing.product)
         .order_by(Listing.price.asc())
-        .limit(50)
+        .limit(100)
         .all()
     )
 

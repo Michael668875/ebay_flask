@@ -32,7 +32,8 @@ def get_token():
     resp.raise_for_status()
     return resp.json()["access_token"]
 
-def get_thinkpads(limit=50):  
+# get item summaries
+def get_thinkpads(limit=100):  
     token = get_token()
     all_items = []
 
@@ -62,3 +63,71 @@ def get_thinkpads(limit=50):
                 print(f"Failed fetching {market.marketplace_id}: {e}")
     return all_items
 
+# get item specifics from more detailed api
+def get_item_details(item_id, marketplace_id, token):
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+        "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
+    }
+
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+# fetch item specifics in lots of 20 to avoid rate limit
+def fetch_items_in_batches(items, batch_size=20):
+    token = get_token()
+    detailed_items = []
+
+    for i in range(0, len(items), batch_size):
+        batch = items[i:i + batch_size]
+
+        print(f"Fetching batch {i // batch_size + 1}")
+
+        for item in batch:
+            try:
+                item_id = item["itemId"]
+                marketplace_id = item["marketplace_id"]
+
+                details = get_item_details(item_id, marketplace_id, token)
+
+                detailed_items.append(details)
+
+            except requests.RequestException as e:
+                print(f"Failed fetching {item_id}: {e}")
+
+    return detailed_items
+
+
+# make a function to extract localizedaspects and save to db
+
+# try something like this:
+
+def extract_localized_aspects(detailed_items):
+    """
+    Takes a list of full item detail responses.
+    Returns a list of dicts containing only:
+        - itemId
+        - marketplace_id (if present)
+        - localizedAspects
+    """
+
+    extracted = []
+
+    for item in detailed_items:
+        item_id = item.get("itemId")
+
+        localized_aspects = item.get("localizedAspects", [])
+
+        extracted.append({
+            "itemId": item_id,
+            "localizedAspects": localized_aspects
+        })
+
+    return extracted
+
+
+# add a back of function when hitting rate limit
