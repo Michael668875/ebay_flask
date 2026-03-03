@@ -1,3 +1,5 @@
+# TRY TO PARSE ITEM DETAILS FROM THE TITLE AND SHORT DESCRIPTION
+
 import re
 
 def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, STORAGE):

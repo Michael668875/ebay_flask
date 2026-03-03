@@ -54,124 +54,24 @@ def mark_missing_as_sold():
 
     db.session.commit()
 
-"""def save_thinkpads(items, app, batch_size=50):
-    fail_log_file = Path(__file__).parent / "failed_items.jsonl"
 
-    with app.app_context():
-        now = datetime.now(timezone.utc)
-        processed_count = 0
+def save_thinkpads(items, context, batch_size=50):
+    processed_count = 0
 
-        # Build lookups for faster access
-        ebay_ids = [item["itemId"] for item in items]
-        existing_listings = Listing.query.filter(Listing.ebay_item_id.in_(ebay_ids)).all()
-        listing_lookup = {l.ebay_item_id: l for l in existing_listings}
+    for item in items:
+        try:
+            process_item(item, context)
+            processed_count += 1
 
-        MODEL, PROCESSOR, MEMORY, STORAGE = get_specs()
+            if processed_count % batch_size == 0:
+                db.session.commit()
 
+        except Exception as e:
+            handle_failed_item(item, e)
 
-        for item in items:
-            try:
-                title = item["title"]
-                short_desc = item.get("shortDescription", "")
-                marketplace_id = item.get("marketplace_id")
-                if not marketplace_id:
-                    raise ValueError(f"Missing marketplace_id for item {item['itemId']}")
+    db.session.commit()
+    mark_missing_as_sold()
 
-                # Parse all specs
-                model_name, cpu, cpu_freq, ram, storage, storage_type = parse_product_details(title, short_desc, MODEL, PROCESSOR, MEMORY, STORAGE)
-
-                # --- Get or create Product ---
-                product = Product.query.filter_by(model_name=model_name).first()
-                
-                if not product:
-                    product = Product(model_name=model_name, cpu=cpu, cpu_freq=cpu_freq, ram=ram, storage=storage, storage_type=storage_type)
-                    db.session.add(product)
-                    ensure_product_slug(product)
-                    db.session.flush()  # get product.id
-                    
-                # --- Get or create/update Listing ---
-                listing = listing_lookup.get(item["itemId"])
-                # Assume item is the eBay API listing JSON
-                price_str = item["price"]["value"]   # e.g. "258.92" or "258.9166667"
-
-                # Convert to Decimal and round to 2 decimal places
-                price = Decimal(price_str).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-                currency = item["price"]["currency"]
-                condition = item.get("condition", "Unknown")
-                listing_type = ",".join(item.get("buyingOptions", []))
-                url = item.get("itemWebUrl")
-                if not listing:
-                    listing = Listing(
-                        product_id=product.id,
-                        ebay_item_id=item["itemId"],
-                        title=title,
-                        price=price,
-                        currency=currency,
-                        listing_type=listing_type,
-                        url=url,
-                        marketplace=marketplace_id,
-                        condition=condition,
-                        status="ACTIVE",
-                        first_seen=now,
-                        last_seen=now,
-                        last_updated=now
-                    )
-                    db.session.add(listing)
-                    db.session.flush()
-                    # Initial price history
-                    db.session.add(PriceHistory(listing_id=listing.id, price=listing.price, currency=listing.currency, checked_at=now))
-                    listing_lookup[item["itemId"]] = listing
-                else:
-                    listing.last_seen = now
-                    listing.condition = condition
-
-                    if listing.price != price:
-                        listing.price = price
-                        listing.last_updated = now
-                        db.session.add(
-                            PriceHistory(
-                                listing_id=listing.id,
-                                price=price,
-                                currency=currency,
-                                checked_at=now
-                            )
-                        )
-
-                processed_count += 1
-                if processed_count % batch_size == 0:
-                    db.session.commit()
-
-            except Exception as e:
-                db.session.rollback()
-                with fail_log_file.open("a", encoding="utf-8") as f:
-                    f.write(json.dumps({"item": item, "error": str(e)}) + "\n")
-                #print(f"Failed item {item['itemId']}: {e}")
-
-        # commit remaining items
-        db.session.commit()
-        mark_missing_as_sold()
-"""        
-#################################################
-
-def save_thinkpads(items, app, batch_size=50):
-    with app.app_context():
-        context = build_context(items)
-        processed_count = 0
-
-        for item in items:
-            try:
-                process_item(item, context)
-                processed_count += 1
-
-                if processed_count % batch_size == 0:
-                    db.session.commit()
-
-            except Exception as e:
-                handle_failed_item(item, e)
-
-        db.session.commit()
-        mark_missing_as_sold()
 
 
 def build_context(items):
@@ -324,4 +224,125 @@ def handle_failed_item(item, error):
             "item": item,
             "error": str(error)
         }) + "\n")
+
+# get item specifics from detailed item api
+def extract_specs(localized_aspects):
+    """
+    Extract key specs from eBay's localizedAspects dict.
+    Returns a dictionary with all relevant fields.
+    """
+    specs = {}
+
+    # Convert list of dicts to a lookup
+    aspect_lookup = {}
+    for a in localized_aspects or []:
+        name = a.get('name')  
+        if not name:
+            continue
+        # 'value' can be a string or a list, normalize to first element if list
+        value = a.get('value')
+        if isinstance(value, list):
+            value = value[0] if value else None
+        aspect_lookup[name.lower()] = value
+
+
+    specs['model'] = aspect_lookup.get('model', None)
+    specs['cpu'] = aspect_lookup.get('processor', None)
+    specs['ram'] = aspect_lookup.get('ram', None)
+    specs['storage'] = aspect_lookup.get('hard drive capacity', None)
+    specs['storage_type'] = aspect_lookup.get('hard drive type', None)
+    specs['screen_size'] = aspect_lookup.get('screen size', None)
+    specs['gpu'] = aspect_lookup.get('graphics processor', None)
+
+    return specs
+
+def get_or_create_cpu(name):
+    if not name:
+        return None
+    cpu = CPU.query.filter_by(name=name).first()
+    if not cpu:
+        cpu = CPU(name=name)
+        db.session.add(cpu)
+        db.session.flush()
+    return cpu
+
+def get_or_create_ram(size):
+    if not size:
+        return None
+    ram = RAM.query.filter_by(size=size).first()
+    if not ram:
+        ram = RAM(size=size)
+        db.session.add(ram)
+        db.session.flush()
+    return ram
+
+def get_or_create_storage(size):
+    if not size:
+        return None
+    storage = Storage.query.filter_by(size=size).first()
+    if not storage:
+        storage = Storage(size=size)
+        db.session.add(storage)
+        db.session.flush()
+    return storage
+
+def update_product_with_specs(product, specs):
+    cpu_obj = get_or_create_cpu(specs.get('cpu'))
+    ram_obj = get_or_create_ram(specs.get('ram'))
+    storage_obj = get_or_create_storage(specs.get('storage'))
+
+    if cpu_obj:
+        product.cpu = cpu_obj.name
+    if ram_obj:
+        product.ram = ram_obj.size
+    if storage_obj:
+        product.storage = storage_obj.size
+    if specs.get('storage_type'):
+        product.storage_type = specs['storage_type']
+
+    # Optional: store GPU / screen size as custom fields if needed
+    # e.g., product.gpu = specs.get('gpu')
+
+def save_thinkpads_detailed(detailed_items, context):
+    """
+    Process detailed eBay items, extracting specs from localizedAspects,
+    creating/updating Products, and updating Listings.
+
+    Args:
+        detailed_items (list[dict]): List of detailed eBay item JSONs.
+        context (dict): Shared context with 'now', 'listing_lookup', etc.
+    """
+
+    fail_log_file = Path(__file__).parent / "failed_detailed_items.jsonl"
+
+    for item in detailed_items:
+        try:
+            # Extract specs from localizedAspects
+            specs = extract_specs(item.get('localizedAspects', []))
+            model_name = specs.get('model')
+            if not model_name:
+                raise ValueError(f"No model found for item {item['itemId']}")
+
+            # Get or create Product
+            product = Product.query.filter_by(model_name=model_name).first()
+            if not product:
+                product = Product(model_name=model_name)
+                db.session.add(product)
+                db.session.flush()  # get product.id
+
+            # Update Product with normalized specs
+            update_product_with_specs(product, specs)
+
+            # Get or create/update Listing
+            get_or_create_or_update_listing(item, product, context)
+
+        except Exception as e:
+            db.session.rollback()
+            with fail_log_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps({"item": item, "error": str(e)}) + "\n")
+            print(f"Failed detailed item {item.get('itemId')}: {e}")
+
+    # Commit all remaining changes after processing batch
+    db.session.commit()
+
 
