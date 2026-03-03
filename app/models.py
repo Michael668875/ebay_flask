@@ -35,7 +35,7 @@ class Listing(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     category_id = db.Column(db.String(20), nullable=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
     ebay_item_id = db.Column(db.String(50), nullable=False, unique=True)
     marketplace = db.Column(db.String(10), nullable=False, index=True)
     title = db.Column(db.Text, nullable=False)

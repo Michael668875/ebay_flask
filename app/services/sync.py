@@ -7,6 +7,7 @@ from slugify import slugify
 from sqlalchemy.orm import Session
 from app.models import CPU, RAM, Storage
 from decimal import Decimal, ROUND_HALF_UP
+import re
 
 
 def ensure_product_slug(product: Product):
@@ -81,9 +82,19 @@ def build_context(items):
         "listing_lookup": listing_lookup,
     }
 
+def extract_model_from_item(item):
+    # Try localized aspects first
+    for aspect in item.get("localizedAspects", []):
+        if aspect.get("name") in ("Model", "Modell"):
+            return aspect.get("value")
+    # Fallback: parse from title
+    title = item.get("title", "")
+    match = re.search(r"(ThinkPad\s+[A-Z0-9]+)", title)
+    if match:
+        return match.group(1)
+    return None
 
 def process_item_summary(item, context):
-
     listing_lookup = context["listing_lookup"]
     now = context["now"]
 
@@ -93,18 +104,18 @@ def process_item_summary(item, context):
 
     listing = listing_lookup.get(item_id)
 
-    if listing and listing.product:
-        product = listing.product
-    else:
-        model_name = "Unknown"
-        product = Product.query.filter_by(model_name=model_name).first()
-        if not product:
-            product = Product(model_name=model_name)
-            db.session.add(product)
-            db.session.flush()
+    # Extract model name from the title as fallback, or use Unknown
+    model_name = extract_model_from_item(item) or "Unknown"
 
+    # Find existing Product by model name, or create new
+    product = Product.query.filter_by(model_name=model_name).first()
+    if not product:
+        product = Product(model_name=model_name)
+        db.session.add(product)
+        db.session.flush()
+
+    # Now create/update Listing
     get_or_create_or_update_listing(item, product, context)
-
 
 def get_or_create_or_update_listing(item, product, context):
     listing_lookup = context["listing_lookup"]
@@ -202,16 +213,27 @@ def handle_failed_item(item, error):
         }) + "\n")
 
 # get item specifics from detailed item api
+ASPECT_NAME_MAP = {
+    'Model': 'model',
+    'Modell': 'model',
+    'Processor': 'cpu',
+    'Prozessor': 'cpu',  # German
+    'RAM Size': 'ram',
+    'Arbeitsspeicher': 'ram',
+    'SSD Capacity': 'storage',
+    'Speicherkapazität': 'storage',    
+}
 def extract_specs(localized_aspects):
-    """
-    Extract key specs from eBay's localizedAspects dict.
-    Returns a dictionary with all relevant fields.
-    """
     specs = {}
 
     # Convert list of dicts to a lookup
     aspect_lookup = {}
-    for a in localized_aspects or []:
+    for aspect in localized_aspects:
+        field_name = ASPECT_NAME_MAP.get(aspect['name'])
+        if field_name:
+            specs[field_name] = aspect['value']
+
+    """for a in localized_aspects or []:
         name = a.get('name')  
         if not name:
             continue
@@ -228,9 +250,10 @@ def extract_specs(localized_aspects):
     specs['storage'] = aspect_lookup.get('hard drive capacity', None)
     specs['storage_type'] = aspect_lookup.get('hard drive type', None)
     specs['screen_size'] = aspect_lookup.get('screen size', None)
-    specs['gpu'] = aspect_lookup.get('graphics processor', None)
+    specs['gpu'] = aspect_lookup.get('graphics processor', None)"""
 
     return specs
+
 
 def get_or_create_cpu(name):
     if not name:
@@ -267,6 +290,7 @@ def update_product_with_specs(product, specs):
     ram_obj = get_or_create_ram(specs.get('ram'))
     storage_obj = get_or_create_storage(specs.get('storage'))
 
+    # Assign CPU/RAM/Storage if available
     if cpu_obj:
         product.cpu = cpu_obj.name
     if ram_obj:
@@ -276,7 +300,9 @@ def update_product_with_specs(product, specs):
     if specs.get('storage_type'):
         product.storage_type = specs['storage_type']
 
-    # Optional: store GPU / screen size as custom fields if needed
+    # Assign model name
+    if specs.get('model'):
+        product.model_name = specs['model']    # Optional: store GPU / screen size as custom fields if needed
     # e.g., product.gpu = specs.get('gpu')
 
 def save_thinkpads_detailed(detailed_items, context):

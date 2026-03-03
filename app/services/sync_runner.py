@@ -14,7 +14,7 @@ def run_sync():
         save_thinkpads(items, context)
 
         details = fetch_items_in_batches(items)
-        detailed_with_marketplace = extract_localized_aspects(details, items)        
+        detailed_with_marketplace = extract_localized_aspects(details, items) 
 
         context = build_context(items)
         save_thinkpads_detailed(detailed_with_marketplace, context)

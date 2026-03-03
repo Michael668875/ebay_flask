@@ -33,7 +33,7 @@ def get_token():
     return resp.json()["access_token"]
 
 # get item summaries
-def get_thinkpads(limit=10):  
+def get_thinkpads(limit=3):  
     token = get_token()
     all_items = []
 
