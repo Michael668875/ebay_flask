@@ -95,12 +95,12 @@ class Marketplace(db.Model):
 class ThinkPadModel(db.Model):
     __tablename__ = "models"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
 
 class CPU(db.Model):
     __tablename__ = "cpu"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(30), unique=True, nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
 
 class RAM(db.Model):
     __tablename__ = "ram"

@@ -1,21 +1,13 @@
 from app.extensions import db
 from app.models import Product, Listing, PriceHistory
 from datetime import datetime, timezone, timedelta
-from app.services.model_parser import parse_product_details
 import json
 from pathlib import Path
 from slugify import slugify
 from sqlalchemy.orm import Session
-from app.models import ThinkPadModel, CPU, RAM, Storage
+from app.models import CPU, RAM, Storage
 from decimal import Decimal, ROUND_HALF_UP
 
-
-def get_specs():
-    MODEL = [m.name for m in ThinkPadModel.query.all()]
-    PROCESSOR = [c.name for c in CPU.query.all()]
-    MEMORY = [r.size for r in RAM.query.all()]
-    STORAGE = [s.size for s in Storage.query.all()]
-    return MODEL, PROCESSOR, MEMORY, STORAGE
 
 def ensure_product_slug(product: Product):
     """
@@ -25,7 +17,7 @@ def ensure_product_slug(product: Product):
         return  # already has slug
 
     session: Session = db.session
-    base_slug = slugify(f"thinkpad {product.model_name}")
+    base_slug = slugify(f"thinkpad {product.model_name or 'unknown'}")
     slug = base_slug
     counter = 1
 
@@ -60,7 +52,7 @@ def save_thinkpads(items, context, batch_size=50):
 
     for item in items:
         try:
-            process_item(item, context)
+            process_item_summary(item, context)
             processed_count += 1
 
             if processed_count % batch_size == 0:
@@ -84,51 +76,35 @@ def build_context(items):
 
     listing_lookup = {l.ebay_item_id: l for l in existing}
 
-    MODEL, PROCESSOR, MEMORY, STORAGE = get_specs()
-
     return {
         "now": now,
         "listing_lookup": listing_lookup,
-        "MODEL": MODEL,
-        "PROCESSOR": PROCESSOR,
-        "MEMORY": MEMORY,
-        "STORAGE": STORAGE,
     }
 
-def process_item(item, context):
-    product = get_or_create_product(item, context)
+
+def process_item_summary(item, context):
+
+    listing_lookup = context["listing_lookup"]
+    now = context["now"]
+
+    item_id = item.get("itemId")
+    if not item_id:
+        return
+
+    listing = listing_lookup.get(item_id)
+
+    if listing and listing.product:
+        product = listing.product
+    else:
+        model_name = "Unknown"
+        product = Product.query.filter_by(model_name=model_name).first()
+        if not product:
+            product = Product(model_name=model_name)
+            db.session.add(product)
+            db.session.flush()
+
     get_or_create_or_update_listing(item, product, context)
 
-
-def get_or_create_product(item, context):
-    title = item["title"]
-    short_desc = item.get("shortDescription", "")
-
-    model_name, cpu, cpu_freq, ram, storage, storage_type = parse_product_details(
-        title,
-        short_desc,
-        context["MODEL"],
-        context["PROCESSOR"],
-        context["MEMORY"],
-        context["STORAGE"],
-    )
-
-    product = Product.query.filter_by(model_name=model_name).first()
-
-    if not product:
-        product = Product(
-            model_name=model_name,
-            cpu=cpu,
-            cpu_freq=cpu_freq,
-            ram=ram,
-            storage=storage,
-            storage_type=storage_type,
-        )
-        db.session.add(product)
-        ensure_product_slug(product)
-        db.session.flush()
-
-    return product
 
 def get_or_create_or_update_listing(item, product, context):
     listing_lookup = context["listing_lookup"]
@@ -304,37 +280,32 @@ def update_product_with_specs(product, specs):
     # e.g., product.gpu = specs.get('gpu')
 
 def save_thinkpads_detailed(detailed_items, context):
-    """
-    Process detailed eBay items, extracting specs from localizedAspects,
-    creating/updating Products, and updating Listings.
-
-    Args:
-        detailed_items (list[dict]): List of detailed eBay item JSONs.
-        context (dict): Shared context with 'now', 'listing_lookup', etc.
-    """
-
     fail_log_file = Path(__file__).parent / "failed_detailed_items.jsonl"
+
+    listing_lookup = context["listing_lookup"]
 
     for item in detailed_items:
         try:
+            item_id = item.get("itemId")
+            if not item_id:
+                continue
+
+            listing = listing_lookup.get(item_id)
+            if not listing:
+                print(f"No listing found for {item_id}")
+                continue
+
+            product = listing.product
+            if not product:
+                print(f"No product attached to listing {item_id}")
+                continue
+
             # Extract specs from localizedAspects
             specs = extract_specs(item.get('localizedAspects', []))
-            model_name = specs.get('model')
-            if not model_name:
-                raise ValueError(f"No model found for item {item['itemId']}")
-
-            # Get or create Product
-            product = Product.query.filter_by(model_name=model_name).first()
-            if not product:
-                product = Product(model_name=model_name)
-                db.session.add(product)
-                db.session.flush()  # get product.id
 
             # Update Product with normalized specs
             update_product_with_specs(product, specs)
-
-            # Get or create/update Listing
-            get_or_create_or_update_listing(item, product, context)
+            db.session.commit()
 
         except Exception as e:
             db.session.rollback()
@@ -342,7 +313,9 @@ def save_thinkpads_detailed(detailed_items, context):
                 f.write(json.dumps({"item": item, "error": str(e)}) + "\n")
             print(f"Failed detailed item {item.get('itemId')}: {e}")
 
-    # Commit all remaining changes after processing batch
-    db.session.commit()
+    
+
+
+    
 
 

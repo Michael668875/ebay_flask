@@ -106,28 +106,32 @@ def fetch_items_in_batches(items, batch_size=20):
 
 # try something like this:
 
-def extract_localized_aspects(detailed_items):
+def extract_localized_aspects(detailed_items, summary_items):
     """
-    Takes a list of full item detail responses.
-    Returns a list of dicts containing only:
-        - itemId
-        - marketplace_id (if present)
-        - localizedAspects
+    Returns a list of dicts with:
+      - itemId
+      - marketplace_id
+      - localizedAspects
+    detailed_items: full item responses
+    summary_items: original item summaries (to get marketplace_id)
     """
+    # Build lookup from summary items
+    summary_lookup = {item["itemId"]: item for item in summary_items}
 
     extracted = []
-
     for item in detailed_items:
         item_id = item.get("itemId")
-
         localized_aspects = item.get("localizedAspects", [])
+
+        summary_item = summary_lookup.get(item_id, {})
+        marketplace_id = summary_item.get("marketplace_id")
 
         extracted.append({
             "itemId": item_id,
+            "marketplace_id": marketplace_id,
             "localizedAspects": localized_aspects
         })
 
     return extracted
 
-
-# add a back of function when hitting rate limit
+# add a back off function when hitting rate limit

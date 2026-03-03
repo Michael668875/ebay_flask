@@ -21,7 +21,7 @@ def load_failed_items():
     return failed_items
 
 # Then call save_thinkpads(failed_items, app)
-def retry_failed(app):    
+def retry_failed(context):    
     failed_items = load_failed_items()
 
     if not failed_items:
@@ -57,7 +57,7 @@ def retry_failed(app):
 
     # Retry remaining items
     if retry_items:
-        save_thinkpads(retry_items, app)
+        save_thinkpads(retry_items, context)
         print(f"Retried {len(retry_items)} items.")
 
     print("Retry complete.")
