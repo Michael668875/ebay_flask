@@ -4,5 +4,5 @@ from app.services.testing_db import *
 app = create_app()
 
 with app.app_context():
-   # insert_summaries_from_log()
+    insert_summaries_from_log()
     insert_details_from_log()

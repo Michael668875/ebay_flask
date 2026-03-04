@@ -22,6 +22,7 @@ class Listing(db.Model):
     __tablename__ = "listings"
 
     id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.String(20), nullable=True)
 
     ebay_item_id = db.Column(db.String, unique=True, nullable=False)
     title = db.Column(db.String)
