@@ -233,25 +233,6 @@ def extract_specs(localized_aspects):
         if field_name:
             specs[field_name] = aspect['value']
 
-    """for a in localized_aspects or []:
-        name = a.get('name')  
-        if not name:
-            continue
-        # 'value' can be a string or a list, normalize to first element if list
-        value = a.get('value')
-        if isinstance(value, list):
-            value = value[0] if value else None
-        aspect_lookup[name.lower()] = value
-
-
-    specs['model'] = aspect_lookup.get('model', None)
-    specs['cpu'] = aspect_lookup.get('processor', None)
-    specs['ram'] = aspect_lookup.get('ram', None)
-    specs['storage'] = aspect_lookup.get('hard drive capacity', None)
-    specs['storage_type'] = aspect_lookup.get('hard drive type', None)
-    specs['screen_size'] = aspect_lookup.get('screen size', None)
-    specs['gpu'] = aspect_lookup.get('graphics processor', None)"""
-
     return specs
 
 
@@ -344,4 +325,18 @@ def save_thinkpads_detailed(detailed_items, context):
 
     
 
+"""import json
 
+with open("get_thinkpads_log.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+for item in data:
+    print(item.get("title"))"""
+
+#get details from the above file
+
+"""for item in data:
+    aspects = item.get("localizedAspects", [])
+    for aspect in aspects:
+        if aspect.get("name") == "Model":
+            print(aspect.get("value"))"""

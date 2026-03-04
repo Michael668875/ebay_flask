@@ -7,122 +7,84 @@ import re
 
 def clean_text(text: str) -> str:
     # Remove emojis and other non-ASCII symbols
-    return re.sub(r'[^\x00-\x7F]+', '', text)
+    return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
-class Product(db.Model):
-    __tablename__ = 'products'
+class Model(db.Model):
+    __tablename__ = "models"
 
     id = db.Column(db.Integer, primary_key=True)
-    model_name = db.Column(db.String(100), nullable=False)
-    slug = db.Column(db.String(120), unique=True, index=True)
-    cpu = db.Column(db.String(100), nullable=True)
-    cpu_freq = db.Column(db.String(10), nullable=True)
-    ram = db.Column(db.String(50), nullable=True)
-    storage = db.Column(db.String(50), nullable=True)
-    storage_type = db.Column(db.String(20), nullable=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    slug = db.Column(db.String, nullable=False, unique=True)
 
-    # Relationship: Product -> Listings
-    listings = db.relationship(
-        'Listing',
-        back_populates='product',
-        cascade="all, delete-orphan",
-        lazy=True
-    )
-
+    listings = db.relationship("Listing", back_populates="model", cascade="all, delete-orphan")
 
 class Listing(db.Model):
-    __tablename__ = 'listings'
+    __tablename__ = "listings"
 
     id = db.Column(db.Integer, primary_key=True)
-    category_id = db.Column(db.String(20), nullable=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'))
-    ebay_item_id = db.Column(db.String(50), nullable=False, unique=True)
-    marketplace = db.Column(db.String(10), nullable=False, index=True)
-    title = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Numeric(10, 2), nullable=False)  # money values
+
+    ebay_item_id = db.Column(db.String, unique=True, nullable=False)
+    title = db.Column(db.String)
+    price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
-    condition = db.Column(db.String(50))
+    condition = db.Column(db.String)
     listing_type = db.Column(db.String(50))
+    marketplace = db.Column(db.String)
+    item_url = db.Column(db.Text)
     status = db.Column(db.String, default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     sold_at = db.Column(db.DateTime, nullable=True)
-    url = db.Column(db.Text)
     last_updated = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
     )
 
-    # Relationship: Listing -> PriceHistory
-    price_history = db.relationship(
-        'PriceHistory',
-        backref='listing',
-        cascade="all, delete-orphan",
-        lazy=True
-    )
-    product = db.relationship(
-        "Product", 
-        back_populates="listings"
-    )
 
-@validates('title')
-def sanitize_title(self, key, value):
-    return clean_text(value)
+    # Parsed specs (from item details)
+    cpu = db.Column(db.String)
+    cpu_freq = db.Column(db.String(50), nullable=True)
+    ram = db.Column(db.String)
+    storage = db.Column(db.String)
+    storage_type = db.Column(db.String)
+    screen_size = db.Column(db.String)
+    display = db.Column(db.String)
+    gpu = db.Column(db.String)
+    os = db.Column(db.String)
 
+    # Link to canonical model
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"))
+    model = db.relationship("Model", back_populates="listings")
+
+    price_history = db.relationship("PriceHistory", back_populates="listing")
+
+    @validates('title')
+    def sanitize_title(self, key, value):
+        return clean_text(value)
 
 class PriceHistory(db.Model):
-    __tablename__ = 'price_history'
+    __tablename__ = "price_history"
 
     id = db.Column(db.Integer, primary_key=True)
-    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'), nullable=False)
-    price = db.Column(db.Numeric(10, 2), nullable=False)
+
+    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"))
+    price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
-    checked_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
 
+    listing = db.relationship("Listing", back_populates="price_history")
 
-class Marketplace(db.Model):
-    __tablename__ = "marketplaces"
-
-    id = db.Column(db.Integer, primary_key=True)
-    country_code = db.Column(db.String(10), nullable=False)   # "US"
-    marketplace_id = db.Column(db.String(20), nullable=False, unique=True)  # "EBAY_US"
-    enabled = db.Column(db.Boolean, default=True)
-
-    def __repr__(self):
-        return f"<Marketplace {self.marketplace_id}>"
-    
-class ThinkPadModel(db.Model):
-    __tablename__ = "models"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
-
-class CPU(db.Model):
-    __tablename__ = "cpu"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
-
-class RAM(db.Model):
-    __tablename__ = "ram"
-    id = db.Column(db.Integer, primary_key=True)
-    size = db.Column(db.String(20), unique=True, nullable=False)
-
-class Storage(db.Model):
-    __tablename__ = "storage"
-    id = db.Column(db.Integer, primary_key=True)
-    size = db.Column(db.String(20), unique=True, nullable=False)
-
-
-@event.listens_for(Product, "before_insert")
+@event.listens_for(Model, "before_insert")
 def generate_unique_slug(mapper, connection, target):
     if not target.slug:
         # Prepend "thinkpad" for SEO in URL
-        base_slug = slugify(f"thinkpad {target.model_name}")
+        base_slug = slugify(f"thinkpad {target.name}")
         slug = base_slug
         counter = 1
 
         session = Session.object_session(target)
-        while session.query(Product).filter_by(slug=slug).first():
+        while session.query(Model).filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
 

@@ -19,8 +19,9 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
 <select onchange="location = this.value;">
     <option value="/">Choose Country</option>
     <option value="/us/{{ model_slug }}/">United States</option>
-    <option value="/uk/{{ model_slug }}/">United Kingdom</option>
+    <option value="/gb/{{ model_slug }}/">United Kingdom</option>
     <option value="/de/{{ model_slug }}/">Germany</option>
+    <option value="/au/{{ model_slug }}/">Australia</option>
 </select>
 
 <table border="1">
@@ -39,15 +40,11 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     <tr>
         <td>{{ item.price }}</td>
         <td>{{ item.currency }}</td>
-        <td>{{ item.product.cpu }} {{ item.product.cpu_freq }}</td>
-        <td>{{ item.product.ram }}</td>
-        <td>{{ item.product.storage }} {{ item.product.storage_type }}</td>
+        <td>{{ item.cpu }} {{ item.cpu_freq }}</td>
+        <td>{{ item.ram }}</td>
+        <td>{{ item.storage }} {{ item.storage_type }}</td>
         <td>{{ item.condition }}</td>
-        <td>
-            <a href="{{ item.url }}" target="_blank">
-                {{ item.title }}
-            </a>
-        </td>
+        <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
         <td>{{ item.last_updated }}</td>
     </tr>
     {% endfor %}

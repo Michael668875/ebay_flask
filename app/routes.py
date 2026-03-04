@@ -8,7 +8,7 @@ from flask import (
     make_response
 )
 
-from app.models import Listing, Marketplace, Product
+from app.models import Listing, Model
 
 bp = Blueprint("main", __name__)
 
@@ -19,10 +19,11 @@ bp = Blueprint("main", __name__)
 # Helpers
 # -------------------------------------------------
 
+ENABLED_MARKETS = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
+
 def get_enabled_markets():
     """Return enabled marketplaces as dict keyed by country code."""
-    markets = Marketplace.query.filter_by(enabled=True).all()
-    return {m.country_code.lower(): m for m in markets}
+    return {m.split("_")[1].lower(): m for m in ENABLED_MARKETS}
 
 
 # -------------------------------------------------
@@ -53,8 +54,9 @@ def country_home(country):
     # Show cheapest active listings in that country
     listings = (
         Listing.query
-        .filter_by(marketplace=marketplace.marketplace_id, status="ACTIVE")
-        .join(Listing.product)
+        .filter(Listing.marketplace == marketplace,
+            Listing.status == "ACTIVE")
+        .join(Listing.model)
         .order_by(Listing.price.asc())
         .limit(100)
         .all()
@@ -84,11 +86,11 @@ def model_page(country, model_slug):
 
     listings = (
         Listing.query
-        .join(Listing.product)
+        .join(Listing.model)
         .filter(
             Listing.status == "ACTIVE",
-            Listing.marketplace == marketplace.marketplace_id,
-            Product.slug == model_slug
+            Listing.marketplace == marketplace,
+            Model.slug == model_slug
         )
         .order_by(Listing.price.asc())
         .all()

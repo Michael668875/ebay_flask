@@ -3,7 +3,7 @@
 
 
 from app import db, create_app
-from app.models import Listing, Product, PriceHistory
+from app.models import Listing, Model, PriceHistory
 
 app = create_app()
 
@@ -11,6 +11,6 @@ with app.app_context():
     # Delete everything
     PriceHistory.query.delete()
     Listing.query.delete()
-    Product.query.delete()
+    Model.query.delete()
     
     db.session.commit()
