@@ -24,6 +24,7 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     <option value="/au/{{ model_slug }}/">Australia</option>
 </select>
 
+
 <table border="1">
     <tr>
             <th>Model</th>
@@ -42,16 +43,16 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     {% for item in listings %}
    <tr>
         <td><a href="/{{ country }}/{{ item.model.slug }}/">
-                {{ item.model.name }}
+                {{ item.model.name or "—"}}
             </a></td>
-        <td>${{item.price}}</td>
-        <td>{{item.currency}}</td>
-        <td>{{item.cpu}} {{ item.cpu_freq }}</td>
-        <td>{{item.ram}}</td>
-        <td>{{ item.storage }} {{ item.storage_type }}</td>
+        <td>${{item.price or "—"}}</td>
+        <td>{{item.currency or "—"}}</td>
+        <td>{{item.cpu or "—"}} {{ item.cpu_freq or "—"}}</td>
+        <td>{{item.ram or "—"}}</td>
+        <td>{{ item.storage or "—"}} {{ item.storage_type or "—"}}</td>
         <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
-        <td>{{item.condition}}</td>
-        <td>{{item.listing_type}}</td>
+        <td>{{item.condition or "—"}}</td>
+        <td>{{item.listing_type or "—"}}</td>
         <td>{{item.last_updated}}</td>
     </tr>
     {% endfor %}

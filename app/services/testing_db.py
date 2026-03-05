@@ -10,61 +10,126 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 LOG_PATH = BASE_DIR / "get_thinkpads_log.txt"
 DETAIL_PATH = BASE_DIR / "get_details_log.txt"
 FIELD_MAP = {
+    # MODEL
+    "model": {
+        "keys": [
+            "Model", 
+            "Modell", 
+            "MPN", 
+            "Herstellernummer"
+        ],
+        "type": "relation"
+    },
     # CPU
-    "Processor": "cpu",
-    "Prozessor": "cpu",
+    "cpu": {
+        "keys": [
+            "Processor",
+            "Prozessor",
+            "PROCESSOR / CPU",
+            "CPU",
+            "CPU-Typ",
+            "CPU-Modell",
+            "Processor Model"
+        ]
+    },
     # CPU Speed
-    "Processor Speed": "cpu_freq",
-    "Prozessorgeschwindigkeit": "cpu_freq",
+    "cpu_freq": {
+        "keys":[
+            "Processor Speed",
+            "Prozessorgeschwindigkeit"
+        ]
+    },
     # RAM
-    "Total Memory": "ram",
-    "RAM Size": "ram",
-    "Arbeitsspeicher": "ram",
+    "ram": {
+        "keys": [
+            "Total Memory",
+            "RAM Size",
+            "Arbeitsspeicher",
+            "Arbeitsspeichergröße",
+            "RAM / MEMORY",
+            "Ram:",
+            "Memory",
+            "RAM",
+            "Memory+Storage"
+        ]
+    },
     # Storage
-    "HD Size": "storage",
-    "SSD Capacity": "storage",
-    "Hard Drive Capacity": "storage",
-    "Festplattenkapazität": "storage",
+    "storage": {
+        "keys": [
+            "HD Size",
+            "SSD Capacity",
+            "Hard Drive Capacity",
+            "Storage Capacity",
+            "Festplattenkapazität",
+            "SSD-Festplattenkapazität",
+            "Festplatte",
+            "Kapazität SSD",
+            "Hard Drive",
+            "SSD / STORAGE",
+            "SSD:",
+            "STORAGE",
+            "Memory+Storage",
+            "Storage",
+            "SSD",
+            "Hard Drive Capacity GB"
+        ]
+    },
     # Storage Type
-    "Drive Type": "storage_type",
-    "Laufwerktyp": "storage_type",
-    "Storage Type": "storage_type",
+    "storage_type": {
+        "keys": [
+            "Drive Type",
+            "Storage Type",
+            "Laufwerktyp",
+            "Festplattentyp",
+            "Festplatten-Typ",
+            "Art der speicherung von"
+        ]
+    },
     # Screen / Display
-    "Screen Size": "screen_size",
-    "Bildschirmgröße": "screen_size",
+    "screen_size": {
+        "keys": [
+            "Screen Size",
+            "Bildschirmgröße"
+        ]
+    },
     # Display Resolution
-    "Maximum Resolution": "display",
-    "Display Resolution": "display",
-    "Auflösung": "display",
+    "display": {
+        "keys": ["Maximum Resolution",
+            "Display Resolution",
+            "Auflösung",
+            "Maximale Auflösung",
+            "Displayauflösung"
+        ]
+    },
     # GPU
-    "Video Adapter": "gpu",
-    "GPU": "gpu",
-    "Grafikkarte": "gpu",
+    "gpu": {
+        "keys": [
+            "Video Adapter",
+            "GPU",
+            "Grafikkarte",
+            "Grafikprozessor",
+            "Graphics",
+            "Grafikprozessortyp",
+            "Graphics Processing Type"
+        ]
+    },
     # OS
-    "OS Installed": "os",
-    "Operating System": "os",
-    "Betriebssystem": "os",
+    "os": {
+        "keys": [
+            "OS Installed",
+            "Operating System",
+            "Betriebssystem",
+            "Operating System Edition"
+        ]
+    }
 }
 
+# flatten FIELD_MAP for fa
+FIELD_LOOKUP = {}
 
-""" CHANGE TO A PRIORITY FIELD MAP LIKE THIS:
-FIELD_PRIORITY = {
-    "model": ["model", "mpn"],
-    "cpu": ["Processor", "Prozessor"],
-    # ...
-}
-
-Then:
-
-for field, keys in FIELD_PRIORITY.items():
-    for key in keys:
-        if key in specs:
-            setattr(product, field, specs[key])
-            break
-
-"""
-
-
+for field, config in FIELD_MAP.items():
+    for key in config["keys"]:
+        FIELD_LOOKUP.setdefault(key, field) # preserve priority
 
 # insert only item summaries into db
 
@@ -134,17 +199,9 @@ def insert_summaries_from_log(filepath=LOG_PATH):
     print(f"Inserted {inserted} new listings, updated {updated} currencies.")
 
 
-
 def insert_details_from_log(filepath=DETAIL_PATH):
-    """
-    Enrich existing listings using detailed item JSON.
-    Assumes summaries were inserted first.
-    """
 
-    existing_models = {
-            m.slug: m
-            for m in Model.query.all()
-        }
+    existing_models = {m.slug: m for m in Model.query.all()}
 
     with open(filepath, "r", encoding="utf-8") as f:
         items = json.load(f)
@@ -156,23 +213,24 @@ def insert_details_from_log(filepath=DETAIL_PATH):
         item_id = item.get("itemId")
         if not item_id:
             continue
-
-        listing = Listing.query.filter_by(ebay_item_id=item_id).first()
+        
+        existing_listings = {l.ebay_item_id: l for l in Listing.query.all()}
+        listing = existing_listings.get(item_id)
         if not listing:
             continue
 
-        # Parse aspects
-        for aspect in item.get("localizedAspects", []):
-            name = aspect.get("name")
-            value = aspect.get("value")
+        aspects = {
+            a.get("name"): a.get("value")
+            for a in item.get("localizedAspects", [])
+            if a.get("name") and a.get("value")
+        }
 
-            # Handle mapped fields
-            field_name = FIELD_MAP.get(name)
-            if field_name:
-                setattr(listing, field_name, value)
+        for name, value in aspects.items():
 
-            # Handle model (MPN)
-            if name in ("MPN", "Herstellernummer", "Model"):
+            field = FIELD_LOOKUP.get(name)
+
+            if field == "model":
+
                 model_name = value.strip()
                 model_slug = slugify(model_name)
 
@@ -185,7 +243,13 @@ def insert_details_from_log(filepath=DETAIL_PATH):
 
                 listing.model = model
 
+            elif field:
+                setattr(listing, field, value)
+
         updated += 1
 
     db.session.commit()
     print(f"Updated {updated} listings with detailed specs.")
+
+
+

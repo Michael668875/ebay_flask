@@ -1,0 +1,17 @@
+{% macro spec(label, value) %}
+<tr>
+    <th>{{ label }}</th>
+    <td>{{ value or "Unknown" }}</td>
+</tr>
+{% endmacro %}
+
+// usage
+
+{% from "specs.html" import spec %}
+
+<table>
+    {{ spec("CPU", listings.cpu) }}
+    {{ spec("RAM", listings.ram) }}
+    {{ spec("Storage", listings.storage) }}
+    {{ spec("GPU", listings.gpu) }}
+</table>

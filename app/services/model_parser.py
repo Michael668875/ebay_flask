@@ -73,3 +73,49 @@ def parse_product_details(title, short_description, MODEL, PROCESSOR, MEMORY, ST
         storage_type = ""
 
     return model, cpu, cpu_freq, ram, storage, storage_type
+
+
+# another title parser
+RAM_REGEX = re.compile(r"(\d+)\s*GB\s*RAM", re.I)
+SSD_REGEX = re.compile(r"(\d+)\s*GB\s*(SSD|NVME)", re.I)
+
+def extract_specs(text):
+
+    specs = {}
+
+    ram = RAM_REGEX.search(text)
+    if ram:
+        specs["ram"] = f"{ram.group(1)}GB"
+
+    storage = SSD_REGEX.search(text)
+    if storage:
+        specs["storage"] = f"{storage.group(1)}GB"
+
+    return specs
+
+# how to use
+"""
+title = item.get("title", "")
+
+extra_specs = extract_specs(title)
+
+for field, value in extra_specs.items():
+    if not getattr(listing, field):
+        setattr(listing, field, value)
+"""
+
+def normalize_ram(value):
+
+    value = value.upper().replace(" ", "")
+
+    if "MB" in value:
+        mb = int(value.replace("MB",""))
+        return f"{mb // 1024}GB"
+
+    return value
+
+# how to use
+"""
+if field == "ram":
+    value = normalize_ram(value)
+"""
