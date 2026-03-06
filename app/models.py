@@ -24,7 +24,7 @@ class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     category_id = db.Column(db.String(20), nullable=True)
 
-    ebay_item_id = db.Column(db.String, unique=True, nullable=False)
+    ebay_item_id = db.Column(db.String, unique=True, nullable=False, index=True)
     title = db.Column(db.String)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
@@ -55,7 +55,7 @@ class Listing(db.Model):
     os = db.Column(db.String)
 
     # Link to canonical model
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id"))
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
     model = db.relationship("Model", back_populates="listings")
 
     price_history = db.relationship("PriceHistory", back_populates="listing")
@@ -63,6 +63,7 @@ class Listing(db.Model):
     @validates('title')
     def sanitize_title(self, key, value):
         return clean_text(value)
+    
 
 class PriceHistory(db.Model):
     __tablename__ = "price_history"
@@ -70,9 +71,10 @@ class PriceHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"))
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
-    recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
+    recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc), index=True)
 
     listing = db.relationship("Listing", back_populates="price_history")
 

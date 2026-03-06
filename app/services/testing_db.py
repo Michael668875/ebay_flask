@@ -243,6 +243,11 @@ def insert_details_from_log(filepath=DETAIL_PATH):
 
                 listing.model = model
 
+                # --- Backfill model_id in existing PriceHistory ---
+                for ph in listing.price_history:
+                    if ph.model_id is None:
+                        ph.model_id = model.id  # will be flushed on commit
+
             elif field:
                 setattr(listing, field, value)
 
