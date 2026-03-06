@@ -9,6 +9,7 @@ from flask import (
 )
 
 from app.models import Listing, Model
+from app import db
 
 bp = Blueprint("main", __name__)
 
@@ -49,6 +50,21 @@ def country_home(country):
     if country not in markets:
         abort(404)
 
+    sort = request.args.get("sort", "price")
+
+    query = db.session.query(Listing)
+
+    if sort == "price":
+        query = query.order_by(Listing.price.asc())
+
+    elif sort == "ram":
+        query = query.order_by(Listing.ram.desc())
+
+    elif sort == "cpu":
+        query = query.order_by(Listing.cpu.desc())
+
+    listings = query.limit(100).all()
+
     marketplace = markets[country]
 
     # Show cheapest active listings in that country
@@ -67,6 +83,8 @@ def country_home(country):
         listings=listings,
         country=country
     )
+
+    
 
 
 # -------------------------------------------------

@@ -8,15 +8,16 @@
     <thead class="table-dark">
         <tr>
             <th>Model</th>
-            <th>Price</th>
+            <th><a href="?sort=price">Price</a></th>
             <th>Currency</th>
-            <th>CPU</th>
-            <th>RAM</th>
+            <th><a href="?sort=cpu">CPU</a></th>
+            <th><a href="?sort=ram">RAM</a></th>
             <th>Storage</th>
-            <th>Title</th>
             <th>Condition</th>
-            <th>Listing Type</th>
-            <th>Last Updated</th>
+            <th>Title</th>
+            
+
+
         </tr>
     </thead>
 
@@ -33,10 +34,8 @@
         <td>{{item.cpu or "—"}} {{ item.cpu_freq or "—"}}</td>
         <td>{{item.ram or "—"}}</td>
         <td>{{ item.storage or "—"}} {{ item.storage_type or "—"}}</td>
-        <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
         <td>{{item.condition or "—"}}</td>
-        <td>{{item.listing_type or "—"}}</td>
-        <td>{{item.last_updated}}</td>
+        <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
     </tr>
 
 {% endfor %}
