@@ -34,7 +34,7 @@ def get_enabled_markets():
 def index():
     preferred = request.cookies.get("preferred_country", "us")
     return redirect(url_for("main.country_home", country=preferred))
-
+   # render_template("listings.html")
 
 # -------------------------------------------------
 # Country Home Page
@@ -63,7 +63,7 @@ def country_home(country):
     )
 
     return render_template(
-        "home.html",
+        "listings.html",
         listings=listings,
         country=country
     )

@@ -62,7 +62,7 @@ def get_thinkpads(limit=10):
             all_items.extend(items)    
         
         except requests.RequestException as e:
-                print(f"Failed fetching {market.marketplace_id}: {e}")
+                print(f"Failed fetching {market}: {e}")
 
     #with open("get_thinkpads_log.txt", "w", encoding="utf-8") as f:
     #    json.dump(all_items, f, indent=2, ensure_ascii=False)
@@ -142,4 +142,175 @@ def extract_localized_aspects(detailed_items, summary_items):
 
     return extracted
 
-# add a back off function when hitting rate limit
+
+
+
+# THIS WILL REPLACE THE ABOVE
+
+import requests
+import time
+from base64 import b64encode
+from app import create_app
+from dotenv import load_dotenv
+import os
+import random
+
+
+load_dotenv()
+app = create_app()
+
+CLIENT_ID = os.environ.get("EBAY_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET")
+CAMPAIGN_ID = os.environ.get("CAMPAIGN_ID")
+CATEGORY_ID = "177"
+
+
+def get_token():
+    """Get OAuth token from eBay."""
+    auth = b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
+    url = "https://api.ebay.com/identity/v1/oauth2/token"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {auth}"
+    }
+    data = {
+        "grant_type": "client_credentials",
+        "scope": "https://api.ebay.com/oauth/api_scope"
+    }
+    resp = requests.post(url, headers=headers, data=data)
+    resp.raise_for_status()
+    return resp.json()["access_token"]
+
+
+def get_paginated_summaries(query="thinkpad", limit=200):
+    """Fetch all item summaries with pagination across marketplaces."""
+    token = get_token()
+    marketplaces = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
+    all_items = []
+
+    for market in marketplaces:
+        offset = 0
+        while True:
+            url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": market,
+                "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
+            }
+            params = {
+                "q": query,
+                "category_id": CATEGORY_ID,
+                "limit": limit,
+                "offset": offset,
+                "fieldgroups": "EXTENDED"
+            }
+
+            try:
+                resp = requests.get(url, headers=headers, params=params)
+                resp.raise_for_status()
+                items = resp.json().get("itemSummaries", [])
+
+                if not items:
+                    break
+
+                for item in items:
+                    item["marketplace_id"] = market
+                    item["marketplace_country"] = market.split("_", 1)[1]
+
+                all_items.extend(items)
+                offset += limit
+
+                # small sleep between pages
+                time.sleep(0.2)
+
+            except requests.RequestException as e:
+                print(f"Failed fetching {market} page {offset // limit + 1}: {e}")
+                break
+
+    return all_items
+
+
+def get_item_details(item_id, marketplace_id, token):
+    """Fetch detailed info for a single item."""
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+        "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
+    }
+
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def fetch_item_details(listings, token=None, max_retries=5):
+    """Fetch details only for listings that need them, with retries/backoff."""
+    if token is None:
+        token = get_token()
+
+    detailed_items = []
+
+    for listing in listings:
+        item_id = listing["itemId"]
+        marketplace_id = listing["marketplace_id"]
+
+        if listing.get("details_fetched"):
+            continue
+
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                details = get_item_details(item_id, marketplace_id, token)
+                detailed_items.append(details)
+                listing["details_fetched"] = True
+
+                # small pause to avoid throttling
+                time.sleep(0.2)
+                break  # success, break retry loop
+
+            except requests.RequestException as e:
+                attempt += 1
+                status = getattr(e.response, "status_code", None)
+                
+                # add a back off function when hitting rate limit
+                # only retry on 429 (rate limit) or 5xx errors
+                if status in [429] or (status and 500 <= status < 600):
+                    wait_time = 2 ** attempt + random.random()
+                    print(f"Attempt {attempt} failed for {item_id} (status {status}). Retrying in {wait_time:.1f}s...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"Failed fetching details for {item_id}: {e}")
+                    break  # don't retry on other errors
+
+    return detailed_items
+
+def extract_localized_aspects(detailed_items, summary_items):
+    """Combine localized aspects with marketplace info from summaries."""
+    summary_lookup = {item["itemId"]: item for item in summary_items}
+    extracted = []
+
+    for item in detailed_items:
+        item_id = item.get("itemId")
+        localized_aspects = item.get("localizedAspects", [])
+        summary_item = summary_lookup.get(item_id, {})
+
+        extracted.append({
+            "itemId": item_id,
+            "marketplace_id": summary_item.get("marketplace_id"),
+            "localizedAspects": localized_aspects
+        })
+
+    return extracted
+
+
+if __name__ == "__main__":
+    print("Fetching all ThinkPad summaries...")
+    summaries = get_paginated_summaries()
+    print(f"Total summaries fetched: {len(summaries)}")
+
+    print("Fetching item details for new listings...")
+    details = fetch_item_details(summaries)
+    print(f"Total detailed items fetched: {len(details)}")
+
+    aspects = extract_localized_aspects(details, summaries)
+    print(f"Extracted localized aspects for {len(aspects)} items")
