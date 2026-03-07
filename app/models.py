@@ -92,3 +92,46 @@ def generate_unique_slug(mapper, connection, target):
             counter += 1
 
         target.slug = slug
+
+class TempSummaries(db.Model):
+    __tablename__= "temp_summaries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.String(20))
+
+    ebay_item_id = db.Column(db.String, unique=True, nullable=False)
+    title = db.Column(db.String)
+    price = db.Column(db.Numeric(10, 2))
+    currency = db.Column(db.String(10), nullable=False)
+    condition = db.Column(db.String)
+    listing_type = db.Column(db.String(50))
+    marketplace = db.Column(db.String)
+    item_url = db.Column(db.Text)
+    creation_date = db.Column(db.DateTime(timezone=True))
+    first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    sold_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_updated = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+class TempDetails(db.Model):
+    __tablename__= "temp_details"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ebay_item_id = db.Column(db.String, unique=True, nullable=False)
+    cpu = db.Column(db.String)
+    cpu_freq = db.Column(db.String(50))
+    ram = db.Column(db.String)
+    storage = db.Column(db.String)
+    storage_type = db.Column(db.String)
+    screen_size = db.Column(db.String)
+    display = db.Column(db.String)
+    gpu = db.Column(db.String)
+    os = db.Column(db.String)
+    model = db.Column(db.String)
+    seller_username = db.Column(db.String)
+    seller_feedback_score = db.Column(db.Integer)
+    seller_feedback_percent = db.Column(db.Numeric(5, 2))

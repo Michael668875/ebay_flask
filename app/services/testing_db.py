@@ -3,7 +3,7 @@ import json
 from decimal import Decimal
 from datetime import datetime, timezone
 from app.extensions import db
-from app.models import Listing, PriceHistory, Model
+from app.models import Listing, PriceHistory, Model, TempSummaries, TempDetails
 from slugify import slugify
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -258,3 +258,103 @@ def insert_details_from_log(filepath=DETAIL_PATH):
 
 
 
+def insert_into_temp_summaries(filepath=LOG_PATH):
+    """
+    Inserts json data into temp_summaries table in db.
+    """
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    # Load all rows once
+    existing = {
+        row.ebay_item_id: row
+        for row in TempSummaries.query.all()
+    }
+
+    inserted = 0
+
+    for item in items:
+        item_id = item.get("itemId")
+        if not item_id:
+            continue
+
+        price_info = item.get("price", {})
+        price_value = price_info.get("value")
+        category_id = item.get("leafCategoryIds", [None])[0]
+        creation_date = None
+        if item.get("itemCreationDate"):
+            creation_date = datetime.fromisoformat(
+                item["itemCreationDate"].replace("Z", "+00:00")
+            )
+
+        listing = existing.get(item_id)
+
+        if listing:
+            continue  # skip creating a new listing
+
+        # Create temporary listing with category
+        listing = TempSummaries(
+            category_id=category_id,
+            ebay_item_id=item_id,
+            title=item.get("title"),
+            price=Decimal(str(price_value)) if price_value else None,
+            currency= price_info.get("currency"),
+            condition=item.get("condition"),
+            listing_type=",".join(item.get("buyingOptions", [])),
+            marketplace=item.get("marketplace_id"),
+            item_url=item.get("itemWebUrl"),
+            creation_date = creation_date            
+        )
+        db.session.add(listing)
+        db.session.flush()       
+
+        inserted += 1
+
+    db.session.commit()
+    print(f"Inserted {inserted} into temp db.")
+
+def insert_into_temp_details(filepath=DETAIL_PATH):
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    # Load all rows once
+    existing = {
+        row.ebay_item_id: row
+        for row in TempDetails.query.all()
+    }
+
+    updated = 0
+
+    for item in items:
+        item_id = item.get("itemId")
+        if not item_id:
+            continue
+
+        listing = existing.get(item_id)
+
+        if not listing:
+            listing = TempDetails(ebay_item_id=item_id)
+            db.session.add(listing)
+            existing[item_id] = listing
+
+        aspects = {
+            a.get("name"): a.get("value")
+            for a in item.get("localizedAspects", [])
+            if a.get("name") and a.get("value")
+        }
+
+        for name, value in aspects.items():
+
+            field = FIELD_LOOKUP.get(name)
+            if not field:
+                continue
+
+            setattr(listing, field, value)
+
+        updated += 1
+
+    db.session.commit()
+
+    print(f"Updated {updated} temp_details.")
