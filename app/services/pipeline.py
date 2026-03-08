@@ -22,17 +22,54 @@ def clean_temp_data():
 
 
 def insert_models():
-    """
-    Insert unique models.
-    """
     db.session.execute(text("""
         INSERT INTO models (name, slug)
-        SELECT DISTINCT
-            td.model,
-            'thinkpad-' || lower(replace(td.model, ' ', '-'))
+        SELECT
+            m.model,
+            'thinkpad-' || lower(replace(m.model, ' ', '-'))
+        FROM (
+            SELECT DISTINCT model
+            FROM temp_details
+            WHERE model IS NOT NULL
+        ) m
+        LEFT JOIN models existing
+            ON existing.name = m.model
+        WHERE existing.id IS NULL;
+    """))
+    
+def insert_specs():
+    """
+    Insert specs from temp details
+    """
+    db.session.execute(text("""
+        INSERT INTO specs (
+            cpu,
+            cpu_freq,
+            ram,
+            storage,
+            storage_type,
+            screen_size,
+            display,
+            gpu,
+            os,
+            listing_id
+        )
+        SELECT
+            td.cpu,
+            td.cpu_freq,
+            td.ram,
+            td.storage,
+            td.storage_type,
+            td.screen_size,
+            td.display,
+            td.gpu,
+            td.os,
+            l.id
         FROM temp_details td
-        WHERE td.model IS NOT NULL
-        ON CONFLICT (name) DO NOTHING;
+        JOIN listings l
+        ON l.ebay_item_id = td.ebay_item_id
+        WHERE td.category_id = '177'
+        ON CONFLICT (listing_id) DO NOTHING;
     """))
 
 
@@ -54,16 +91,7 @@ def insert_listings():
             last_seen,
             sold_at,
             last_updated,
-            cpu,
-            cpu_freq,
-            ram,
-            storage,
-            storage_type,
-            screen_size,
-            display,
-            gpu,
-            os,
-            model_id
+            status
         )
         SELECT
             ts.ebay_item_id,
@@ -78,21 +106,8 @@ def insert_listings():
             ts.last_seen,
             ts.sold_at,
             ts.last_updated,
-            td.cpu,
-            td.cpu_freq,
-            td.ram,
-            td.storage,
-            td.storage_type,
-            td.screen_size,
-            td.display,
-            td.gpu,
-            td.os,
-            m.id
+            'ACTIVE'
         FROM temp_summaries ts
-        LEFT JOIN temp_details td
-            ON ts.ebay_item_id = td.ebay_item_id
-        LEFT JOIN models m
-            ON m.name = td.model
         WHERE ts.category_id = '177'
         ON CONFLICT (ebay_item_id) DO NOTHING;
     """))

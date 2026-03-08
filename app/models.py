@@ -6,18 +6,36 @@ from sqlalchemy.orm import Session, validates
 from sqlalchemy.sql import func
 import re
 
-def clean_text(text: str) -> str:
-    # Remove emojis and other non-ASCII symbols
-    return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
 class Model(db.Model):
     __tablename__ = "models"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True)
+    name = db.Column(db.String, nullable=False, unique=True, index=True)
     slug = db.Column(db.String, nullable=False, unique=True)
 
     listings = db.relationship("Listing", back_populates="model", cascade="all, delete-orphan")
+
+class Specs(db.Model):
+    __tablename__ = "specs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), unique=True, index=True)
+
+    # Parsed specs (from item details)
+    cpu = db.Column(db.String)
+    cpu_freq = db.Column(db.String(50), nullable=True)
+    ram = db.Column(db.String)
+    storage = db.Column(db.String)
+    storage_type = db.Column(db.String)
+    screen_size = db.Column(db.String)
+    display = db.Column(db.String)
+    gpu = db.Column(db.String)
+    os = db.Column(db.String)
+
+    __table_args__ = (
+        db.Index("idx_specs_search", "cpu", "ram", "storage"),
+    )
 
 class Listing(db.Model):
     __tablename__ = "listings"
@@ -33,7 +51,7 @@ class Listing(db.Model):
     listing_type = db.Column(db.String(50))
     marketplace = db.Column(db.String)
     item_url = db.Column(db.Text)
-    status = db.Column(db.String, default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
+    status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     sold_at = db.Column(db.DateTime, nullable=True)
@@ -43,28 +61,12 @@ class Listing(db.Model):
         onupdate=lambda: datetime.now(timezone.utc)
     )
 
-
-    # Parsed specs (from item details)
-    cpu = db.Column(db.String)
-    cpu_freq = db.Column(db.String(50), nullable=True)
-    ram = db.Column(db.String)
-    storage = db.Column(db.String)
-    storage_type = db.Column(db.String)
-    screen_size = db.Column(db.String)
-    display = db.Column(db.String)
-    gpu = db.Column(db.String)
-    os = db.Column(db.String)
-
     # Link to canonical model
     model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
     model = db.relationship("Model", back_populates="listings")
 
     price_history = db.relationship("PriceHistory", back_populates="listing")
-
-    @validates('title')
-    def sanitize_title(self, key, value):
-        return clean_text(value)
-    
+        
 
 class PriceHistory(db.Model):
     __tablename__ = "price_history"
