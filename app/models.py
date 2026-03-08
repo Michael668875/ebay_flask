@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from slugify import slugify
 from sqlalchemy import event
 from sqlalchemy.orm import Session, validates
+from sqlalchemy.sql import func
 import re
 
 def clean_text(text: str) -> str:
@@ -74,7 +75,7 @@ class PriceHistory(db.Model):
     model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
-    recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc), index=True)
+    recorded_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
 
     listing = db.relationship("Listing", back_populates="price_history")
 
@@ -135,3 +136,48 @@ class TempDetails(db.Model):
     seller_username = db.Column(db.String)
     seller_feedback_score = db.Column(db.Integer)
     seller_feedback_percent = db.Column(db.Numeric(5, 2))
+
+
+class Marketplace(db.Model):
+    __tablename__ = "marketplaces"
+
+    id = db.Column(db.Integer, primary_key=True)
+    country_code = db.Column(db.String(10), nullable=False)   # "US"
+    marketplace_id = db.Column(db.String(20), nullable=False, unique=True)  # "EBAY_US"
+    enabled = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Marketplace {self.marketplace_id}>"
+    
+class ThinkPadModel(db.Model):
+    __tablename__ = "model_list"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+
+class CPU(db.Model):
+    __tablename__ = "cpu"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+
+class RAM(db.Model):
+    __tablename__ = "ram"
+    id = db.Column(db.Integer, primary_key=True)
+    size = db.Column(db.String(20), unique=True, nullable=False)
+
+class Storage(db.Model):
+    __tablename__ = "storage"
+    id = db.Column(db.Integer, primary_key=True)
+    size = db.Column(db.String(20), unique=True, nullable=False)
+
+class ModelPriceStats(db.Model):
+    __tablename__ = "model_price_stats"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), unique=True, index=True)
+    avg_price = db.Column(db.Numeric(10,2))
+    min_price = db.Column(db.Numeric(10,2))
+    max_price = db.Column(db.Numeric(10,2))
+    listing_count = db.Column(db.Integer)
+
+    updated_at = db.Column(db.DateTime(timezone=True))

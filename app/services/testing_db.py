@@ -267,9 +267,13 @@ def insert_into_temp_summaries(filepath=LOG_PATH):
         items = json.load(f)
 
     # Load all rows once
+    ids = [item["itemId"] for item in items if "itemId" in item]
+
     existing = {
         row.ebay_item_id: row
-        for row in TempSummaries.query.all()
+        for row in TempSummaries.query.filter(
+            TempSummaries.ebay_item_id.in_(ids)
+        )
     }
 
     inserted = 0
@@ -320,9 +324,13 @@ def insert_into_temp_details(filepath=DETAIL_PATH):
         items = json.load(f)
 
     # Load all rows once
+    ids = [item["itemId"] for item in items if "itemId" in item]
+
     existing = {
         row.ebay_item_id: row
-        for row in TempDetails.query.all()
+        for row in TempDetails.query.filter(
+            TempDetails.ebay_item_id.in_(ids)
+        )
     }
 
     updated = 0

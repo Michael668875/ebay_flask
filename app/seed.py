@@ -1,5 +1,7 @@
+# THIS FILE IS TO RE INSERT MODEL NUMBERS, CPUS, STORAGE, MARKETS AS REFERENCE TABLES IN THE DB
+
 from app.extensions import db
-from app.models import CPU, ThinkpadModel, RAM, Storage, Marketplace
+from app.models import CPU, ThinkPadModel, RAM, Storage, Marketplace
 import json
 from app import create_app
 
@@ -21,8 +23,8 @@ def seed_models():
         data = json.load(f)
 
     for row in data:
-        if not ThinkpadModel.query.filter_by(name=row["name"]).first():
-            db.session.add(ThinkpadModel(name=row["name"]))
+        if not ThinkPadModel.query.filter_by(name=row["name"]).first():
+            db.session.add(ThinkPadModel(name=row["name"]))
 
     db.session.commit()
 
