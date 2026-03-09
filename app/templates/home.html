@@ -47,9 +47,9 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
             </a></td>
         <td>${{item.price or "—"}}</td>
         <td>{{item.currency or "—"}}</td>
-        <td>{{item.cpu or "—"}} {{ item.cpu_freq or "—"}}</td>
-        <td>{{item.ram or "—"}}</td>
-        <td>{{ item.storage or "—"}} {{ item.storage_type or "—"}}</td>
+        <td>{{item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
+        <td>{{item.specs.ram or "—"}}</td>
+        <td>{{ item.specs.storage or "—"}} {{ item.specs.storage_type or "—"}}</td>
         <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
         <td>{{item.condition or "—"}}</td>
         <td>{{item.listing_type or "—"}}</td>

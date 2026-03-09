@@ -211,6 +211,7 @@ def insert_into_temp_summaries(filepath=LOG_PATH):
     db.session.commit()
     print(f"Inserted {inserted} into temp db.")
 
+
 def insert_into_temp_details(filepath=DETAIL_PATH):
 
     with open(filepath, "r", encoding="utf-8") as f:
@@ -262,3 +263,138 @@ def insert_into_temp_details(filepath=DETAIL_PATH):
     db.session.commit()
 
     print(f"Updated {updated} temp_details.")
+
+
+def save_temp_summaries(items):
+    """
+    Inserts json data into temp_summaries table in db.
+    """
+
+    # Load all rows once
+    ids = [item["itemId"] for item in items if "itemId" in item]
+
+    existing = {
+        row.ebay_item_id: row
+        for row in TempSummaries.query.filter(
+            TempSummaries.ebay_item_id.in_(ids)
+        )
+    }
+
+    inserted = 0
+
+    for item in items:
+        item_id = item.get("itemId")
+        if not item_id:
+            continue
+
+        price_info = item.get("price", {})
+        price_value = price_info.get("value")
+        category_id = item.get("leafCategoryIds", [None])[0]
+        creation_date = None
+        if item.get("itemCreationDate"):
+            creation_date = datetime.fromisoformat(
+                item["itemCreationDate"].replace("Z", "+00:00")
+            )
+
+        listing = existing.get(item_id)
+
+        if listing:
+            continue  # skip creating a new listing
+
+        # Create temporary listing with category
+        listing = TempSummaries(
+            category_id=category_id,
+            ebay_item_id=item_id,
+            title = clean_text(item.get("title", "")),
+            price=Decimal(str(price_value)) if price_value else None,
+            currency= price_info.get("currency"),
+            condition=item.get("condition"),
+            listing_type=",".join(item.get("buyingOptions", [])),
+            marketplace=item.get("marketplace_id"),
+            item_url=item.get("itemWebUrl"),
+            creation_date = creation_date            
+        )
+        db.session.add(listing)
+        db.session.flush()       
+
+        inserted += 1
+
+    db.session.commit()
+    print(f"Inserted {inserted} into temp db.")
+
+
+
+
+def save_temp_details(items):
+
+    ids = [item["itemId"] for item in items if "itemId" in item]
+
+    existing = {
+        row.ebay_item_id: row
+        for row in TempDetails.query.filter(
+            TempDetails.ebay_item_id.in_(ids)
+        )
+    }
+
+    updated = 0
+
+    for item in items:
+
+        item_id = item.get("itemId")
+        if not item_id:
+            continue
+
+        listing = existing.get(item_id)
+
+        if not listing:
+            listing = TempDetails(ebay_item_id=item_id)
+            db.session.add(listing)
+            existing[item_id] = listing
+
+        for aspect in item.get("localizedAspects", []):
+
+            name = aspect.get("name")
+            value = aspect.get("value")
+
+            field = FIELD_LOOKUP.get(name)
+            if not field:
+                continue
+
+            if field == "storage_type":
+                value = clean_storage_type(value)
+
+            setattr(listing, field, value)
+
+        updated += 1
+
+    db.session.commit()
+
+    print(f"Updated {updated} temp_details.")
+
+
+
+
+
+
+"""
+Future upgrades you may want
+
+Once your site grows, these upgrades help a lot:
+
+1 Redis cache
+
+Avoid repeated detail fetches.
+
+2 Celery workers
+
+Distributed scraping.
+
+3 Spec normalization table
+
+For flexible specs beyond ThinkPads.
+
+4 Price anomaly detection
+
+Alert when listings are under market value.
+
+"""

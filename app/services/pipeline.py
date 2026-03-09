@@ -1,6 +1,11 @@
 from app.extensions import db
 from sqlalchemy import text
 
+"""
+UPDATE listings
+SET status='ENDED'
+WHERE last_seen < NOW() - INTERVAL '1 day'
+"""
 
 def clean_temp_data():
     """
@@ -24,19 +29,27 @@ def clean_temp_data():
 def insert_models():
     db.session.execute(text("""
         INSERT INTO models (name, slug)
-        SELECT
-            m.model,
-            'thinkpad-' || lower(replace(m.model, ' ', '-'))
-        FROM (
-            SELECT DISTINCT model
-            FROM temp_details
-            WHERE model IS NOT NULL
-        ) m
-        LEFT JOIN models existing
-            ON existing.name = m.model
-        WHERE existing.id IS NULL;
+        SELECT DISTINCT
+            td.model,
+            'thinkpad-' || lower(replace(td.model, ' ', '-'))
+        FROM temp_details td
+        LEFT JOIN models m
+            ON m.name = td.model
+        WHERE td.model IS NOT NULL
+        AND m.id IS NULL;
     """))
-    
+
+def update_listing_models():
+    db.session.execute(text("""
+        UPDATE listings l
+        SET model_id = m.id
+        FROM temp_details td
+        JOIN models m
+            ON m.name = td.model
+        WHERE l.ebay_item_id = td.ebay_item_id
+        AND l.model_id IS NULL;
+    """))
+
 def insert_specs():
     """
     Insert specs from temp details
@@ -68,7 +81,7 @@ def insert_specs():
         FROM temp_details td
         JOIN listings l
         ON l.ebay_item_id = td.ebay_item_id
-        WHERE td.category_id = '177'
+        WHERE l.category_id = '177'
         ON CONFLICT (listing_id) DO NOTHING;
     """))
 
@@ -79,6 +92,7 @@ def insert_listings():
     """
     db.session.execute(text("""
         INSERT INTO listings (
+            category_id,
             ebay_item_id,
             title,
             price,
@@ -94,6 +108,7 @@ def insert_listings():
             status
         )
         SELECT
+            ts.category_id,
             ts.ebay_item_id,
             ts.title,
             ts.price,
@@ -180,10 +195,12 @@ def run_pipeline():
     Full ingestion pipeline.
     """
     clean_temp_data()
-    insert_models()
     insert_listings()
+    insert_models()
+    update_listing_models()
     insert_price_history()
     update_model_price_stats()
+    insert_specs()
     truncate_temp_tables()
 
     db.session.commit()

@@ -33,6 +33,8 @@ class Specs(db.Model):
     gpu = db.Column(db.String)
     os = db.Column(db.String)
 
+    listing = db.relationship("Listing", back_populates="specs")
+
     __table_args__ = (
         db.Index("idx_specs_search", "cpu", "ram", "storage"),
     )
@@ -66,6 +68,8 @@ class Listing(db.Model):
     model = db.relationship("Model", back_populates="listings")
 
     price_history = db.relationship("PriceHistory", back_populates="listing")
+    specs = db.relationship("Specs", back_populates="listing", uselist=False)
+
         
 
 class PriceHistory(db.Model):

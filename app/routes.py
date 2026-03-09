@@ -8,7 +8,7 @@ from flask import (
     make_response
 )
 
-from app.models import Listing, Model
+from app.models import Listing, Model, Specs
 from app import db
 
 bp = Blueprint("main", __name__)
@@ -50,40 +50,35 @@ def country_home(country):
     if country not in markets:
         abort(404)
 
+    marketplace = markets[country]
     sort = request.args.get("sort", "price")
 
-    query = db.session.query(Listing)
+    query = (
+        Listing.query
+        .join(Listing.model)
+        .outerjoin(Listing.specs)
+        .filter(
+            Listing.marketplace == marketplace,
+            Listing.status == "ACTIVE"
+        )
+    )
 
     if sort == "price":
         query = query.order_by(Listing.price.asc())
 
-    elif sort == "ram":
-        query = query.order_by(Listing.ram.desc())
-
     elif sort == "cpu":
-        query = query.order_by(Listing.cpu.desc())
+        query = query.order_by(Specs.cpu.asc())
+
+    elif sort == "ram":
+        query = query.order_by(Specs.ram.desc())
 
     listings = query.limit(100).all()
-
-    marketplace = markets[country]
-
-    # Show cheapest active listings in that country
-    listings = (
-        Listing.query
-        .filter(Listing.marketplace == marketplace,
-            Listing.status == "ACTIVE")
-        .join(Listing.model)
-        .order_by(Listing.price.asc())
-        .limit(100)
-        .all()
-    )
 
     return render_template(
         "listings.html",
         listings=listings,
         country=country
     )
-
     
 
 
@@ -105,6 +100,7 @@ def model_page(country, model_slug):
     listings = (
         Listing.query
         .join(Listing.model)
+        .outerjoin(Listing.specs)
         .filter(
             Listing.status == "ACTIVE",
             Listing.marketplace == marketplace,

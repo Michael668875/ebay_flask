@@ -23,6 +23,15 @@
   </head>
   <body>
     <h1>ThinkPad Prices ({{ country|upper }})</h1>
+
+            <!-- Country Switcher -->
+        <select onchange="location = this.value;">
+            <option value="/">Choose Country</option>
+            <option value="/us/{{ model_slug }}/">United States</option>
+            <option value="/gb/{{ model_slug }}/">United Kingdom</option>
+            <option value="/de/{{ model_slug }}/">Germany</option>
+            <option value="/au/{{ model_slug }}/">Australia</option>
+        </select>
     
     {% block body %}{% endblock %}
 
