@@ -1,28 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>
-        ThinkPad {{ model_slug|replace('-', ' ')|upper }} Price in {{ country|upper }}
-    </title>
+{% extends "layout.html" %}
 
-    <meta name="description"
-          content="Compare current prices for ThinkPad {{ model_slug|replace('-', ' ')|upper }} in {{ country|upper }}. Updated daily.">
-</head>
-<body>
+{% block body %}
+<h2>
+ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 
-<h1>
-ThinkPad {{ model_slug|replace('-', ' ')|upper }}
-({{ country|upper }})
-</h1>
+</h2>
 
-<!-- Country Switcher -->
-<select onchange="location = this.value;">
-    <option value="/">Choose Country</option>
-    <option value="/us/{{ model_slug }}/">United States</option>
-    <option value="/gb/{{ model_slug }}/">United Kingdom</option>
-    <option value="/de/{{ model_slug }}/">Germany</option>
-    <option value="/au/{{ model_slug }}/">Australia</option>
-</select>
+
 
 <table border="1">
     <tr>
@@ -40,9 +24,9 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     <tr>
         <td>{{ item.price }}</td>
         <td>{{ item.currency or "—"}}</td>
-        <td>{{ item.cpu or "—"}} {{ item.cpu_freq or "—"}}</td>
-        <td>{{ item.ram or "—"}}</td>
-        <td>{{ item.storage or "—"}} {{ item.storage_type or "—"}}</td>
+        <td>{{ item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
+        <td>{{ item.specs.ram or "—"}}</td>
+        <td>{{ item.specs.storage or "—"}} {{ item.specs.storage_type or "—"}}</td>
         <td>{{ item.condition or "—"}}</td>
         <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
         <td>{{ item.last_updated }}</td>
@@ -50,5 +34,4 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
     {% endfor %}
 </table>
 
-</body>
-</html>
+{%  endblock %}

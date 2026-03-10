@@ -25,8 +25,8 @@ class Specs(db.Model):
     # Parsed specs (from item details)
     cpu = db.Column(db.String)
     cpu_freq = db.Column(db.String(50), nullable=True)
-    ram = db.Column(db.String)
-    storage = db.Column(db.String)
+    ram = db.Column(db.Integer)
+    storage = db.Column(db.Integer)
     storage_type = db.Column(db.String)
     screen_size = db.Column(db.String)
     display = db.Column(db.String)
@@ -181,6 +181,7 @@ class ModelPriceStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     model_id = db.Column(db.Integer, db.ForeignKey("models.id"), unique=True, index=True)
+    marketplace = db.Column(db.String)
     avg_price = db.Column(db.Numeric(10,2))
     min_price = db.Column(db.Numeric(10,2))
     max_price = db.Column(db.Numeric(10,2))
