@@ -32,6 +32,33 @@
 
     </form>
 
+
+    <form method="get">
+
+        {% for name, options in filters.items() %}
+
+            <select name="{{ name }}">
+
+                <option value="">{{ name|capitalize }}</option>
+
+                    {% for option in options %}
+
+                        <option value="{{ option }}"{% if request.args.get(name) == option|string %}selected{% endif %}>
+                                {{ option }}
+                        </option>
+
+                    {% endfor %}
+
+            </select>
+
+        {% endfor %}
+
+        <button type="submit">Filter</button>
+
+    </form>
+
+
+
 <table class="table table-dark table-striped table-hover table-sm align-middle">
 
     <thead class="table-dark">
@@ -78,4 +105,4 @@
 </table>
 
 </div>
-{%  endblock %}
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<h2>Best ThinkPad Deals</h2>
+
+<div class="mb-3">
+
+Sort by:
+
+<a href="/{{ country }}/deals?sort=price">Best deals</a> |
+<a href="/{{ country }}/deals?sort=listings">Most listings</a> |
+<a href="/{{ country }}/deals?sort=newest">Newest</a>
+
+</div>
+
+<table class="table table-dark table-striped">
+<thead>
+<tr>
+<th>Model</th>
+<th>From</th>
+<th>Listings</th>
+</tr>
+</thead>
+
+<tbody>
+{% for row in rows %}
+<tr>
+
+
+<td><a href="{{ url_for('main.deal_model', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a></td>
+
+
+
+<td>${{ row.cheapest_price }}</td>
+
+<td>{{ row.listing_count }}</td>
+
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+<div class="list-group">
+
+    <h2 class="mb-4">🔥 Best ThinkPad Deals</h2>
+
+   
+
+{% for row in rows %}
+
+<a href="/{{ country }}/{{ row.slug }}/"
+   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+
+<div>
+🔥 <strong>{{ row.model_name }}</strong>
+<br>
+<span class="text-muted">
+{{ row.listing_count }} listings
+</span>
+</div>
+
+<div>
+     <span class="badge bg-success">Deal</span>
+<strong>${{ row.cheapest_price }}</strong>
+</div>
+
+</a>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

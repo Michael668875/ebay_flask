@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}
+{{ stats.name }} Price (Updated Daily)
+{% endblock %}
+
+{% block description %}
+Live {{ stats.name }} prices from eBay listings. Compare the lowest, average and highest prices updated daily.
+{% endblock %}
+
+{% block body %}
+
+
+<h1>{{ stats.name }} Price</h1>
+
+<p>Live prices for {{ stats.name }} laptops on eBay.</p>
+
+<table class="table table-dark">
+
+<tr>
+<td>Lowest price</td>
+<td><strong>${{ stats.lowest_price }}</strong></td>
+</tr>
+
+<tr>
+<td>Average price</td>
+<td>${{ stats.avg_price|round }}</td>
+</tr>
+
+<tr>
+<td>Highest price</td>
+<td>${{ stats.highest_price }}</td>
+</tr>
+
+<tr>
+<td>Listings tracked</td>
+<td>{{ stats.listing_count }}</td>
+</tr>
+
+</table>
+
+<a href="/{{ country }}/{{ stats.slug }}/">
+View current listings →
+</a>
+
+
+{% endblock %}

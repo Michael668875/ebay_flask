@@ -22,7 +22,7 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 
     {% for item in listings %}
     <tr>
-        <td>{{ item.price }}</td>
+        <td>{{ item.price }} <a href="/{{ country }}/{{ model_slug }}-price">View price statistics</a></td>
         <td>{{ item.currency or "—"}}</td>
         <td>{{ item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
         <td>{{ item.specs.ram or "—"}}</td>
