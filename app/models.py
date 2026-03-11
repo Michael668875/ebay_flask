@@ -52,11 +52,13 @@ class Listing(db.Model):
     condition = db.Column(db.String)
     listing_type = db.Column(db.String(50))
     marketplace = db.Column(db.String)
+    item_country = db.Column(db.String(2))
     item_url = db.Column(db.Text)
     status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    sold_at = db.Column(db.DateTime, nullable=True)
+    miss_count = db.Column(db.Integer, nullable=False, default=0)
+    ended_at = db.Column(db.DateTime, nullable=True)
     last_updated = db.Column(
         db.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -113,6 +115,7 @@ class TempSummaries(db.Model):
     condition = db.Column(db.String)
     listing_type = db.Column(db.String(50))
     marketplace = db.Column(db.String)
+    item_country = db.Column(db.String(2))
     item_url = db.Column(db.Text)
     creation_date = db.Column(db.DateTime(timezone=True))
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

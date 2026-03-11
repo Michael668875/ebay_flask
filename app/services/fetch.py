@@ -8,6 +8,7 @@ import asyncio
 import httpx
 import time
 import random
+import json
 
 
 load_dotenv()
@@ -65,7 +66,7 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=600):
                 "offset": offset,
                 "fieldgroups": "EXTENDED",
                 "sort": "newlyListed",
-                "filter": "conditionIds:{1000|1500|2000|2500|3000},buyingOptions:{FIXED_PRICE}"
+                "filter": "conditionIds:{1000|1500|2000|2500|3000},buyingOptions:{FIXED_PRICE},itemLocationCountry:{market.split('_')[1]}"
             }
 
             try:
@@ -231,3 +232,25 @@ Example daily usage:
 
 Safe.
 """
+
+# THIS IS FOR TESTING PURPOSES. FETCH DETAILS FOR A SINGLE ITEM AND OUTPUT TO A FILE
+def get_item_details(item_id, marketplace_id):
+    token = get_token()
+
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
+        "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
+    }
+
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    output = resp.json()
+    itemNumber = item_id[3:-2]
+
+    with open(f"{itemNumber}_output.txt", "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    return None
+

@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}
+ThinkPad Models and Prices
+{% endblock %}
+
+{% block body %}
+
+<h1>ThinkPad Models</h1>
+
+<table class="table table-dark">
+
+<thead>
+<tr>
+<th>Model</th>
+<th>Lowest Price</th>
+<th>Listings</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for row in rows %}
+
+<tr>
+
+<td>
+<a href="/{{ country }}/{{ row.slug }}/">
+{{ row.name }}
+</a>
+</td>
+
+<td>
+<strong>${{ row.lowest_price }}</strong>
+</td>
+
+<td>
+{{ row.listing_count }}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+</table>
+
+{% endblock %}

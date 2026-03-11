@@ -1,13 +1,8 @@
 from app.extensions import db
 from sqlalchemy import text
 
-"""
-UPDATE listings
-SET status='ENDED'
-WHERE last_seen < NOW() - INTERVAL '1 day'
-"""
 
-
+# remove "thinkpad" and "lenovo" from model name
 def clean_temp_data():
     """
     Clean raw temp table data.
@@ -26,7 +21,7 @@ def clean_temp_data():
         WHERE model IS NOT NULL;
     """))
 
-
+# add models from temp to main table. one of each model type.
 def insert_models():
     db.session.execute(text(r"""
         INSERT INTO models (name, slug)
@@ -40,6 +35,7 @@ def insert_models():
         AND m.id IS NULL;
     """))
 
+# this connects listings with models
 def update_listing_models():
     db.session.execute(text(r"""
         UPDATE listings l
@@ -51,6 +47,7 @@ def update_listing_models():
         AND l.model_id IS NULL;
     """))
 
+# add detailed specs from temp to main table.
 def insert_specs():
     """
     Insert specs from temp details
@@ -110,7 +107,7 @@ def insert_specs():
         cpu_freq = COALESCE(EXCLUDED.cpu_freq, specs.cpu_freq);
     """))
 
-
+# add summaries from temp tabel into main listings table
 def insert_listings():
     """
     Insert listings joined with temp details and models.
@@ -125,11 +122,12 @@ def insert_listings():
             condition,
             listing_type,
             marketplace,
+            item_country,
             item_url,
             first_seen,
             last_seen,
-            sold_at,
             last_updated,
+            ended_at,
             status
         )
         SELECT
@@ -141,18 +139,69 @@ def insert_listings():
             ts.condition,
             ts.listing_type,
             ts.marketplace,
+            ts.item_country,
             ts.item_url,
-            ts.first_seen,
-            ts.last_seen,
-            ts.sold_at,
-            ts.last_updated,
+            NOW(),
+            NOW(),
+            NOW(),
+            ts.ended_at,
             'ACTIVE'
         FROM temp_summaries ts
         WHERE ts.category_id = '177'
         ON CONFLICT (ebay_item_id) DO NOTHING;
     """))
 
+# update the price if it has changed
+def update_listing_prices():
+    db.session.execute(text(r"""
+        UPDATE listings l
+        SET
+            price = ts.price,
+            last_updated = NOW()
+        FROM temp_summaries ts
+        WHERE l.ebay_item_id = ts.ebay_item_id
+        AND l.price <> ts.price;
+    """))
 
+# update last_seen, miss_count, last_updated 
+# each time a listing appears from api
+def update_seen_listings():
+    db.session.execute(text(r"""
+        UPDATE listings l
+        SET
+            last_seen = NOW(),
+            miss_count = 0,
+            last_updated = NOW()
+        FROM temp_summaries ts
+        WHERE l.ebay_item_id = ts.ebay_item_id;
+    """))
+
+# increment the miss_count so listings can be marked as ended.
+def increment_miss_count():
+    db.session.execute(text(r"""
+        UPDATE listings l
+        SET
+            miss_count = miss_count + 1
+        WHERE status = 'ACTIVE'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM temp_summaries ts
+            WHERE ts.ebay_item_id = l.ebay_item_id
+        );
+    """))
+
+# change status to ended for listings
+def mark_ended_listings():
+    db.session.execute(text(r"""
+        UPDATE listings
+        SET
+            status = 'ENDED',
+            ended_at = NOW()
+        WHERE status = 'ACTIVE'
+        AND miss_count >= 3;
+    """))
+
+# create data for price_history table
 def insert_price_history():
     """
     Insert price history for newly inserted listings.
@@ -172,7 +221,7 @@ def insert_price_history():
         );
     """))
 
-
+# track prices by model
 def update_model_price_stats():
     """
     Update aggregated model pricing stats.
@@ -196,8 +245,6 @@ def update_model_price_stats():
             COUNT(*),
             NOW()
         FROM listings
-        CREATE INDEX idx_listings_model_active_price
-        ON listings (model_id, price)
         WHERE status = 'ACTIVE'
         AND model_id IS NOT NULL
         GROUP BY model_id, marketplace
@@ -210,7 +257,7 @@ def update_model_price_stats():
             updated_at = NOW();
     """))
 
-
+# delete temp data
 def truncate_temp_tables():
     """
     Clear temp tables for next scrape.
@@ -225,12 +272,17 @@ def run_pipeline():
     Full ingestion pipeline.
     """
     clean_temp_data()
-    insert_listings()
     insert_models()
+    insert_listings()
+    update_listing_prices()
     update_listing_models()
+    update_seen_listings()
+    increment_miss_count()
+    mark_ended_listings()
     insert_price_history()
     update_model_price_stats()
     insert_specs()
     #truncate_temp_tables()
 
     db.session.commit()
+

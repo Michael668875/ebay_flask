@@ -166,6 +166,7 @@ def save_temp_summaries(items):
         price_value = price_info.get("value")
         category_id = item.get("leafCategoryIds", [None])[0]
         creation_date = None
+        location = item.get("itemLocation", {})
         if item.get("itemCreationDate"):
             creation_date = datetime.fromisoformat(
                 item["itemCreationDate"].replace("Z", "+00:00")
@@ -185,7 +186,8 @@ def save_temp_summaries(items):
             currency= price_info.get("currency"),
             condition=item.get("condition"),
             listing_type=",".join(item.get("buyingOptions", [])),
-            marketplace=item.get("marketplace_id"),
+            marketplace=item.get("marketplace_id"),            
+            item_country = location.get("country"),
             item_url=item.get("itemWebUrl"),
             creation_date = creation_date            
         )

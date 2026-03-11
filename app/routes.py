@@ -402,3 +402,28 @@ def model_price(country, slug):
         stats=stats,
         country=country
     )
+
+@bp.route("/<country>/thinkpad-models")
+def thinkpad_models(country):
+
+    marketplace = f"EBAY_{country.upper()}"
+
+    rows = db.session.execute(text("""
+        SELECT
+            m.name,
+            m.slug,
+            MIN(l.price) AS lowest_price,
+            COUNT(*) AS listing_count
+        FROM listings l
+        JOIN models m ON m.id = l.model_id
+        WHERE l.status = 'ACTIVE'
+        AND l.marketplace = :marketplace
+        GROUP BY m.id, m.name, m.slug
+        ORDER BY m.name
+    """), {"marketplace": marketplace}).fetchall()
+
+    return render_template(
+        "thinkpad_models.html",
+        rows=rows,
+        country=country
+    )
