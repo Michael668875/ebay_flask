@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import TempSummaries, TempDetails
 from app.services.field_map import FIELD_MAP
 import re
+from difflib import get_close_matches
 
 
 def clean_text(text: str) -> str:
@@ -92,6 +93,58 @@ def valid_capacity(value):
         return False
     return True
 
+# Get all canonical models from the database
+CANON = [row.name for row in db.ThinkPadModel.query.with_entities(db.ThinkPadModel.name).all()]
+
+def parse_model(item, CANON_MODELS=CANON):
+    """
+    Determine the canonical model for a listing.
+
+    Args:
+        item (dict): eBay item dict with 'localizedAspects' and 'title'
+        CANON_MODELS (list[str]): list of canonical model names
+
+    Returns:
+        str: matched canonical model or 'unknown' if no match
+    """
+    # -------------------------
+    # Step 1: Check localizedAspects
+    # -------------------------
+    aspects = {a.get("name"): a.get("value") for a in item.get("localizedAspects", []) if a.get("name") and a.get("value")}
+    model_aspect = aspects.get("Model") or aspects.get("model")  # common variations
+    if model_aspect:
+        if model_aspect in CANON_MODELS:
+            return model_aspect
+        partial_matches = [m for m in CANON_MODELS if model_aspect.lower() in m.lower()]
+        if partial_matches:
+            return partial_matches[0]
+
+    # -------------------------
+    # Step 2: Parse from title
+    # -------------------------
+    title = item.get("title", "")
+    if title:
+        # Regex for typical ThinkPad-style models
+        pattern = r"(T\d{2,3}[a-zA-Z]?(?:\sGen\s\d)?)"
+        matches = re.findall(pattern, title, flags=re.IGNORECASE)
+        for match in matches:
+            if match in CANON_MODELS:
+                return match
+            partial_matches = [m for m in CANON_MODELS if match.lower() in m.lower()]
+            if partial_matches:
+                return partial_matches[0]
+
+        # Fallback: fuzzy match on full title
+        closest = get_close_matches(title, CANON_MODELS, n=1, cutoff=0.6)
+        if closest:
+            return closest[0]
+
+    # -------------------------
+    # Step 3: No match
+    # -------------------------
+    return "unknown"
+
+
 def save_temp_details(items):
 
     ids = [item["itemId"] for item in items if "itemId" in item]
@@ -152,6 +205,11 @@ def save_temp_details(items):
 
                 setattr(listing, field, value)
                 break   # stop checking lower priority keys
+
+        # -------------------------
+        # Parse and assign model
+        # -------------------------
+        listing.model = parse_model(item)
 
         updated += 1
 

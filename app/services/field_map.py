@@ -4,8 +4,8 @@ FIELD_MAP = {
         "keys": [
             "Model", 
             "Modell", 
-            "MPN", 
-            "Herstellernummer"
+            #"MPN", 
+            #"Herstellernummer"
         ],
         "type": "relation"
     },

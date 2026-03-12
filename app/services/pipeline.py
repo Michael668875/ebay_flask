@@ -25,14 +25,18 @@ def clean_temp_data():
 def insert_models():
     db.session.execute(text(r"""
         INSERT INTO models (name, canon_model_id)
-        SELECT DISTINCT td.model, ml.id
-        FROM temp_details td
-        JOIN model_list ml
-            ON td.model ILIKE '%' || ml.name || '%'
-        ORDER BY LENGTH(cm.name) DESC
-        LEFT JOIN models m
-            ON m.name = td.model
-        WHERE td.model IS NOT NULL AND m.id IS NULL;
+        SELECT name, canon_model_id
+        FROM (
+            SELECT DISTINCT ON (td.model)
+                td.model AS name,
+                ml.id AS canon_model_id
+            FROM temp_details td
+            JOIN model_list ml
+                ON td.model ILIKE '%' || ml.name || '%'
+            WHERE td.model IS NOT NULL
+            ORDER BY td.model, LENGTH(ml.name) DESC
+        ) sub
+        ON CONFLICT (name) DO NOTHING;
     """))
 
 # this connects listings with models
@@ -144,7 +148,7 @@ def insert_listings():
             NOW(),
             NOW(),
             NOW(),
-            ts.ended_at,
+            NULL,
             'ACTIVE'
         FROM temp_summaries ts
         WHERE ts.category_id = '177'
@@ -161,6 +165,22 @@ def update_listing_prices():
         FROM temp_summaries ts
         WHERE l.ebay_item_id = ts.ebay_item_id
         AND l.price <> ts.price;
+    """))
+
+def mark_sold_listings():
+    """
+    Mark listings as ENDED if temp_summaries.sold_at is not NULL.
+    """
+    db.session.execute(text(r"""
+        UPDATE listings l
+        SET
+            status = 'ENDED',
+            ended_at = ts.sold_at,
+            last_updated = NOW()
+        FROM temp_summaries ts
+        WHERE l.ebay_item_id = ts.ebay_item_id
+        AND ts.sold_at IS NOT NULL
+        AND l.status != 'ENDED';
     """))
 
 # update last_seen, miss_count, last_updated 
@@ -275,6 +295,7 @@ def run_pipeline():
     insert_models()
     insert_listings()
     update_listing_prices()
+    mark_sold_listings()
     update_listing_models()
     update_seen_listings()
     increment_miss_count()

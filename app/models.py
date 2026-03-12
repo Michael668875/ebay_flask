@@ -141,7 +141,6 @@ class TempSummaries(db.Model):
     creation_date = db.Column(db.DateTime(timezone=True))
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    sold_at = db.Column(db.DateTime(timezone=True), nullable=True)
     last_updated = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
