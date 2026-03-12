@@ -24,15 +24,15 @@ def clean_temp_data():
 # add models from temp to main table. one of each model type.
 def insert_models():
     db.session.execute(text(r"""
-        INSERT INTO models (name, slug)
-        SELECT DISTINCT
-            td.model,
-            'thinkpad-' || lower(replace(td.model, ' ', '-'))
+        INSERT INTO models (name, canon_model_id)
+        SELECT DISTINCT td.model, ml.id
         FROM temp_details td
+        JOIN model_list ml
+            ON td.model ILIKE '%' || ml.name || '%'
+        ORDER BY LENGTH(cm.name) DESC
         LEFT JOIN models m
             ON m.name = td.model
-        WHERE td.model IS NOT NULL
-        AND m.id IS NULL;
+        WHERE td.model IS NOT NULL AND m.id IS NULL;
     """))
 
 # this connects listings with models

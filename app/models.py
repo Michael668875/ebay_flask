@@ -1,30 +1,95 @@
 from app.extensions import db
 from datetime import datetime, timezone
-from slugify import slugify
-from sqlalchemy import event
-from sqlalchemy.orm import Session, validates
 from sqlalchemy.sql import func
-import re
+
+# --------------------------
+# Canonical ThinkPad models
+# --------------------------
+class ThinkPadModel(db.Model):
+    __tablename__ = "model_list"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    slug = db.Column(db.String, unique=True, nullable=False)
+
+    # backref for models linked to this canonical model
+    models = db.relationship("Model", back_populates="canon_model", cascade="all, delete-orphan")
 
 
+# --------------------------
+# Parsed Model from eBay
+# --------------------------
 class Model(db.Model):
     __tablename__ = "models"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True, index=True)
-    slug = db.Column(db.String, nullable=False, unique=True)
+    name = db.Column(db.String, nullable=False, unique=True, index=True)  # parsed/raw name
 
+    # Link to canonical model (optional, for browser display)
+    canon_model_id = db.Column(db.Integer, db.ForeignKey("model_list.id", ondelete="SET NULL"))
+    canon_model = db.relationship("ThinkPadModel", back_populates="models", lazy="joined")
+
+    # Listings associated with this model
     listings = db.relationship("Listing", back_populates="model", cascade="all, delete-orphan")
 
+
+# --------------------------
+# Listings
+# --------------------------
+class Listing(db.Model):
+    __tablename__ = "listings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.String(20), nullable=True)
+    ebay_item_id = db.Column(db.String, unique=True, nullable=False, index=True)
+    title = db.Column(db.String)
+    price = db.Column(db.Numeric(10, 2))
+    currency = db.Column(db.String(10), nullable=False)
+    condition = db.Column(db.String)
+    listing_type = db.Column(db.String(50))
+    marketplace = db.Column(db.String)
+    item_country = db.Column(db.String(2))
+    item_url = db.Column(db.Text)
+    status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True)  # ACTIVE, SOLD, ENDED
+    first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    miss_count = db.Column(db.Integer, nullable=False, default=0)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    last_updated = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Link to parsed model
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id", ondelete="CASCADE"), index=True)
+    model = db.relationship("Model", back_populates="listings")
+
+    # Relationships
+    price_history = db.relationship("PriceHistory", back_populates="listing", cascade="all, delete-orphan")
+    specs = db.relationship("Specs", back_populates="listing", uselist=False, cascade="all, delete-orphan")
+
+    __table_args__ = (
+        db.Index("ix_listings_status", "status"),
+        db.Index("ix_listings_model_id", "model_id"),
+    )
+
+    @property
+    def is_active(self):
+        return self.status == "ACTIVE" and self.ended_at is None
+
+
+# --------------------------
+# Specs
+# --------------------------
 class Specs(db.Model):
     __tablename__ = "specs"
 
     id = db.Column(db.Integer, primary_key=True)
-    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"), unique=True, index=True)
+    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id", ondelete="CASCADE"), unique=True, index=True)
 
-    # Parsed specs (from item details)
     cpu = db.Column(db.String)
-    cpu_freq = db.Column(db.String(50), nullable=True)
+    cpu_freq = db.Column(db.String(50))
     ram = db.Column(db.Integer)
     storage = db.Column(db.Integer)
     storage_type = db.Column(db.String)
@@ -39,71 +104,27 @@ class Specs(db.Model):
         db.Index("idx_specs_search", "cpu", "ram", "storage"),
     )
 
-class Listing(db.Model):
-    __tablename__ = "listings"
-
-    id = db.Column(db.Integer, primary_key=True)
-    category_id = db.Column(db.String(20), nullable=True)
-
-    ebay_item_id = db.Column(db.String, unique=True, nullable=False, index=True)
-    title = db.Column(db.String)
-    price = db.Column(db.Numeric(10, 2))
-    currency = db.Column(db.String(10), nullable=False)
-    condition = db.Column(db.String)
-    listing_type = db.Column(db.String(50))
-    marketplace = db.Column(db.String)
-    item_country = db.Column(db.String(2))
-    item_url = db.Column(db.Text)
-    status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True) # ACTIVE, SOLD, ENDED
-    first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    miss_count = db.Column(db.Integer, nullable=False, default=0)
-    ended_at = db.Column(db.DateTime, nullable=True)
-    last_updated = db.Column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc)
-    )
-
-    # Link to canonical model
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
-    model = db.relationship("Model", back_populates="listings")
-
-    price_history = db.relationship("PriceHistory", back_populates="listing")
-    specs = db.relationship("Specs", back_populates="listing", uselist=False)
-
-        
-
+# --------------------------
+# Price History
+# --------------------------
 class PriceHistory(db.Model):
     __tablename__ = "price_history"
 
     id = db.Column(db.Integer, primary_key=True)
-
-    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id"))
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
+    listing_id = db.Column(db.Integer, db.ForeignKey("listings.id", ondelete="CASCADE"))
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id", ondelete="CASCADE"), index=True)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
     recorded_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
 
     listing = db.relationship("Listing", back_populates="price_history")
 
-@event.listens_for(Model, "before_insert")
-def generate_unique_slug(mapper, connection, target):
-    if not target.slug:
-        # Prepend "thinkpad" for SEO in URL
-        base_slug = slugify(f"thinkpad {target.name}")
-        slug = base_slug
-        counter = 1
 
-        session = Session.object_session(target)
-        while session.query(Model).filter_by(slug=slug).first():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
-
-        target.slug = slug
-
+# --------------------------
+# Temp tables (for API fetch)
+# --------------------------
 class TempSummaries(db.Model):
-    __tablename__= "temp_summaries"
+    __tablename__ = "temp_summaries"
 
     id = db.Column(db.Integer, primary_key=True)
     category_id = db.Column(db.String(20))
@@ -121,14 +142,11 @@ class TempSummaries(db.Model):
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     sold_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    last_updated = db.Column(
-        db.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc)
-    )
+    last_updated = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
 
 class TempDetails(db.Model):
-    __tablename__= "temp_details"
+    __tablename__ = "temp_details"
 
     id = db.Column(db.Integer, primary_key=True)
     ebay_item_id = db.Column(db.String, unique=True, nullable=False)
@@ -147,6 +165,26 @@ class TempDetails(db.Model):
     seller_feedback_percent = db.Column(db.Numeric(5, 2))
 
 
+# --------------------------
+# Price Stats
+# --------------------------
+class ModelPriceStats(db.Model):
+    __tablename__ = "model_price_stats"
+
+    id = db.Column(db.Integer, primary_key=True)
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
+    marketplace = db.Column(db.String)
+    avg_price = db.Column(db.Numeric(10, 2))
+    min_price = db.Column(db.Numeric(10, 2))
+    max_price = db.Column(db.Numeric(10, 2))
+    listing_count = db.Column(db.Integer)
+    updated_at = db.Column(db.DateTime(timezone=True))
+
+    __table_args__ = (
+        db.UniqueConstraint("model_id", "marketplace", name="ix_model_price_stats_model_market"),
+    )
+
+
 class Marketplace(db.Model):
     __tablename__ = "marketplaces"
 
@@ -157,11 +195,6 @@ class Marketplace(db.Model):
 
     def __repr__(self):
         return f"<Marketplace {self.marketplace_id}>"
-    
-class ThinkPadModel(db.Model):
-    __tablename__ = "model_list"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
 
 class CPU(db.Model):
     __tablename__ = "cpu"
@@ -178,16 +211,3 @@ class Storage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     size = db.Column(db.String(20), unique=True, nullable=False)
 
-class ModelPriceStats(db.Model):
-    __tablename__ = "model_price_stats"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), unique=True, index=True)
-    marketplace = db.Column(db.String)
-    avg_price = db.Column(db.Numeric(10,2))
-    min_price = db.Column(db.Numeric(10,2))
-    max_price = db.Column(db.Numeric(10,2))
-    listing_count = db.Column(db.Integer)
-
-    updated_at = db.Column(db.DateTime(timezone=True))
