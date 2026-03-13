@@ -1,0 +1,73 @@
+{% macro model_link(item, country) %}
+    {% if item.model and item.model.canon_model %}
+        <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
+            {{ item.model.name or "—" }}
+        </a>
+    {% else %}
+        {{ item.model.name if item.model else "—" }}
+    {% endif %}
+{% endmacro %}
+
+{% macro listing_link(item) %}
+    {% if item.item_url %}
+        <a href="{{ item.item_url }}" target="_blank">{{ item.title or "—" }}</a>
+    {% else %}
+        {{ item.title or "—" }}
+    {% endif %}
+{% endmacro %}
+
+{% macro spec(specs, field, use_capacity=False) %}
+    {% if specs %}
+        {% set value = specs|attr(field) %}
+        {% if value %}
+            {% if use_capacity %}
+                {{ value|format_capacity }}
+            {% else %}
+                {{ value }}
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    {% else %}
+        —
+    {% endif %}
+{% endmacro %}
+
+{% macro listings_table(listings, country, show_model_column=True, show_last_updated=True) %}
+<table class="table table-hover">
+    <tr>
+        {% if show_model_column %}
+            <th>Model</th>
+        {% endif %}
+        <th>Price</th>
+        <th>Currency</th>
+        <th>CPU</th>
+        <th>RAM</th>
+        <th>Storage</th>
+        <th>Condition</th>
+        <th>Listing</th>
+        {% if show_last_updated %}
+            <th>Last Updated</th>
+        {% endif %}
+    </tr>
+
+    {% for item in listings %}
+    <tr>
+        {% if show_model_column %}
+            <td>{{ model_link(item, country) }}</td>
+        {% endif %}
+        <td>{{ item.price or "—" }}</td>
+        <td>{{ item.currency or "—" }}</td>
+        <td>{{ spec(item.specs, "cpu") }} {{ spec(item.specs, "cpu_freq") }}</td>
+        <td>{{ spec(item.specs, "ram", use_capacity=True) }}</td>
+        <td>{{ spec(item.specs, "storage", use_capacity=True) }} {{ spec(item.specs, "storage_type") }}</td>
+        <td>{{ item.condition or "—" }}</td>
+        <td>{{ listing_link(item) }}</td>
+        {% if show_last_updated %}
+            <td>{{ item.last_updated or "—" }}</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+
+{% endmacro %}

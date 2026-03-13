@@ -5,6 +5,13 @@ from app.models import TempSummaries, TempDetails
 from app.services.field_map import FIELD_MAP
 import re
 from difflib import get_close_matches
+from pathlib import Path
+import json
+
+
+BASE_DIR = Path(__file__).resolve().parent
+LOG_PATH = BASE_DIR / "get_thinkpads_log.txt"
+DETAIL_PATH = BASE_DIR / "get_details_log.txt"
 
 
 def clean_text(text: str) -> str:
@@ -23,10 +30,12 @@ def clean_storage_type(value):
     return value.strip()
 
 
-def save_temp_summaries(items):
+def save_temp_summaries(items=LOG_PATH):
     """
     Inserts json data into temp_summaries table in db.
     """
+    with open(items, "r", encoding="utf-8") as f:
+        items = json.load(f)
 
     # Load all rows once
     ids = [item["itemId"] for item in items if "itemId" in item]
@@ -93,59 +102,41 @@ def valid_capacity(value):
         return False
     return True
 
-# Get all canonical models from the database
-CANON = [row.name for row in db.ThinkPadModel.query.with_entities(db.ThinkPadModel.name).all()]
 
-def parse_model(item, CANON_MODELS=CANON):
-    """
-    Determine the canonical model for a listing.
+def normalize(s):
+    """Lowercase and remove spaces for matching."""
+    return re.sub(r"\s+", "", s.lower())
 
-    Args:
-        item (dict): eBay item dict with 'localizedAspects' and 'title'
-        CANON_MODELS (list[str]): list of canonical model names
+def build_model_index(canon_models):
 
-    Returns:
-        str: matched canonical model or 'unknown' if no match
-    """
-    # -------------------------
-    # Step 1: Check localizedAspects
-    # -------------------------
-    aspects = {a.get("name"): a.get("value") for a in item.get("localizedAspects", []) if a.get("name") and a.get("value")}
-    model_aspect = aspects.get("Model") or aspects.get("model")  # common variations
-    if model_aspect:
-        if model_aspect in CANON_MODELS:
-            return model_aspect
-        partial_matches = [m for m in CANON_MODELS if model_aspect.lower() in m.lower()]
-        if partial_matches:
-            return partial_matches[0]
+    index = []
 
-    # -------------------------
-    # Step 2: Parse from title
-    # -------------------------
-    title = item.get("title", "")
-    if title:
-        # Regex for typical ThinkPad-style models
-        pattern = r"(T\d{2,3}[a-zA-Z]?(?:\sGen\s\d)?)"
-        matches = re.findall(pattern, title, flags=re.IGNORECASE)
-        for match in matches:
-            if match in CANON_MODELS:
-                return match
-            partial_matches = [m for m in CANON_MODELS if match.lower() in m.lower()]
-            if partial_matches:
-                return partial_matches[0]
+    for m in canon_models:
+        index.append((normalize(m), m))
 
-        # Fallback: fuzzy match on full title
-        closest = get_close_matches(title, CANON_MODELS, n=1, cutoff=0.6)
-        if closest:
-            return closest[0]
+    index.sort(reverse=True)  # longest first
 
-    # -------------------------
-    # Step 3: No match
-    # -------------------------
+    return index
+
+def parse_model(title, canon_models):
+
+    title_norm = normalize(title)
+    model_index = build_model_index(canon_models)
+    for model_norm, model in model_index:
+        if model_norm in title_norm:
+            return model
+
     return "unknown"
 
 
-def save_temp_details(items):
+def save_temp_details(items=DETAIL_PATH, CANON_MODELS=None):
+
+    with open(items, "r", encoding="utf-8") as f:
+        items = json.load(f)
+
+    if CANON_MODELS is None:
+        from app.models import ThinkPadModel
+        CANON_MODELS = [row.name for row in ThinkPadModel.query.with_entities(ThinkPadModel.name).all()]
 
     ids = [item["itemId"] for item in items if "itemId" in item]
 
@@ -209,7 +200,14 @@ def save_temp_details(items):
         # -------------------------
         # Parse and assign model
         # -------------------------
-        listing.model = parse_model(item)
+
+
+        # ADD LOGIC TO GET MODEL FROM FIELD FIRST AND CHECK AGAINST CANON
+        # ONLY PARSE TITLE IF NO MATCH 
+        
+        
+        title = item.get("title", "")
+        listing.model = parse_model(title, CANON_MODELS)
 
         updated += 1
 

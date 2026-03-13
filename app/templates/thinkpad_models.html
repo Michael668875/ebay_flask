@@ -25,9 +25,14 @@ ThinkPad Models and Prices
 <tr>
 
 <td>
-<a href="/{{ country }}/{{ row.slug }}/">
-{{ row.name }}
-</a>
+    {% if row.slug %}
+        <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
+            {{ row.name }}
+        </a>
+    {% else %}
+        —
+    {% endif %}
+
 </td>
 
 <td>
@@ -46,3 +51,5 @@ ThinkPad Models and Prices
 </table>
 
 {% endblock %}
+
+

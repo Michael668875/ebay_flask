@@ -28,7 +28,12 @@ Sort by:
 <tr>
 
 
-<td><a href="{{ url_for('main.deal_model', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a></td>
+<td>{% if row.slug %}
+        <a href="{{ url_for('main.deal_model', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a>
+    {% else %}
+           —
+    {% endif %} 
+</td>
 
 
 
@@ -71,5 +76,10 @@ Sort by:
 {% endfor %}
 
 </div>
-
 {% endblock %}
+
+
+
+
+
+

@@ -12,9 +12,9 @@ app = create_app()
 
 with app.app_context():
     #items = get_paginated_summaries()
-    #save_temp_summaries(items)
+    save_temp_summaries()
     #listings = new_listings()
     #details = asyncio.run(fetch_item_details_async(listings))
-    #save_temp_details(details)
+    save_temp_details()
     run_pipeline()
     #get_item_details("v1|257389702682|0", "EBAY_US")

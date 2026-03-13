@@ -25,9 +25,13 @@
                 </td>
                 <td>{{ row.title }}</td>
                 <td>
-                    <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
-                        View on eBay
-                    </a>
+                    {% if row.item_url %}
+                        <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
+                            View on eBay
+                        </a>
+                    {% else %}
+                        —
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

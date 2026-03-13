@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block body %}
 <div class="container mt-4">
@@ -86,16 +87,14 @@
 {% for item in listings %}
 
     <tr>
-        <td><a href="/{{ country }}/{{ item.model.slug }}/">
-                {{ item.model.name or "—"}}
-            </a></td>
+        <td>{{ macros.model_link(item, country) }}</td>
         <td>${{item.price or "—"}}</td>
         <td>{{item.currency or "—"}}</td>
         <td>{{item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
         <td>{{ item.specs.ram|format_capacity }}</td>
         <td>{{ item.specs.storage|format_capacity }}</td>
         <td>{{item.condition or "—"}}</td>
-        <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
+        <td>{{ macros.listing_link(item) }}</td>
     </tr>
 
 {% endfor %}
@@ -104,5 +103,9 @@
 
 </table>
 
+</div>
+
+<div>
+    {{ macros.listings_table(listings, country, show_last_updated=False) }}
 </div>
 {% endblock %}

@@ -8,7 +8,7 @@ from flask import (
     make_response
 )
 
-from app.models import Listing, Model, Specs
+from app.models import Listing, Model, Specs, ThinkPadModel
 from app import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
@@ -168,6 +168,7 @@ def model_page(country, model_slug):
     listings = (
         Listing.query
         .join(Listing.model)
+        .join(Model.canon_model)
         .options(
             joinedload(Listing.model),
             joinedload(Listing.specs)
@@ -175,7 +176,7 @@ def model_page(country, model_slug):
         .filter(
             Listing.status == "ACTIVE",
             Listing.marketplace == marketplace,
-            Model.slug == model_slug
+            ThinkPadModel.slug == model_slug
         )
         .order_by(Listing.price.asc())
         .limit(100)
@@ -231,7 +232,7 @@ def deals(country):
         SELECT
             m.id AS model_id,
             m.name AS model_name,
-            m.slug,
+            ml.slug,
             MIN(l.price) AS cheapest_price,
             COUNT(*) AS listing_count,
             MAX(l.first_seen) AS newest_listing,
@@ -246,9 +247,10 @@ def deals(country):
             ) AS cheapest_item
         FROM listings l
         JOIN models m ON m.id = l.model_id
+        JOIN model_list ml ON ml.id = m.canon_model_id
         WHERE l.status = 'ACTIVE'
         AND l.marketplace = :marketplace
-        GROUP BY m.id, m.name, m.slug
+        GROUP BY m.id, m.name, ml.slug
         ORDER BY {order_clause}
         LIMIT 50
     """), {"marketplace": marketplace}).fetchall()
@@ -273,9 +275,10 @@ def deal_model(country, model_slug):
             l.item_url
         FROM listings l
         JOIN models m ON m.id = l.model_id
+        JOIN model_list ml ON ml.id = m.canon_model_id
         WHERE l.status = 'ACTIVE'
         AND l.marketplace = :marketplace
-        AND m.slug = :slug
+        AND ml.slug = :slug
         ORDER BY l.price ASC
         LIMIT 50
     """), {
@@ -300,7 +303,7 @@ def price_drops(country):
         WITH price_changes AS (
             SELECT
                 m.name AS model_name,
-                m.slug,
+                ml.slug,
                 l.ebay_item_id,
                 ph.price AS new_price,
                 LAG(ph.price) OVER (
@@ -310,6 +313,7 @@ def price_drops(country):
             FROM price_history ph
             JOIN listings l ON l.id = ph.listing_id
             JOIN models m ON m.id = l.model_id
+            JOIN model_list ml ON ml.id = m.canon_model_id
             WHERE l.status = 'ACTIVE'
             AND l.marketplace = :marketplace
         )
@@ -351,7 +355,7 @@ def best_deals(country):
 
         SELECT
             m.name AS model_name,
-            m.slug,
+            ml.slug,
             l.ebay_item_id,
             l.price,
             mp.avg_price,
@@ -360,6 +364,7 @@ def best_deals(country):
         FROM listings l
         JOIN model_prices mp ON mp.model_id = l.model_id
         JOIN models m ON m.id = l.model_id
+        JOIN model_list ml ON ml.id = m.canon_model_id
         WHERE l.status = 'ACTIVE'
         AND l.marketplace = :marketplace
         AND l.price < mp.avg_price * 0.75
@@ -381,17 +386,18 @@ def model_price(country, slug):
     stats = db.session.execute(text("""
         SELECT
             m.name,
-            m.slug,
+            ml.slug,
             MIN(l.price) AS lowest_price,
             AVG(l.price) AS avg_price,
             MAX(l.price) AS highest_price,
             COUNT(*) AS listing_count
         FROM listings l
         JOIN models m ON m.id = l.model_id
+        JOIN model_list ml ON ml.id = m.canon_model_id
         WHERE l.status = 'ACTIVE'
         AND l.marketplace = :marketplace
-        AND m.slug = :slug
-        GROUP BY m.name, m.slug
+        AND ml.slug = :slug
+        GROUP BY m.name, ml.slug
     """), {
         "marketplace": marketplace,
         "slug": slug
@@ -411,14 +417,15 @@ def thinkpad_models(country):
     rows = db.session.execute(text("""
         SELECT
             m.name,
-            m.slug,
+            ml.slug,
             MIN(l.price) AS lowest_price,
             COUNT(*) AS listing_count
         FROM listings l
         JOIN models m ON m.id = l.model_id
+        JOIN model_list ml ON ml.id = m.canon_model_id
         WHERE l.status = 'ACTIVE'
         AND l.marketplace = :marketplace
-        GROUP BY m.id, m.name, m.slug
+        GROUP BY m.id, m.name, ml.slug
         ORDER BY m.name
     """), {"marketplace": marketplace}).fetchall()
 

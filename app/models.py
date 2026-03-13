@@ -70,8 +70,8 @@ class Listing(db.Model):
     specs = db.relationship("Specs", back_populates="listing", uselist=False, cascade="all, delete-orphan")
 
     __table_args__ = (
-        db.Index("ix_listings_status", "status"),
-        db.Index("ix_listings_model_id", "model_id"),
+        db.Index("idx_listings_marketplace_status_model", "marketplace", "status", "model_id"),
+        db.Index("idx_listings_marketplace_status_price", "marketplace", "status", "price")
     )
 
     @property
@@ -141,6 +141,7 @@ class TempSummaries(db.Model):
     creation_date = db.Column(db.DateTime(timezone=True))
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    sold_at = db.Column(db.DateTime(timezone=True), nullable=True)
     last_updated = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 

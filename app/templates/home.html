@@ -42,7 +42,7 @@ ThinkPad {{ model_slug|replace('-', ' ')|upper }}
 
     {% for item in listings %}
    <tr>
-        <td><a href="/{{ country }}/{{ item.model.slug }}/">
+        <td><a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
                 {{ item.model.name or "—"}}
             </a></td>
         <td>${{item.price or "—"}}</td>

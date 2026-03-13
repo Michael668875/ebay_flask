@@ -3,10 +3,12 @@
 {% block body %}
 <h2>
 ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
-
 </h2>
 
-
+{# Link to price page #}
+<a href="{{ url_for('main.model_price', country=country, slug=model_slug) }}">
+    View price statistics for {{ model_slug|replace('thinkpad-', ' ')|upper }}
+</a>
 
 <table border="1">
     <tr>
@@ -17,21 +19,31 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
         <th>Storage</th>
         <th>Condition</th>
         <th>Listing</th>
+        <th>Model Page</th>
         <th>Last Updated</th>
     </tr>
 
     {% for item in listings %}
     <tr>
-        <td>{{ item.price }} <a href="/{{ country }}/{{ model_slug }}-price">View price statistics</a></td>
-        <td>{{ item.currency or "—"}}</td>
-        <td>{{ item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
-        <td>{{ item.specs.ram or "—"}}</td>
-        <td>{{ item.specs.storage or "—"}} {{ item.specs.storage_type or "—"}}</td>
-        <td>{{ item.condition or "—"}}</td>
+        <td>{{ item.price }}</td>
+        <td>{{ item.currency or "—" }}</td>
+        <td>{{ item.specs.cpu or "—" }} {{ item.specs.cpu_freq or "—" }}</td>
+        <td>{{ item.specs.ram or "—" }}</td>
+        <td>{{ item.specs.storage or "—" }} {{ item.specs.storage_type or "—" }}</td>
+        <td>{{ item.condition or "—" }}</td>
         <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
+        <td>
+            {% if item.model.canon_model %}
+                <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
+                    {{ item.model.name or "—" }}
+                </a>
+            {% else %}
+                {{ item.model.name or "—" }}
+            {% endif %}
+        </td>
         <td>{{ item.last_updated }}</td>
     </tr>
     {% endfor %}
 </table>
 
-{%  endblock %}
+{% endblock %}
