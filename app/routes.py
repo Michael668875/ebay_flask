@@ -140,13 +140,20 @@ def country_home(country):
 
     listings = query.order_by(Listing.price.asc()).limit(100).all()
 
+    stats = {
+        "lowest": 350,
+        "average": 520,
+        "highest": 900
+    }
+
     return render_template(
             "listings.html",
             listings=listings,
             country=country,
             filters=filters,
             ram_options=ram_options,
-            cpu_options=cpu_options
+            cpu_options=cpu_options,
+            stats=stats
         )    
 
 

@@ -1,0 +1,200 @@
+thead th {
+    position: sticky;
+    top: 0; /* distance from the top of the viewport */
+    background-color: #fff; /* needed so content doesn’t show through */
+    z-index: 10; /* ensures headings are above other elements */
+    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); /* optional shadow for visibility */
+}
+
+body {
+  background-color: #1e1e1e;  /* dark page background */
+  color: #f8f9fa;             /* light text for readability */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+      
+.container {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+      
+/* Links */
+a {
+    color: #66aaff;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* ================= Table Styles ================= */
+.table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.listings-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 600px; /* ensures horizontal scroll if needed */
+}
+
+.listings-table th,
+.listings-table td {
+    border: 1px solid #333;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.listings-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #1f1f1f;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5);
+}
+
+.listings-table tbody tr:nth-child(even) {
+    background-color: #1a1a1a;
+}
+
+.listings-table tbody tr:hover {
+    background-color: #2a2a2a;
+}
+
+/* ================= Card Styles ================= */
+.listings-grid {
+    display: none; /* hidden on desktop by default */
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+}
+
+.listing-card {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 16px;
+    background-color: #1e1e1e;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.listing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+}
+
+.card-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.card-row .label {
+    font-weight: 600;
+    color: #aaa;
+}
+
+.card-row .value {
+    color: #fff;
+}
+
+/* ================= Responsive Rules ================= */
+@media screen and (max-width: 768px) {
+    .listings-table {
+        display: none; /* hide table on mobile */
+    }
+    .listings-grid {
+        display: grid; /* show cards on mobile */
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .card-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .card-row .value {
+        margin-top: 2px;
+    }
+}
+
+/* ================= Filters & Sorts ================= */
+.filter-container, .sort-container {
+    margin: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-container label, .sort-container label {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+/* Inputs & selects dark mode */
+input, select {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    border: 1px solid #333;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Buttons dark mode */
+button {
+    background-color: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background-color: #444;
+}
+
+/* ================= Floating Summary Bar ================= */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 30; /* higher than summary bar */
+}
+
+.summary-bar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #1b1b1b;
+    color: #fff;
+    border-bottom: 1px solid #333;
+    padding: 10px 0;
+    z-index: 20;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.summary-item .label {
+    font-weight: 600;
+    margin-right: 4px;
+    color: #aaa;
+}
+
+.summary-item .value {
+    font-weight: 700;
+    color: #66aaff;
+}
+
+/* Responsive: stack items on small screens */
+@media screen and (max-width: 500px) {
+    .summary-bar {
+        flex-direction: column;
+        gap: 6px;
+    }
+}
+

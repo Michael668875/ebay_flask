@@ -2,6 +2,23 @@
 {% import "macros.html" as macros %}
 
 {% block body %}
+
+<!-- Floating Summary Bar -->
+<div class="summary-bar">
+    <div class="summary-item">
+        <span class="label">Lowest:</span>
+        <span class="value">${{ stats.lowest }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="label">Average:</span>
+        <span class="value">${{ stats.average }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="label">Highest:</span>
+        <span class="value">${{ stats.highest }}</span>
+    </div>
+</div>
+
 <div class="container mt-4">
 
     <form method="get">
@@ -105,7 +122,19 @@
 
 </div>
 
+<div class="listings-grid">
+    {% for item in listings %}
+    <div class="listing-card">
+        <div class="card-row"><span class="label">Item:</span> <span class="value">{{ item.name }}</span></div>
+        <div class="card-row"><span class="label">Price:</span> <span class="value">${{ item.price }}</span></div>
+        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model }}</span></div>
+        <div class="card-row"><span class="label">Date:</span> <span class="value">{{ item.date_posted }}</span></div>
+    </div>
+    {% endfor %}
+</div>
+
 <div>
     {{ macros.listings_table(listings, country, show_last_updated=False) }}
 </div>
+
 {% endblock %}
