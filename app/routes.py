@@ -11,7 +11,7 @@ from flask import (
 from app.models import Listing, Model, Specs, ThinkPadModel
 from app import db
 from sqlalchemy.orm import joinedload
-from sqlalchemy import text
+from sqlalchemy import text, asc, desc
 
 bp = Blueprint("main", __name__)
 
@@ -36,6 +36,49 @@ def format_capacity(value):
         return f"{mb:g}" + "MB"
 
     return f"{value:g}" + "GB"
+
+@bp.app_template_filter("format_ram")
+def format_ram(value):
+    """
+    Specs.ram is stored in GB by the pipeline.
+    Example: 8192 MB -> 8, 16 GB -> 16, 1 TB -> 1024
+    """
+    if value is None:
+        return "—"
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if value.is_integer():
+        value = int(value)
+
+    # ram is stored in GB in your DB
+    return f"{value} GB"
+
+
+@bp.app_template_filter("format_storage")
+def format_storage(value):
+    if value is None:
+        return "—"
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    # storage is stored in GB in your DB
+    if value >= 1024:
+        tb = value / 1024
+        if tb.is_integer():
+            return f"{int(tb)} TB"
+        return f"{tb:.1f} TB"
+
+    if value.is_integer():
+        return f"{int(value)} GB"
+
+    return f"{value:.1f} GB"
 
 
 # -------------------------------------------------
@@ -65,9 +108,9 @@ def index():
 # Example: /us/
 # -------------------------------------------------
 
+
 @bp.route("/<country>/")
 def country_home(country):
-
     country = country.lower()
     markets = get_enabled_markets()
 
@@ -75,7 +118,9 @@ def country_home(country):
         abort(404)
 
     marketplace = markets[country]
+
     sort = request.args.get("sort", "price")
+    direction = request.args.get("direction", "asc")
 
     query = (
         Listing.query
@@ -87,43 +132,16 @@ def country_home(country):
         )
     )
 
-    ram_options = (
-        db.session.query(Specs.ram)
-        .join(Listing)
-        .filter(
-            Listing.marketplace == marketplace,
-            Listing.status == "ACTIVE"
-        )
-        .distinct()
-        .order_by(Specs.ram)
-        .all()
-    )
+    # apply active filters from query params
+    for param, column in SPEC_FILTERS.items():
+        value = request.args.get(param)
+        if value:
+            query = query.filter(column == value)
 
-    cpu_options = (
-        db.session.query(Specs.cpu)
-        .join(Listing)
-        .filter(
-            Listing.marketplace == marketplace,
-            Listing.status == "ACTIVE"
-        )
-        .distinct()
-        .order_by(Specs.cpu)
-        .all()
-    )
-
-    ram_options = [r[0] for r in ram_options if r[0]]
-    cpu_options = [c[0] for c in cpu_options if c[0]]
-
-
-    #for param, column in SPEC_FILTERS.items():
-    #    value = request.args.get(param)
-    #    if value:
-    #        query = query.filter(column == value)
-
+    # build dropdown filter options
     filters = {}
 
     for name, column in SPEC_FILTERS.items():
-
         values = (
             db.session.query(column)
             .join(Listing)
@@ -132,30 +150,44 @@ def country_home(country):
                 Listing.status == "ACTIVE"
             )
             .distinct()
-            .order_by(column)
+            .order_by(column.asc().nullslast())
             .all()
         )
 
-        filters[name] = [v[0] for v in values if v[0]]
+        filters[name] = [v[0] for v in values if v[0] is not None]
 
-    listings = query.order_by(Listing.price.asc()).limit(100).all()
-
-    stats = {
-        "lowest": 350,
-        "average": 520,
-        "highest": 900
+    SORT_COLUMNS = {
+        "price": Listing.price,
+        "cpu": Specs.cpu,
+        "ram": Specs.ram,
+        "storage": Specs.storage,
     }
 
-    return render_template(
-            "listings.html",
-            listings=listings,
-            country=country,
-            filters=filters,
-            ram_options=ram_options,
-            cpu_options=cpu_options,
-            stats=stats
-        )    
+    order_col = SORT_COLUMNS.get(sort, Listing.price)
 
+    # build primary sort expression
+    if direction == "desc":
+        primary_sort = desc(order_col)
+    else:
+        primary_sort = asc(order_col)
+
+    # apply nulls last where useful
+    primary_sort = primary_sort.nullslast()
+
+    # avoid redundant ORDER BY price, price
+    if sort == "price":
+        query = query.order_by(primary_sort)
+    else:
+        query = query.order_by(primary_sort, Listing.price.asc())
+
+    listings = query.limit(100).all()
+
+    return render_template(
+        "listings.html",
+        listings=listings,
+        country=country,
+        filters=filters,
+    )
 
 # -------------------------------------------------
 # Model Page

@@ -8,13 +8,17 @@
     {% endif %}
 {% endmacro %}
 
+
 {% macro listing_link(item) %}
     {% if item.item_url %}
-        <a href="{{ item.item_url }}" target="_blank">{{ item.title or "—" }}</a>
+        <a href="{{ item.item_url }}" target="_blank" rel="noopener noreferrer">
+            {{ item.title or "—" }}
+        </a>
     {% else %}
         {{ item.title or "—" }}
     {% endif %}
 {% endmacro %}
+
 
 {% macro spec(specs, field, use_capacity=False) %}
     {% if specs %}
@@ -33,43 +37,203 @@
     {% endif %}
 {% endmacro %}
 
+
+{% macro spec_pair(specs, field1, field2, use_capacity1=False, use_capacity2=False) %}
+    {% if specs %}
+        {% set v1 = specs|attr(field1) %}
+        {% set v2 = specs|attr(field2) %}
+
+        {% if v1 or v2 %}
+            {% if v1 %}
+                {% if use_capacity1 %}
+                    {{ v1|format_capacity }}
+                {% else %}
+                    {{ v1 }}
+                {% endif %}
+            {% endif %}
+
+            {% if v1 and v2 %} {% endif %}
+
+            {% if v2 %}
+                {% if use_capacity2 %}
+                    {{ v2|format_capacity }}
+                {% else %}
+                    {{ v2 }}
+                {% endif %}
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    {% else %}
+        —
+    {% endif %}
+{% endmacro %}
+
+
+{% macro sort_link(label, sort_value) %}
+    {% set args = request.args.to_dict() %}
+    {% set current_sort = request.args.get('sort', 'price') %}
+    {% set current_dir = request.args.get('direction', 'asc') %}
+
+    {% if current_sort == sort_value %}
+        {% set next_dir = 'desc' if current_dir == 'asc' else 'asc' %}
+        {% set arrow = '▲' if current_dir == 'asc' else '▼' %}
+    {% else %}
+        {% set next_dir = 'asc' %}
+        {% set arrow = '' %}
+    {% endif %}
+
+    {% set _ = args.update({'sort': sort_value, 'direction': next_dir}) %}
+
+    <a href="{{ request.path }}?{{ args|urlencode }}"
+       class="text-decoration-none text-reset">
+        {{ label }}
+        {% if current_sort == sort_value %}
+            <span class="ms-1 small">{{ arrow }}</span>
+        {% endif %}
+    </a>
+{% endmacro %}
+
+{% macro spec_filter_label(name, value) %}
+    {% if name == "ram" %}
+        {{ value|format_ram }}
+    {% elif name == "storage" %}
+        {{ value|format_storage }}
+    {% else %}
+        {{ value }}
+    {% endif %}
+{% endmacro %}
+
+{% macro filter_width_class(name) %}
+    {% if name == "cpu" %}
+        min-w-cpu
+    {% elif name == "storage" %}
+        min-w-storage
+    {% elif name == "ram" %}
+        min-w-ram
+    {% else %}
+        min-w-default
+    {% endif %}
+{% endmacro %}
+
+
+{% macro search_specs(filters) %}
+<form method="get" class="row g-2 mb-3">
+
+    {# preserve current sort when applying filters #}
+    <input type="hidden" name="sort" value="{{ request.args.get('sort', 'price') }}">
+    <input type="hidden" name="direction" value="{{ request.args.get('direction', 'asc') }}">
+
+    {% for name, options in filters.items() %}
+        <div class="col-md-auto">
+            <select name="{{ name }}" class="form-select form-select-sm {{ filter_width_class(name) }}">
+                <option value="">{{ name|replace('_', ' ')|title }}</option>
+
+                {% for option in options %}
+                    {% set option_str = option|string %}
+                    <option value="{{ option_str }}"
+                            {% if request.args.get(name) == option_str %}selected{% endif %}>
+                        {{ spec_filter_label(name, option) }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endfor %}
+
+    <div class="col-md-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+</form>
+{% endmacro %}
+
 {% macro listings_table(listings, country, show_model_column=True, show_last_updated=True) %}
-<table class="table table-hover">
-    <thead class="table-dark">
-    <tr>
-        {% if show_model_column %}
-            <th>Model</th>
-        {% endif %}
-        <th>Price</th>
-        <th>Currency</th>
-        <th>CPU</th>
-        <th>RAM</th>
-        <th>Storage</th>
-        <th>Condition</th>
-        <th>Listing</th>
-        {% if show_last_updated %}
-            <th>Last Updated</th>
-        {% endif %}
-    </tr>
+<table class="table table-hover table-sm align-middle mb-0">
+    <thead class="table-dark sticky-top">
+        <tr>
+            {% if show_model_column %}
+                <th>Model</th>
+            {% endif %}
+            <th>{{ sort_link('Price', 'price') }}</th>
+            <th>{{ sort_link('CPU', 'cpu') }}</th>
+            <th>{{ sort_link('RAM', 'ram') }}</th>
+            <th>{{ sort_link('Storage', 'storage') }}</th>
+            <th>Condition</th>
+            <th>Listing</th>
+            {% if show_last_updated %}
+                <th>Last Updated</th>
+            {% endif %}
+        </tr>
     </thead>
 
+    <tbody>
     {% for item in listings %}
     <tr>
         {% if show_model_column %}
             <td>{{ model_link(item, country) }}</td>
         {% endif %}
-        <td>{{ item.price or "—" }}</td>
-        <td>{{ item.currency or "—" }}</td>
-        <td>{{ spec(item.specs, "cpu") }} {{ spec(item.specs, "cpu_freq") }}</td>
+        <td>{{ item.price or "—" }} {{ item.currency or "—" }}</td>
+        <td>{{ spec_pair(item.specs, "cpu", "cpu_freq") }}</td>
         <td>{{ spec(item.specs, "ram", use_capacity=True) }}</td>
-        <td>{{ spec(item.specs, "storage", use_capacity=True) }} {{ spec(item.specs, "storage_type") }}</td>
+        <td>{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</td>
         <td>{{ item.condition or "—" }}</td>
         <td>{{ listing_link(item) }}</td>
         {% if show_last_updated %}
             <td>{{ item.last_updated or "—" }}</td>
         {% endif %}
     </tr>
+    {% else %}
+    <tr>
+        <td colspan="{{ 8 if show_model_column and show_last_updated else 7 if show_model_column or show_last_updated else 6 }}"
+            class="text-center text-secondary py-4">
+            No listings found.
+        </td>
+    </tr>
     {% endfor %}
+    </tbody>
 </table>
+{% endmacro %}
 
+
+{% macro cards(listings, country) %}
+<div class="listings-grid">
+    {% for item in listings %}
+    <div class="listing-card">
+        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model.name if item.model else "—" }}</span></div>
+        <div class="card-row"><span class="label">Price:</span> <span class="value">{{ item.price or "—" }} {{ item.currency or "" }}</span></div>
+        <div class="card-row"><span class="label">Condition:</span> <span class="value">{{ item.condition or "—" }}</span></div>
+        <div class="card-row"><span class="label">Title:</span> <span class="value">{{ item.title or "—" }}</span></div>
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro active_filters(filters) %}
+    {% set ns = namespace(has_active_filters=false) %}
+
+    <div class="mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% for name, options in filters.items() %}
+                {% set value = request.args.get(name) %}
+                {% if value %}
+                    {% set ns.has_active_filters = true %}
+
+                    {% set remove_args = request.args.to_dict() %}
+                    {% set _ = remove_args.pop(name, None) %}
+
+                    <a href="{{ request.path }}?{{ remove_args|urlencode }}"
+                       class="badge rounded-pill text-bg-secondary text-decoration-none px-3 py-2">
+                        {{ name|replace('_', ' ')|title }}: {{ value }} ×
+                    </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if ns.has_active_filters %}
+                <a href="{{ request.path }}"
+                   class="badge rounded-pill text-bg-danger text-decoration-none px-3 py-2">
+                    Clear all
+                </a>
+            {% endif %}
+        </div>
+    </div>
 {% endmacro %}

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block body %}
 <h2>
@@ -10,40 +11,12 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
     View price statistics for {{ model_slug|replace('thinkpad-', ' ')|upper }}
 </a>
 
-<table border="1">
-    <tr>
-        <th>Price</th>
-        <th>Currency</th>
-        <th>CPU</th>
-        <th>RAM</th>
-        <th>Storage</th>
-        <th>Condition</th>
-        <th>Listing</th>
-        <th>Model Page</th>
-        <th>Last Updated</th>
-    </tr>
+<div class="d-md-none">
+    {{ macros.cards(listings, country) }}
+</div>
 
-    {% for item in listings %}
-    <tr>
-        <td>{{ item.price }}</td>
-        <td>{{ item.currency or "—" }}</td>
-        <td>{{ item.specs.cpu or "—" }} {{ item.specs.cpu_freq or "—" }}</td>
-        <td>{{ item.specs.ram or "—" }}</td>
-        <td>{{ item.specs.storage or "—" }} {{ item.specs.storage_type or "—" }}</td>
-        <td>{{ item.condition or "—" }}</td>
-        <td><a href="{{ item.item_url }}" target="_blank">{{ item.title }}</a></td>
-        <td>
-            {% if item.model.canon_model %}
-                <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
-                    {{ item.model.name or "—" }}
-                </a>
-            {% else %}
-                {{ item.model.name or "—" }}
-            {% endif %}
-        </td>
-        <td>{{ item.last_updated }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="d-none d-md-block">
+    {{ macros.listings_table(listings, country, show_last_updated=False) }}
+</div>
 
 {% endblock %}

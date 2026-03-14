@@ -3,137 +3,14 @@
 
 {% block body %}
 
-<!-- Floating Summary Bar -->
-<div class="summary-bar">
-    <div class="summary-item">
-        <span class="label">Lowest:</span>
-        <span class="value">${{ stats.lowest }}</span>
-    </div>
-    <div class="summary-item">
-        <span class="label">Average:</span>
-        <span class="value">${{ stats.average }}</span>
-    </div>
-    <div class="summary-item">
-        <span class="label">Highest:</span>
-        <span class="value">${{ stats.highest }}</span>
-    </div>
+{{ macros.search_specs(filters) }}
+{{ macros.active_filters(filters) }}
+
+<div class="d-md-none">
+    {{ macros.cards(listings, country) }}
 </div>
 
-<div class="container mt-4">
-
-    <form method="get">
-
-        <select name="ram">
-        <option value="">RAM</option>
-
-            {% for ram in ram_options %}
-                <option value="{{ ram }}"{% if request.args.get('ram') == ram|string %}selected{% endif %}>
-                    {{ ram }}GB
-                </option>
-            {% endfor %}
-
-        </select>
-
-
-        <select name="cpu">
-        <option value="">CPU</option>
-
-            {% for cpu in cpu_options %}
-                <option value="{{ cpu }}" {% if request.args.get('cpu') == cpu %}selected{% endif %}>
-                    {{ cpu }}
-                </option>
-            {% endfor %}
-
-        </select>
-
-        <button type="submit">Filter</button>
-
-    </form>
-
-
-    <form method="get">
-
-        {% for name, options in filters.items() %}
-
-            <select name="{{ name }}">
-
-                <option value="">{{ name|capitalize }}</option>
-
-                    {% for option in options %}
-
-                        <option value="{{ option }}"{% if request.args.get(name) == option|string %}selected{% endif %}>
-                                {{ option }}
-                        </option>
-
-                    {% endfor %}
-
-            </select>
-
-        {% endfor %}
-
-        <button type="submit">Filter</button>
-
-    </form>
-
-
-
-<table class="table table-dark table-striped table-hover table-sm align-middle">
-
-    <thead class="table-dark">
-        <tr>
-            <th>Model</th>
-            <th>
-            <a href="?ram={{ request.args.get('ram','') }}&cpu={{ request.args.get('cpu','') }}&sort=price">
-            Price
-            </a>
-            </th>            
-            <th>Currency</th>
-            <th><a href="?sort=cpu">CPU</a></th>
-            <th><a href="?sort=ram">RAM</a></th>
-            <th>Storage</th>
-            <th>Condition</th>
-            <th>Title</th>
-            
-
-
-        </tr>
-    </thead>
-
-<tbody>
-
-{% for item in listings %}
-
-    <tr>
-        <td>{{ macros.model_link(item, country) }}</td>
-        <td>${{item.price or "—"}}</td>
-        <td>{{item.currency or "—"}}</td>
-        <td>{{item.specs.cpu or "—"}} {{ item.specs.cpu_freq or "—"}}</td>
-        <td>{{ item.specs.ram|format_capacity }}</td>
-        <td>{{ item.specs.storage|format_capacity }}</td>
-        <td>{{item.condition or "—"}}</td>
-        <td>{{ macros.listing_link(item) }}</td>
-    </tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
-<div class="listings-grid">
-    {% for item in listings %}
-    <div class="listing-card">
-        <div class="card-row"><span class="label">Item:</span> <span class="value">{{ item.name }}</span></div>
-        <div class="card-row"><span class="label">Price:</span> <span class="value">${{ item.price }}</span></div>
-        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model }}</span></div>
-        <div class="card-row"><span class="label">Date:</span> <span class="value">{{ item.date_posted }}</span></div>
-    </div>
-    {% endfor %}
-</div>
-
-<div>
+<div class="d-none d-md-block">
     {{ macros.listings_table(listings, country, show_last_updated=False) }}
 </div>
 
