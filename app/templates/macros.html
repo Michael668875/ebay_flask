@@ -147,19 +147,32 @@
 </form>
 {% endmacro %}
 
-{% macro listings_table(listings, country, show_model_column=True, show_last_updated=True) %}
+{% macro listings_table(listings, country, show_model=True, show_price=True, show_cpu=True, show_ram=True, 
+    show_storage=True, show_condition=True, show_listing=True, show_last_updated=True) %}
 <table class="table table-hover table-sm align-middle mb-0">
     <thead class="table-dark sticky-top">
         <tr>
-            {% if show_model_column %}
+            {% if show_model %}
                 <th>Model</th>
             {% endif %}
-            <th>{{ sort_link('Price', 'price') }}</th>
-            <th>{{ sort_link('CPU', 'cpu') }}</th>
-            <th>{{ sort_link('RAM', 'ram') }}</th>
-            <th>{{ sort_link('Storage', 'storage') }}</th>
-            <th>Condition</th>
-            <th>Listing</th>
+            {% if show_price %}
+                <th>{{ sort_link('Price', 'price') }}</th>
+            {% endif %}
+            {% if show_cpu %}
+                <th>{{ sort_link('CPU', 'cpu') }}</th>
+            {% endif %}
+            {% if show_ram %}
+                <th>{{ sort_link('RAM', 'ram') }}</th>
+            {% endif %}
+            {% if show_storage %}
+                <th>{{ sort_link('Storage', 'storage') }}</th>
+            {% endif %}
+            {% if show_condition %}
+                <th>Condition</th>
+            {% endif %}
+            {% if show_listing %}
+                <th>Listing</th>
+            {% endif %}
             {% if show_last_updated %}
                 <th>Last Updated</th>
             {% endif %}
@@ -169,15 +182,27 @@
     <tbody>
     {% for item in listings %}
     <tr>
-        {% if show_model_column %}
+        {% if show_model %}
             <td>{{ model_link(item, country) }}</td>
         {% endif %}
+        {% if show_model %}
         <td>{{ item.price or "—" }} {{ item.currency or "—" }}</td>
+        {% endif %}
+        {% if show_cpu %}
         <td>{{ spec_pair(item.specs, "cpu", "cpu_freq") }}</td>
+        {% endif %}
+        {% if show_ram %}
         <td>{{ spec(item.specs, "ram", use_capacity=True) }}</td>
+        {% endif %}
+        {% if show_storage %}
         <td>{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</td>
+        {% endif %}
+        {% if show_condition %}
         <td>{{ item.condition or "—" }}</td>
+        {% endif %}
+        {% if show_listing %}
         <td>{{ listing_link(item) }}</td>
+        {% endif %}
         {% if show_last_updated %}
             <td>{{ item.last_updated or "—" }}</td>
         {% endif %}
