@@ -22,6 +22,15 @@ SPEC_FILTERS = {
     "storage_type": Specs.storage_type
 }
 
+# app/routes.py
+COUNTRY_FLAGS = {
+    "us": "🇺🇸",
+    "au": "🇦🇺",
+    "de": "🇩🇪",
+    "gb": "🇬🇧",
+    "all": "🌐"  # for the "all countries" page
+}
+
 @bp.app_template_filter("format_capacity")
 def format_capacity(value):
     if value is None:
@@ -119,6 +128,15 @@ def country_home(country):
 
     marketplace = markets[country]
 
+    CURRENCY_BY_COUNTRY = {
+    "us": "USD",
+    "au": "AUD",
+    "de": "EUR",
+    "gb": "GBP",
+    }
+
+    currency = CURRENCY_BY_COUNTRY.get(country, "")
+
     sort = request.args.get("sort", "price")
     direction = request.args.get("direction", "asc")
 
@@ -187,6 +205,8 @@ def country_home(country):
         listings=listings,
         country=country,
         filters=filters,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS
     )
 
 # -------------------------------------------------
@@ -472,4 +492,25 @@ def thinkpad_models(country):
         "thinkpad_models.html",
         rows=rows,
         country=country
+    )
+
+# route to show all countries at once
+@bp.route("/all/")
+def all_countries():
+    listings = (
+        Listing.query
+        .join(Listing.model)
+        .outerjoin(Listing.specs)
+        .filter(Listing.status == "ACTIVE")
+        .limit(100)
+        .all()
+    )
+
+    return render_template(
+        "listings.html",
+        listings=listings,
+        country="all",
+        filters={},
+        currency=None,  # macro will use item.currency for each row
+        country_flags=COUNTRY_FLAGS
     )

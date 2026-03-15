@@ -80,19 +80,18 @@
         {% set arrow = '▲' if current_dir == 'asc' else '▼' %}
     {% else %}
         {% set next_dir = 'asc' %}
-        {% set arrow = '' %}
+        {% set arrow = '↕' %}
     {% endif %}
 
     {% set _ = args.update({'sort': sort_value, 'direction': next_dir}) %}
 
     <a href="{{ request.path }}?{{ args|urlencode }}"
-       class="text-decoration-none text-reset">
-        {{ label }}
-        {% if current_sort == sort_value %}
-            <span class="ms-1 small">{{ arrow }}</span>
-        {% endif %}
+       class="text-decoration-none text-reset d-inline-flex align-items-center gap-1 text-nowrap">
+        <span>{{ label }}</span>
+        <span class="sort-arrow">{{ arrow }}</span>
     </a>
 {% endmacro %}
+
 
 {% macro spec_filter_label(name, value) %}
     {% if name == "ram" %}
@@ -147,32 +146,19 @@
 </form>
 {% endmacro %}
 
-{% macro listings_table(listings, country, show_model=True, show_price=True, show_cpu=True, show_ram=True, 
-    show_storage=True, show_condition=True, show_listing=True, show_last_updated=True) %}
+{% macro listings_table(listings, country, currency='', show_model=True, show_last_updated=True) %}
 <table class="table table-hover table-sm align-middle mb-0">
     <thead class="table-dark sticky-top">
         <tr>
             {% if show_model %}
                 <th>Model</th>
             {% endif %}
-            {% if show_price %}
-                <th>{{ sort_link('Price', 'price') }}</th>
-            {% endif %}
-            {% if show_cpu %}
+                <th>{{ price_heading(currency) }}</th>
                 <th>{{ sort_link('CPU', 'cpu') }}</th>
-            {% endif %}
-            {% if show_ram %}
                 <th>{{ sort_link('RAM', 'ram') }}</th>
-            {% endif %}
-            {% if show_storage %}
                 <th>{{ sort_link('Storage', 'storage') }}</th>
-            {% endif %}
-            {% if show_condition %}
                 <th>Condition</th>
-            {% endif %}
-            {% if show_listing %}
                 <th>Listing</th>
-            {% endif %}
             {% if show_last_updated %}
                 <th>Last Updated</th>
             {% endif %}
@@ -185,31 +171,25 @@
         {% if show_model %}
             <td>{{ model_link(item, country) }}</td>
         {% endif %}
-        {% if show_model %}
-        <td>{{ item.price or "—" }} {{ item.currency or "—" }}</td>
-        {% endif %}
-        {% if show_cpu %}
+        <td>
+            {% if country|lower == 'all' %}
+                {{ price_display(item.price, item.currency) }}
+            {% else %}
+                {{ price_display(item.price, currency, show_code=False) }}
+            {% endif %}
+        </td>
         <td>{{ spec_pair(item.specs, "cpu", "cpu_freq") }}</td>
-        {% endif %}
-        {% if show_ram %}
         <td>{{ spec(item.specs, "ram", use_capacity=True) }}</td>
-        {% endif %}
-        {% if show_storage %}
         <td>{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</td>
-        {% endif %}
-        {% if show_condition %}
         <td>{{ item.condition or "—" }}</td>
-        {% endif %}
-        {% if show_listing %}
         <td>{{ listing_link(item) }}</td>
-        {% endif %}
         {% if show_last_updated %}
             <td>{{ item.last_updated or "—" }}</td>
         {% endif %}
     </tr>
     {% else %}
     <tr>
-        <td colspan="{{ 8 if show_model_column and show_last_updated else 7 if show_model_column or show_last_updated else 6 }}"
+        <td colspan="{{ 8 if show_model and show_last_updated else 7 if show_model or show_last_updated else 6 }}"
             class="text-center text-secondary py-4">
             No listings found.
         </td>
@@ -220,14 +200,18 @@
 {% endmacro %}
 
 
-{% macro cards(listings, country) %}
+{% macro cards(listings, country, show_model=True, show_price=True, show_cpu=True, show_ram=True, 
+    show_storage=True, show_condition=True, show_listing=True) %}
 <div class="listings-grid">
     {% for item in listings %}
-    <div class="listing-card">
-        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model.name if item.model else "—" }}</span></div>
+    <div class="listing-card">        
+        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model.name if item.model else "—" }}</span></div>        
         <div class="card-row"><span class="label">Price:</span> <span class="value">{{ item.price or "—" }} {{ item.currency or "" }}</span></div>
+        <div class="card-row"><span class="label">CPU:</span> <span class="value">{{ spec_pair(item.specs, "cpu", "cpu_freq") }} {{ item.specs.cpu_freq or "—" }}</span></div>
+        <div class="card-row"><span class="label">RAM:</span> <span class="value">{{ spec(item.specs, "ram", use_capacity=True) }}</span></div>
+        <div class="card-row"><span class="label">Storage:</span> <span class="value">{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</span></div>
         <div class="card-row"><span class="label">Condition:</span> <span class="value">{{ item.condition or "—" }}</span></div>
-        <div class="card-row"><span class="label">Title:</span> <span class="value">{{ item.title or "—" }}</span></div>
+        <div class="card-row"><span class="label">Title:</span> <span class="value">{{ listing_link(item) }}</span></div>
     </div>
     {% endfor %}
 </div>
@@ -261,4 +245,27 @@
             {% endif %}
         </div>
     </div>
+{% endmacro %}
+
+{% macro price_display(price, currency, show_code=True) %}
+    {% set symbols = {'USD':'$', 'AUD':'$', 'EUR':'€', 'GBP':'£'} %}
+    {% set code = (currency or '').upper() %}
+    {% set symbol = symbols.get(code, '') %}
+
+    <span class="price-heading-wrap">
+        <span>{{ symbol }}{{ '%.2f'|format(price) }}</span>
+        {% if show_code and code %}
+            <span class="price-heading-code">{{ code }}</span>
+        {% endif %}
+    </span>
+{% endmacro %}
+
+{% macro price_heading(currency='') %}
+    {% set code = (currency or '').upper() %}
+    <span class="price-heading-wrap">
+        <span>Price</span>
+        {% if code %}
+            <span class="price-heading-code">{{ code }}</span>
+        {% endif %}
+    </span>
 {% endmacro %}

@@ -177,3 +177,94 @@ button:hover {
 .min-w-default {
   min-width: 140px;
 }
+
+/*=============== navbar ====================*/
+
+.navbar-compact {
+  min-height: 42px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.navbar-compact .container {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.navbar-compact .navbar-brand {
+  margin-right: 0.75rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+
+.navbar-compact .navbar-nav {
+  align-items: left;
+}
+
+.navbar-compact .nav-link {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+.navbar-compact .navbar-toggler {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+.navbar .dropdown .btn {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* Ensure dropdowns appear above sticky table headers */
+.dropdown-menu {
+    z-index: 1050 !important; /* higher than sticky-top (1020) */
+}
+
+/*========== sorting =============*/
+.sort-arrow {
+    display: inline-block;
+    width: 1.2em;      /* fixed space so headers don't jump */
+    text-align: center;
+    font-size: 0.8em;
+    line-height: 1;
+    opacity: 0.8;
+}
+
+/*============= price ==============*/
+.price-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.price-main {
+    font-weight: 600;
+}
+
+.price-code {
+    font-size: 0.72em;
+    opacity: 0.8;
+    line-height: 1;
+}
+
+/* price in the heading */
+.price-heading-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.price-heading-code {
+    font-size: 0.75em;
+    margin-left: 0.35rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    white-space: nowrap;
+}
