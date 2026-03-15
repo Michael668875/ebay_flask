@@ -1,8 +1,11 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block body %}
 
-<h2>Best ThinkPad Deals</h2>
+<h2>Market Overview</h2>
+
+This page shows a summary of active models. Click the price or listing count to view all available listings for a model.
 
 <div class="mb-3">
 
@@ -14,12 +17,13 @@ Sort by:
 
 </div>
 
-<table class="table table-dark table-striped">
+<table class="table table-dark">
 <thead>
 <tr>
 <th>Model</th>
 <th>From</th>
 <th>Listings</th>
+<th>Listings Page</th>
 </tr>
 </thead>
 
@@ -29,7 +33,7 @@ Sort by:
 
 
 <td>{% if row.slug %}
-        <a href="{{ url_for('main.deal_model', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a>
+        <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">🔥 <strong>{{ row.model_name }}</strong></a>
     {% else %}
            —
     {% endif %} 
@@ -37,9 +41,22 @@ Sort by:
 
 
 
-<td>${{ row.cheapest_price }}</td>
+<td><span class="badge bg-success">Deal</span>
+<strong><a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
+        {{ macros.price_display(row.cheapest_price, currency) }}
+    </a></strong></td>
 
-<td>{{ row.listing_count }}</td>
+
+
+<td>{{ row.listing_count }}{% if row.listing_count > 10 %}
+    <span class="badge bg-success">Popular</span>
+{% endif %}</td>
+
+<td>
+    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
+        {{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}
+    </a>
+</td>
 
 </tr>
 {% endfor %}
@@ -47,35 +64,6 @@ Sort by:
 
 </table>
 
-<div class="list-group">
-
-    <h2 class="mb-4">🔥 Best ThinkPad Deals</h2>
-
-   
-
-{% for row in rows %}
-
-<a href="/{{ country }}/{{ row.slug }}/"
-   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-
-<div>
-🔥 <strong>{{ row.model_name }}</strong>
-<br>
-<span class="text-muted">
-{{ row.listing_count }} listings
-</span>
-</div>
-
-<div>
-     <span class="badge bg-success">Deal</span>
-<strong>${{ row.cheapest_price }}</strong>
-</div>
-
-</a>
-
-{% endfor %}
-
-</div>
 {% endblock %}
 
 

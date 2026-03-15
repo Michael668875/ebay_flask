@@ -8,10 +8,10 @@ from flask import (
     make_response
 )
 
-from app.models import Listing, Model, Specs, ThinkPadModel
+from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory
 from app import db
-from sqlalchemy.orm import joinedload
-from sqlalchemy import text, asc, desc
+from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy import text, asc, desc, func, select
 
 bp = Blueprint("main", __name__)
 
@@ -22,14 +22,38 @@ SPEC_FILTERS = {
     "storage_type": Specs.storage_type
 }
 
-# app/routes.py
 COUNTRY_FLAGS = {
     "us": "🇺🇸",
     "au": "🇦🇺",
     "de": "🇩🇪",
     "gb": "🇬🇧",
-    "all": "🌐"  # for the "all countries" page
 }
+
+CURRENCY_BY_COUNTRY = {
+    "us": "USD",
+    "au": "AUD",
+    "de": "EUR",
+    "gb": "GBP",
+}
+
+ENABLED_MARKETS = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
+
+def get_enabled_markets():
+    """Return enabled marketplaces as dict keyed by country code."""
+    return {m.split("_")[1].lower(): m for m in ENABLED_MARKETS}
+
+def get_market_context(country):
+    country = country.lower()
+    markets = get_enabled_markets()
+
+    if country not in markets:
+        abort(404)
+
+    marketplaces = [markets[country]]
+    currency = CURRENCY_BY_COUNTRY.get(country, "")
+
+    return country, marketplaces, currency
+
 
 @bp.app_template_filter("format_capacity")
 def format_capacity(value):
@@ -89,17 +113,24 @@ def format_storage(value):
 
     return f"{value:.1f} GB"
 
+MARKETPLACE_TO_COUNTRY = {
+    "EBAY_US": "us",
+    "EBAY_AU": "au",
+    "EBAY_DE": "de",
+    "EBAY_GB": "gb",
+}
 
-# -------------------------------------------------
-# Helpers
-# -------------------------------------------------
+@bp.app_context_processor
+def inject_helpers():
+    def country_for_item(item, current_country):
+        if current_country != "all":
+            return current_country
+        return MARKETPLACE_TO_COUNTRY.get(item.marketplace, "us")
 
-ENABLED_MARKETS = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
+    return {
+        "country_for_item": country_for_item
+    }
 
-def get_enabled_markets():
-    """Return enabled marketplaces as dict keyed by country code."""
-    return {m.split("_")[1].lower(): m for m in ENABLED_MARKETS}
-    
 
 
 # -------------------------------------------------
@@ -108,9 +139,13 @@ def get_enabled_markets():
 
 @bp.route("/")
 def index():
-    preferred = request.cookies.get("preferred_country", "us")
+    preferred = request.cookies.get("preferred_country", "us").lower()
+    valid_countries = set(get_enabled_markets().keys()) | {"all"}
+
+    if preferred not in valid_countries:
+        preferred = "us"
+
     return redirect(url_for("main.country_home", country=preferred))
-   # render_template("listings.html")
 
 # -------------------------------------------------
 # Country Home Page
@@ -120,22 +155,7 @@ def index():
 
 @bp.route("/<country>/")
 def country_home(country):
-    country = country.lower()
-    markets = get_enabled_markets()
-
-    if country not in markets:
-        abort(404)
-
-    marketplace = markets[country]
-
-    CURRENCY_BY_COUNTRY = {
-    "us": "USD",
-    "au": "AUD",
-    "de": "EUR",
-    "gb": "GBP",
-    }
-
-    currency = CURRENCY_BY_COUNTRY.get(country, "")
+    country, marketplaces, currency = get_market_context(country)
 
     sort = request.args.get("sort", "price")
     direction = request.args.get("direction", "asc")
@@ -146,32 +166,30 @@ def country_home(country):
         .outerjoin(Listing.specs)
         .filter(
             Listing.status == "ACTIVE",
-            Listing.marketplace == marketplace
+            Listing.marketplace.in_(marketplaces)
         )
     )
 
-    # apply active filters from query params
+    # Apply spec filters
     for param, column in SPEC_FILTERS.items():
         value = request.args.get(param)
         if value:
             query = query.filter(column == value)
 
-    # build dropdown filter options
+    # Dropdown filter options
     filters = {}
-
     for name, column in SPEC_FILTERS.items():
         values = (
             db.session.query(column)
             .join(Listing)
             .filter(
-                Listing.marketplace == marketplace,
-                Listing.status == "ACTIVE"
+                Listing.status == "ACTIVE",
+                Listing.marketplace.in_(marketplaces)
             )
             .distinct()
             .order_by(column.asc().nullslast())
             .all()
         )
-
         filters[name] = [v[0] for v in values if v[0] is not None]
 
     SORT_COLUMNS = {
@@ -182,22 +200,10 @@ def country_home(country):
     }
 
     order_col = SORT_COLUMNS.get(sort, Listing.price)
-
-    # build primary sort expression
-    if direction == "desc":
-        primary_sort = desc(order_col)
-    else:
-        primary_sort = asc(order_col)
-
-    # apply nulls last where useful
+    primary_sort = desc(order_col) if direction == "desc" else asc(order_col)
     primary_sort = primary_sort.nullslast()
 
-    # avoid redundant ORDER BY price, price
-    if sort == "price":
-        query = query.order_by(primary_sort)
-    else:
-        query = query.order_by(primary_sort, Listing.price.asc())
-
+    query = query.order_by(primary_sort if sort == "price" else primary_sort, Listing.price.asc())
     listings = query.limit(100).all()
 
     return render_template(
@@ -216,25 +222,16 @@ def country_home(country):
 
 @bp.route("/<country>/<model_slug>/")
 def model_page(country, model_slug):
-    country = country.lower()
-    markets = get_enabled_markets()
-
-    if country not in markets:
-        abort(404)
-
-    marketplace = markets[country]
+    country, marketplaces, currency = get_market_context(country)
 
     listings = (
         Listing.query
         .join(Listing.model)
-        .join(Model.canon_model)
-        .options(
-            joinedload(Listing.model),
-            joinedload(Listing.specs)
-        )
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .options(joinedload(Listing.model), joinedload(Listing.specs))
         .filter(
             Listing.status == "ACTIVE",
-            Listing.marketplace == marketplace,
+            Listing.marketplace.in_(marketplaces),
             ThinkPadModel.slug == model_slug
         )
         .order_by(Listing.price.asc())
@@ -243,15 +240,16 @@ def model_page(country, model_slug):
     )
 
     if not listings:
-        #abort(404)
         page = render_template("none.html")
     else:
         page = render_template(
-        "model.html",
-        listings=listings,
-        country=country,
-        model_slug=model_slug
-    )
+            "model.html",
+            listings=listings,
+            country=country,
+            model_slug=model_slug,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS
+        )
 
     return page
 
@@ -263,9 +261,9 @@ def model_page(country, model_slug):
 @bp.route("/set-country/<country>/")
 def set_country(country):
     country = country.lower()
-    markets = get_enabled_markets()
+    valid_countries = set(get_enabled_markets().keys())
 
-    if country not in markets:
+    if country not in valid_countries:
         abort(404)
 
     response = make_response(
@@ -275,242 +273,273 @@ def set_country(country):
 
     return response
 
+
 @bp.route("/<country>/deals")
 def deals(country):
+    country, marketplaces, currency = get_market_context(country)
 
-    marketplace = f"EBAY_{country.upper()}"
     sort = request.args.get("sort", "price")
 
-    order_clause = {
-        "price": "cheapest_price ASC",
-        "listings": "listing_count DESC",
-        "newest": "newest_listing DESC"
-    }.get(sort, "cheapest_price ASC")
+    # subquery: cheapest listing per model
+    cheapest_subq = (
+        db.session.query(
+            Listing.model_id.label("model_id"),
+            func.min(Listing.price).label("cheapest_price"),
+            func.count(Listing.id).label("listing_count"),
+            func.max(Listing.first_seen).label("newest_listing"),
+        )
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces)
+        )
+        .group_by(Listing.model_id)
+        .subquery()
+    )
 
-    rows = db.session.execute(text(f"""
-        SELECT
-            m.id AS model_id,
-            m.name AS model_name,
-            ml.slug,
-            MIN(l.price) AS cheapest_price,
-            COUNT(*) AS listing_count,
-            MAX(l.first_seen) AS newest_listing,
-            (
-                SELECT ebay_item_id
-                FROM listings l2
-                WHERE l2.model_id = m.id
-                AND l2.status = 'ACTIVE'
-                AND l2.marketplace = :marketplace
-                ORDER BY l2.price ASC
-                LIMIT 1
-            ) AS cheapest_item
-        FROM listings l
-        JOIN models m ON m.id = l.model_id
-        JOIN model_list ml ON ml.id = m.canon_model_id
-        WHERE l.status = 'ACTIVE'
-        AND l.marketplace = :marketplace
-        GROUP BY m.id, m.name, ml.slug
-        ORDER BY {order_clause}
-        LIMIT 50
-    """), {"marketplace": marketplace}).fetchall()
+    # correlated subquery for cheapest ebay item id
+    cheapest_item_subq = (
+        db.session.query(Listing.ebay_item_id)
+        .filter(
+            Listing.model_id == Model.id,
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces)
+        )
+        .order_by(Listing.price.asc())
+        .limit(1)
+        .correlate(Model)
+        .scalar_subquery()
+    )
+
+    query = (
+        db.session.query(
+            Model.id.label("model_id"),
+            Model.name.label("model_name"),
+            ThinkPadModel.slug.label("slug"),
+            cheapest_subq.c.cheapest_price,
+            cheapest_subq.c.listing_count,
+            cheapest_subq.c.newest_listing,
+            cheapest_item_subq.label("cheapest_item"),
+        )
+        .join(cheapest_subq, cheapest_subq.c.model_id == Model.id)
+        .join(ThinkPadModel, Model.canon_model_id == ThinkPadModel.id)
+    )
+
+    if sort == "listings":
+        query = query.order_by(desc(cheapest_subq.c.listing_count), asc(cheapest_subq.c.cheapest_price))
+    elif sort == "newest":
+        query = query.order_by(desc(cheapest_subq.c.newest_listing), asc(cheapest_subq.c.cheapest_price))
+    else:  # price
+        query = query.order_by(asc(cheapest_subq.c.cheapest_price))
+
+    rows = query.limit(50).all()
 
     return render_template(
         "deals.html",
         rows=rows,
         country=country,
-        sort=sort
+        sort=sort,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
     )
 
 @bp.route("/<country>/deals/<model_slug>")
-def deal_model(country, model_slug):
+def deals_model(country, model_slug):
+    country, marketplaces, currency = get_market_context(country)
 
-    marketplace = f"EBAY_{country.upper()}"
-
-    rows = db.session.execute(text("""
-        SELECT
-            l.price,
-            l.ebay_item_id,
-            l.title,
-            l.item_url
-        FROM listings l
-        JOIN models m ON m.id = l.model_id
-        JOIN model_list ml ON ml.id = m.canon_model_id
-        WHERE l.status = 'ACTIVE'
-        AND l.marketplace = :marketplace
-        AND ml.slug = :slug
-        ORDER BY l.price ASC
-        LIMIT 50
-    """), {
-        "marketplace": marketplace,
-        "slug": model_slug
-    }).fetchall()
-
-    return render_template(
-        "deal_model.html",
-        rows=rows,
-        country=country,
-        slug=model_slug
-    )
-
-
-@bp.route("/<country>/price-drops")
-def price_drops(country):
-
-    marketplace = f"EBAY_{country.upper()}"
-
-    rows = db.session.execute(text("""
-        WITH price_changes AS (
-            SELECT
-                m.name AS model_name,
-                ml.slug,
-                l.ebay_item_id,
-                ph.price AS new_price,
-                LAG(ph.price) OVER (
-                    PARTITION BY ph.listing_id
-                    ORDER BY ph.recorded_at
-                ) AS old_price
-            FROM price_history ph
-            JOIN listings l ON l.id = ph.listing_id
-            JOIN models m ON m.id = l.model_id
-            JOIN model_list ml ON ml.id = m.canon_model_id
-            WHERE l.status = 'ACTIVE'
-            AND l.marketplace = :marketplace
+    rows = (
+        db.session.query(
+            Listing.price,
+            Listing.ebay_item_id,
+            Listing.title,
+            Listing.item_url,
+            Listing.currency,   # useful when country == "all"
         )
-
-        SELECT
-            model_name,
-            slug,
-            ebay_item_id,
-            old_price,
-            new_price,
-            (old_price - new_price) AS drop_amount
-        FROM price_changes
-        WHERE new_price < old_price
-        ORDER BY drop_amount DESC
-        LIMIT 50
-    """), {"marketplace": marketplace}).fetchall()
-
-    return render_template(
-        "price_drops.html",
-        rows=rows,
-        country=country
-    )
-
-@bp.route("/<country>/best-deals")
-def best_deals(country):
-
-    marketplace = f"EBAY_{country.upper()}"
-
-    rows = db.session.execute(text("""
-        WITH model_prices AS (
-            SELECT
-                model_id,
-                AVG(price) AS avg_price
-            FROM listings
-            WHERE status = 'ACTIVE'
-            AND marketplace = :marketplace
-            GROUP BY model_id
+        .join(Model, Model.id == Listing.model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+            ThinkPadModel.slug == model_slug,
         )
-
-        SELECT
-            m.name AS model_name,
-            ml.slug,
-            l.ebay_item_id,
-            l.price,
-            mp.avg_price,
-            (mp.avg_price - l.price) AS discount_amount,
-            ROUND(((mp.avg_price - l.price) / mp.avg_price) * 100) AS discount_percent
-        FROM listings l
-        JOIN model_prices mp ON mp.model_id = l.model_id
-        JOIN models m ON m.id = l.model_id
-        JOIN model_list ml ON ml.id = m.canon_model_id
-        WHERE l.status = 'ACTIVE'
-        AND l.marketplace = :marketplace
-        AND l.price < mp.avg_price * 0.75
-        ORDER BY discount_percent DESC
-        LIMIT 50
-    """), {"marketplace": marketplace}).fetchall()
-
-    return render_template(
-        "best_deals.html",
-        rows=rows,
-        country=country
-    )
-
-@bp.route("/<country>/<slug>-price")
-def model_price(country, slug):
-
-    marketplace = f"EBAY_{country.upper()}"
-
-    stats = db.session.execute(text("""
-        SELECT
-            m.name,
-            ml.slug,
-            MIN(l.price) AS lowest_price,
-            AVG(l.price) AS avg_price,
-            MAX(l.price) AS highest_price,
-            COUNT(*) AS listing_count
-        FROM listings l
-        JOIN models m ON m.id = l.model_id
-        JOIN model_list ml ON ml.id = m.canon_model_id
-        WHERE l.status = 'ACTIVE'
-        AND l.marketplace = :marketplace
-        AND ml.slug = :slug
-        GROUP BY m.name, ml.slug
-    """), {
-        "marketplace": marketplace,
-        "slug": slug
-    }).first()
-
-    return render_template(
-        "model_price.html",
-        stats=stats,
-        country=country
-    )
-
-@bp.route("/<country>/thinkpad-models")
-def thinkpad_models(country):
-
-    marketplace = f"EBAY_{country.upper()}"
-
-    rows = db.session.execute(text("""
-        SELECT
-            m.name,
-            ml.slug,
-            MIN(l.price) AS lowest_price,
-            COUNT(*) AS listing_count
-        FROM listings l
-        JOIN models m ON m.id = l.model_id
-        JOIN model_list ml ON ml.id = m.canon_model_id
-        WHERE l.status = 'ACTIVE'
-        AND l.marketplace = :marketplace
-        GROUP BY m.id, m.name, ml.slug
-        ORDER BY m.name
-    """), {"marketplace": marketplace}).fetchall()
-
-    return render_template(
-        "thinkpad_models.html",
-        rows=rows,
-        country=country
-    )
-
-# route to show all countries at once
-@bp.route("/all/")
-def all_countries():
-    listings = (
-        Listing.query
-        .join(Listing.model)
-        .outerjoin(Listing.specs)
-        .filter(Listing.status == "ACTIVE")
-        .limit(100)
+        .order_by(Listing.price.asc())
+        .limit(50)
         .all()
     )
 
     return render_template(
-        "listings.html",
-        listings=listings,
-        country="all",
-        filters={},
-        currency=None,  # macro will use item.currency for each row
-        country_flags=COUNTRY_FLAGS
+        "deals_model.html",
+        rows=rows,
+        country=country,
+        slug=model_slug,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
+
+@bp.route("/<country>/price-drops")
+def price_drops(country):
+    country, marketplaces, currency = get_market_context(country)
+
+    old_price = func.lag(PriceHistory.price).over(
+        partition_by=PriceHistory.listing_id,
+        order_by=PriceHistory.recorded_at
+    )
+
+    price_changes_subq = (
+        db.session.query(
+            Model.name.label("model_name"),
+            ThinkPadModel.slug.label("slug"),
+            Listing.ebay_item_id.label("ebay_item_id"),
+            PriceHistory.price.label("new_price"),
+            old_price.label("old_price"),
+            Listing.currency.label("currency"),
+        )
+        .join(Listing, Listing.id == PriceHistory.listing_id)
+        .join(Model, Model.id == Listing.model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+        )
+        .subquery()
+    )
+
+    rows = (
+        db.session.query(
+            price_changes_subq.c.model_name,
+            price_changes_subq.c.slug,
+            price_changes_subq.c.ebay_item_id,
+            price_changes_subq.c.old_price,
+            price_changes_subq.c.new_price,
+            (price_changes_subq.c.old_price - price_changes_subq.c.new_price).label("drop_amount"),
+            price_changes_subq.c.currency,
+        )
+        .filter(
+            price_changes_subq.c.old_price.isnot(None),
+            price_changes_subq.c.new_price < price_changes_subq.c.old_price,
+        )
+        .order_by(desc("drop_amount"))
+        .limit(50)
+        .all()
+    )
+
+    return render_template(
+        "price_drops.html",
+        rows=rows,
+        country=country,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
+
+@bp.route("/<country>/best-deals")
+def best_deals(country):
+    country, marketplaces, currency = get_market_context(country)
+
+    model_prices_subq = (
+        db.session.query(
+            Listing.model_id.label("model_id"),
+            func.avg(Listing.price).label("avg_price"),
+        )
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+        )
+        .group_by(Listing.model_id)
+        .subquery()
+    )
+
+    discount_amount = (model_prices_subq.c.avg_price - Listing.price)
+    discount_percent = func.round((discount_amount / model_prices_subq.c.avg_price) * 100)
+
+    rows = (
+        db.session.query(
+            Model.name.label("model_name"),
+            ThinkPadModel.slug.label("slug"),
+            Listing.ebay_item_id,
+            Listing.price,
+            model_prices_subq.c.avg_price,
+            discount_amount.label("discount_amount"),
+            discount_percent.label("discount_percent"),
+            Listing.currency,
+        )
+        .join(model_prices_subq, model_prices_subq.c.model_id == Listing.model_id)
+        .join(Model, Model.id == Listing.model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+            Listing.price < model_prices_subq.c.avg_price * 0.75,
+        )
+        .order_by(desc(discount_percent), asc(Listing.price))
+        .limit(50)
+        .all()
+    )
+
+    return render_template(
+        "best_deals.html",
+        rows=rows,
+        country=country,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
+
+@bp.route("/<country>/<slug>-price")
+def model_price(country, slug):
+    country, marketplaces, currency = get_market_context(country)
+
+    stats = (
+        db.session.query(
+            Model.name.label("name"),
+            ThinkPadModel.slug.label("slug"),
+            func.min(Listing.price).label("lowest_price"),
+            func.avg(Listing.price).label("avg_price"),
+            func.max(Listing.price).label("highest_price"),
+            func.count(Listing.id).label("listing_count"),
+        )
+        .join(Model, Model.id == Listing.model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+            ThinkPadModel.slug == slug,
+        )
+        .group_by(Model.name, ThinkPadModel.slug)
+        .first()
+    )
+
+    return render_template(
+        "model_price.html",
+        stats=stats,
+        country=country,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
+
+@bp.route("/<country>/thinkpad_models")
+def thinkpad_models(country):
+    country, marketplaces, currency = get_market_context(country)
+
+    rows = (
+        db.session.query(
+            Model.name.label("name"),
+            ThinkPadModel.slug.label("slug"),
+            func.min(Listing.price).label("lowest_price"),
+            func.count(Listing.id).label("listing_count"),
+        )
+        .join(Model, Model.id == Listing.model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+        )
+        .group_by(Model.id, Model.name, ThinkPadModel.slug)
+        .order_by(Model.name.asc())
+        .all()
+    )
+
+    return render_template(
+        "thinkpad_models.html",
+        rows=rows,
+        country=country,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
     )

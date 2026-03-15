@@ -1,3 +1,5 @@
+
+
 {% macro model_link(item, country) %}
     {% if item.model and item.model.canon_model %}
         <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
@@ -153,7 +155,17 @@
             {% if show_model %}
                 <th>Model</th>
             {% endif %}
-                <th>{{ price_heading(currency) }}</th>
+                <th>
+                    {% set price_label %}
+                        <span class="price-heading-wrap">
+                            <span>Price</span>
+                            {% if currency %}
+                                <span class="price-heading-code">{{ currency }}</span>
+                            {% endif %}
+                        </span>
+                    {% endset %}
+                    {{ sort_link(price_label|safe, 'price') }}
+                </th>
                 <th>{{ sort_link('CPU', 'cpu') }}</th>
                 <th>{{ sort_link('RAM', 'ram') }}</th>
                 <th>{{ sort_link('Storage', 'storage') }}</th>

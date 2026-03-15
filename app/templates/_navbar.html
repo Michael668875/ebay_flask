@@ -1,39 +1,43 @@
+
+
+
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded">
   <div class="container-fluid d-flex align-items-center">
 
-    <!-- Country Dropdown on the left -->
+    <!-- Country Dropdown -->
     <div class="dropdown me-3">
-      <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="countryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        {{ country_flags.get(country, "🌐") }} {{ country.upper() if country != 'all' else 'All Countries' }}
+      <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="countryDropdown"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        {{ country_flags.get(country) }}
+        {{ country.upper() }}
       </button>
+
       <ul class="dropdown-menu" aria-labelledby="countryDropdown">
-        <li>
-          <a class="dropdown-item" href="{{ url_for('main.country_home', country='all') }}">
-            {{ country_flags.get('all') }} All Countries
-          </a>
-        </li>
-        {% for code, flag in country_flags.items() if code != 'all' %}
-        <li>
-          <a class="dropdown-item" href="{{ url_for('main.country_home', country=code) }}">
-            {{ flag }} {{ code.upper() }}
-          </a>
-        </li>
+        
+        {% for code, flag in country_flags.items() %}
+          
+            <li>
+              <a class="dropdown-item" href="{{ url_for('main.country_home', country=code) }}">
+                {{ flag }} {{ code.upper() }}
+              </a>
+            </li>
+          
         {% endfor %}
       </ul>
     </div>
 
-    <!-- Brand next -->
+    <!-- Brand -->
     <a class="navbar-brand fw-semibold me-3" href="{{ url_for('main.index') }}">
       ThinkPad Prices
     </a>
 
-    <!-- Navbar toggler for mobile -->
+    <!-- Mobile toggler -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNavbar"
             aria-controls="siteNavbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <!-- Menu links -->
+    <!-- Links -->
     <div class="collapse navbar-collapse" id="siteNavbar">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
@@ -45,23 +49,39 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.country_home' and country == 'au' %}active{% endif %}"
-             href="{{ url_for('main.country_home', country='au') }}">
-            AU Listings
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.country_home' and country == 'us' %}active{% endif %}"
-             href="{{ url_for('main.country_home', country='us') }}">
-            US Listings
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.deals_page' %}active{% endif %}"
-             href="{{ url_for('main.deals', country='au') }}">
+          <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
+             href="{{ url_for('main.deals', country=country) }}">
             Deals
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
+             href="{{ url_for('main.best_deals', country=country) }}">
+            Best Deals
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
+             href="{{ url_for('main.price_drops', country=country) }}">
+            Price Drops
+          </a>
+        </li>
+
+        {% if model_slug is defined and model_slug %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'main.model_price' %}active{% endif %}"
+             href="{{ url_for('main.model_price', country=country, slug=model_slug) }}">
+            Model Price
+          </a>
+        </li>
+        {% endif %}
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
+             href="{{ url_for('main.thinkpad_models', country=country) }}">
+            Available Models
           </a>
         </li>
 

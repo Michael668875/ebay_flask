@@ -3,8 +3,14 @@
 
 {% block body %}
 
+{% if filters %}
 {{ macros.search_specs(filters) }}
+{% endif %}
+{% if filters %}
 {{ macros.active_filters(filters) }}
+{% endif %}
+
+
 
 <div class="d-md-none">
     {{ macros.cards(listings, country) }}
