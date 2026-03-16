@@ -1,7 +1,7 @@
 
 
 
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded">
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1">
   <div class="container-fluid d-flex align-items-center">
 
     <!-- Country Dropdown -->
@@ -17,7 +17,7 @@
         {% for code, flag in country_flags.items() %}
           
             <li>
-              <a class="dropdown-item" href="{{ url_for('main.country_home', country=code) }}">
+              <a class="dropdown-item" href="{{ switch_country_url(code) }}">
                 {{ flag }} {{ code.upper() }}
               </a>
             </li>
@@ -51,7 +51,7 @@
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
              href="{{ url_for('main.deals', country=country) }}">
-            Deals
+            Market Overview
           </a>
         </li>
 

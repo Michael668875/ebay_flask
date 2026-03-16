@@ -1,6 +1,5 @@
 from app import create_app
 import asyncio
-from app.services.fetch import get_item_details
 from app.services.save_temp import *
 from app.services.pipeline import run_pipeline
 from app.services.fetch import (new_listings, 

@@ -5,65 +5,24 @@
 
 <h2>Market Overview</h2>
 
-This page shows a summary of active models. Click the price or listing count to view all available listings for a model.
+This page shows a summary of active listings. Click the model or listing count to view all available listings for that model.
 
 <div class="mb-3">
 
 Sort by:
-
-<a href="/{{ country }}/deals?sort=price">Best deals</a> |
-<a href="/{{ country }}/deals?sort=listings">Most listings</a> |
-<a href="/{{ country }}/deals?sort=newest">Newest</a>
+<a href="/{{ country }}/deals?sort=price"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
+        <div class="button_text">Lowest Price</div>
+        </button></a> 
+<a href="/{{ country }}/deals?sort=listings"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
+          <div class="button_text">Most Listings</div>
+        </button></a> 
+<a href="/{{ country }}/deals?sort=newest"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
+        <div class="button_text">Newest</div>
+        </button></a>
 
 </div>
 
-<table class="table table-dark">
-<thead>
-<tr>
-<th>Model</th>
-<th>From</th>
-<th>Listings</th>
-<th>Listings Page</th>
-</tr>
-</thead>
-
-<tbody>
-{% for row in rows %}
-<tr>
-
-
-<td>{% if row.slug %}
-        <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">🔥 <strong>{{ row.model_name }}</strong></a>
-    {% else %}
-           —
-    {% endif %} 
-</td>
-
-
-
-<td><span class="badge bg-success">Deal</span>
-<strong><a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
-        {{ macros.price_display(row.cheapest_price, currency) }}
-    </a></strong></td>
-
-
-
-<td>{{ row.listing_count }}{% if row.listing_count > 10 %}
-    <span class="badge bg-success">Popular</span>
-{% endif %}</td>
-
-<td>
-    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
-        {{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}
-    </a>
-</td>
-
-</tr>
-{% endfor %}
-</tbody>
-
-</table>
-
+{{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
 {% endblock %}
 
 

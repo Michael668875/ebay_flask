@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block title %}
 ThinkPad Models and Prices
@@ -8,48 +9,7 @@ ThinkPad Models and Prices
 
 <h1>ThinkPad Models</h1>
 
-<table class="table table-dark">
-
-<thead>
-<tr>
-<th>Model</th>
-<th>Lowest Price</th>
-<th>Listings</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for row in rows %}
-
-<tr>
-
-<td>
-    {% if row.slug %}
-        <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
-            {{ row.name }}
-        </a>
-    {% else %}
-        —
-    {% endif %}
-
-</td>
-
-<td>
-<strong>${{ row.lowest_price }}</strong>
-</td>
-
-<td>
-{{ row.listing_count }}
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
-
+{{ macros.thinkpad_models_table(rows, country, currency=currency)}}
 {% endblock %}
 
 

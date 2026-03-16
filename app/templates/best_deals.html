@@ -1,45 +1,9 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block body %}
 
 <h2>🔥 Models Selling Below Average</h2>
 
-<table class="table table-dark">
-
-<thead>
-<tr>
-<th>Model</th>
-<th>Price</th>
-<th>Market Avg</th>
-<th>Discount</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for row in rows %}
-
-<tr>
-
-<td>
-<a href="/{{ country }}/{{ row.slug }}/">
-{{ row.model_name }}
-</a>
-</td>
-
-<td><strong>${{ row.price }}</strong></td>
-
-<td>${{ row.avg_price|round }}</td>
-
-<td class="text-success">
--{{ row.discount_percent }}%
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
-
+{{ macros.best_deals_table(rows, country, currency=currency)}}
 {% endblock %}

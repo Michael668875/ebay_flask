@@ -1,43 +1,8 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block body %}
 <h2>🔥 Recent Price Drops</h2>
 
-<table class="table table-dark">
-
-<thead>
-<tr>
-<th>Model</th>
-<th>Old</th>
-<th>New</th>
-<th>Drop</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for row in rows %}
-
-<tr>
-
-<td>
-<a href="/{{ country }}/{{ row.slug }}/">
-{{ row.model_name }}
-</a>
-</td>
-
-<td>${{ row.old_price }}</td>
-
-<td><strong>${{ row.new_price }}</strong></td>
-
-<td class="text-success">
--${{ row.drop_amount }}
-</td>
-
-</tr>
-{% endfor %}
-
-</tbody>
-</table>
-
+{{ macros.price_drops_table(rows, country, currency=currency) }}
 {% endblock %}

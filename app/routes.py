@@ -10,8 +10,9 @@ from flask import (
 
 from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory
 from app import db
-from sqlalchemy.orm import joinedload, aliased
-from sqlalchemy import text, asc, desc, func, select
+from sqlalchemy.orm import joinedload
+from sqlalchemy import asc, desc, func
+from collections import OrderedDict
 
 bp = Blueprint("main", __name__)
 
@@ -206,11 +207,21 @@ def country_home(country):
     query = query.order_by(primary_sort if sort == "price" else primary_sort, Listing.price.asc())
     listings = query.limit(100).all()
 
+    # Desired order of filter fields
+    desired_order = ["cpu", "ram", "storage", "storage_type"]
+
+    filters_ordered = OrderedDict()
+    for key in desired_order:
+        if key in filters:
+            filters_ordered[key] = filters[key]
+        else:
+            filters_ordered[key] = []  # empty list if not present
+
     return render_template(
         "listings.html",
         listings=listings,
         country=country,
-        filters=filters,
+        filters=filters_ordered,
         currency=currency,
         country_flags=COUNTRY_FLAGS
     )
@@ -333,6 +344,36 @@ def deals(country):
 
     rows = query.limit(50).all()
 
+    # -----------------------------
+    # BEST DEAL MODEL IDS
+    # -----------------------------
+    avg_subq = (
+        db.session.query(
+            Listing.model_id.label("model_id"),
+            func.avg(Listing.price).label("avg_price")
+        )
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces)
+        )
+        .group_by(Listing.model_id)
+        .subquery()
+    )
+
+    best_deal_model_rows = (
+        db.session.query(Listing.model_id)
+        .join(avg_subq, Listing.model_id == avg_subq.c.model_id)
+        .filter(
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+            Listing.price < avg_subq.c.avg_price * 0.75
+        )
+        .distinct()
+        .all()
+    )
+
+    best_deal_model_ids = {row.model_id for row in best_deal_model_rows}
+
     return render_template(
         "deals.html",
         rows=rows,
@@ -340,6 +381,7 @@ def deals(country):
         sort=sort,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
+        best_deal_model_ids=best_deal_model_ids,
     )
 
 @bp.route("/<country>/deals/<model_slug>")

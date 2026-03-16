@@ -10,8 +10,18 @@ body {
   background-color: #1e1e1e;  /* dark page background */
   color: #f8f9fa;             /* light text for readability */
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
+.table-rounded {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #212529; /* Bootstrap dark table base */
+    border: 1px solid #444;
+}
       
 .container {
   padding-top: 2rem;
@@ -267,4 +277,8 @@ button:hover {
     text-transform: uppercase;
     opacity: 0.8;
     white-space: nowrap;
+}
+
+.button_text {
+    color: #66aaff;
 }
