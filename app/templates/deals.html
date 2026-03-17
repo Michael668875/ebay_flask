@@ -4,20 +4,20 @@
 {% block body %}
 
 <h2>Market Overview</h2>
-
-This page shows a summary of active listings. Click the model or listing count to view all available listings for that model.
-
+<div class="py-2">
+Find the lowest price by model. Click the model name or listing count to view all available listings for that model.
+</div>
 <div class="mb-3">
 
 Sort by:
 <a href="/{{ country }}/deals?sort=price"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-        <div class="button_text">Lowest Price</div>
+        <div class="button-text">Lowest Price</div>
         </button></a> 
 <a href="/{{ country }}/deals?sort=listings"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-          <div class="button_text">Most Listings</div>
+          <div class="button-text">Most Listings</div>
         </button></a> 
 <a href="/{{ country }}/deals?sort=newest"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-        <div class="button_text">Newest</div>
+        <div class="button-text">Newest</div>
         </button></a>
 
 </div>

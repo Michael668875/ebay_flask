@@ -498,6 +498,7 @@ def best_deals(country):
             ThinkPadModel.slug.label("slug"),
             Listing.ebay_item_id,
             Listing.price,
+            Listing.item_url,
             model_prices_subq.c.avg_price,
             discount_amount.label("discount_amount"),
             discount_percent.label("discount_percent"),

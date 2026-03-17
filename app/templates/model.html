@@ -6,17 +6,20 @@
 ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 </h2>
 
+<div class="py-1 mb-2">
 {# Link to price page #}
 <a href="{{ url_for('main.model_price', country=country, slug=model_slug) }}">
+    <button class="btn btn-outline-secondary d-inline-flex align-items-center button-statistics" type="button">
     View price statistics for {{ model_slug|replace('thinkpad-', ' ')|upper }}
+    </button>
 </a>
-
+</div>
 <div class="d-md-none">
     {{ macros.cards(listings, country) }}
 </div>
 
 <div class="d-none d-md-block">
-    {{ macros.listings_table(listings, country, show_last_updated=False) }}
+    {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
 </div>
 
 {% endblock %}

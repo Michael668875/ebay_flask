@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% import "macros.html" as macros %}
 
 {% block title %}
 {{ stats.name }} Price (Updated Daily)
@@ -15,30 +16,13 @@ Live {{ stats.name }} prices from eBay listings. Compare the lowest, average and
 
 <p>Live prices for {{ stats.name }} laptops on eBay.</p>
 
-<table class="table table-dark">
-
-<tr>
-<td>Lowest price</td>
-<td><strong>${{ stats.lowest_price }}</strong></td>
-</tr>
-
-<tr>
-<td>Average price</td>
-<td>${{ stats.avg_price|round }}</td>
-</tr>
-
-<tr>
-<td>Highest price</td>
-<td>${{ stats.highest_price }}</td>
-</tr>
-
-<tr>
-<td>Listings tracked</td>
-<td>{{ stats.listing_count }}</td>
-</tr>
-
-</table>
-
+{% if stats %}
+    {{ macros.model_price_table(stats, country, currency=currency) }}
+{% else %}
+    <div class="alert alert-secondary">
+        No price data available yet for this model in {{ country|upper }}.
+    </div>
+{% endif %}
 <a href="/{{ country }}/{{ stats.slug }}/">
 View current listings →
 </a>
