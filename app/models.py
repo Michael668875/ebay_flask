@@ -31,6 +31,7 @@ class Model(db.Model):
 
     # Listings associated with this model
     listings = db.relationship("Listing", back_populates="model", cascade="all, delete-orphan")
+    stats = db.relationship("ModelPriceStats", back_populates="model", cascade="all, delete-orphan")
 
 
 # --------------------------
@@ -179,6 +180,8 @@ class ModelPriceStats(db.Model):
     max_price = db.Column(db.Numeric(10, 2))
     listing_count = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime(timezone=True))
+
+    model = db.relationship("Model", back_populates="stats")
 
     __table_args__ = (
         db.UniqueConstraint("model_id", "marketplace", name="ix_model_price_stats_model_market"),

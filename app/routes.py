@@ -5,14 +5,16 @@ from flask import (
     url_for,
     abort,
     request,
-    make_response
+    make_response,
+    Response
 )
 
-from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory
+from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory, ModelPriceStats
 from app import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc, func
 from collections import OrderedDict
+from datetime import datetime, timezone
 
 bp = Blueprint("main", __name__)
 
@@ -54,6 +56,117 @@ def get_market_context(country):
     currency = CURRENCY_BY_COUNTRY.get(country, "")
 
     return country, marketplaces, currency
+
+@bp.app_errorhandler(404)
+def not_found_error(error):
+    return render_template("404.html"), 404
+
+@bp.app_errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template("500.html"), 500
+
+@bp.route("/robots.txt")
+def robots():
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        f"Sitemap: {request.url_root.rstrip('/')}{url_for('main.sitemap_xml')}",
+    ]
+    return Response("\n".join(lines), mimetype="text/plain")
+
+
+@bp.route("/sitemap.xml")
+def sitemap_xml():
+    from flask import Response, url_for, render_template
+    from datetime import datetime, timezone
+
+    today = datetime.now(timezone.utc).date().isoformat()
+    pages = []
+
+    # --- Static pages ---
+    static_endpoints = [
+        ("main.index", {}),
+        ("main.about", {}),
+        ("main.methodology", {}),
+        ("main.privacy", {}),
+        ("main.terms", {}),
+        ("main.contact", {}),
+    ]
+
+    for endpoint, values in static_endpoints:
+        pages.append({
+            "loc": url_for(endpoint, _external=True, **values),
+            "lastmod": today,
+            "changefreq": "weekly",
+            "priority": "0.8" if endpoint == "main.index" else "0.5",
+        })
+
+    # --- Country pages ---
+    for country in COUNTRY_FLAGS.keys():
+        pages.extend([
+            {"loc": url_for("main.deals", country=country, _external=True), "lastmod": today, "changefreq": "daily", "priority": "0.9"},
+            {"loc": url_for("main.best_deals", country=country, _external=True), "lastmod": today, "changefreq": "daily", "priority": "0.8"},
+            {"loc": url_for("main.price_drops", country=country, _external=True), "lastmod": today, "changefreq": "daily", "priority": "0.7"},
+            {"loc": url_for("main.thinkpad_models", country=country, _external=True), "lastmod": today, "changefreq": "weekly", "priority": "0.7"},
+        ])
+
+    # --- Model pages ---
+    # Include only models that have stats for the marketplace with at least 5 listings
+    models = ThinkPadModel.query.order_by(ThinkPadModel.slug.asc()).all()
+    for model in models:
+        if not model.slug:
+            continue
+        for country in COUNTRY_FLAGS.keys():
+            # Get stats for this model + marketplace
+            stats = ModelPriceStats.query.join(ModelPriceStats.model).filter(
+                ModelPriceStats.model_id == model.id,
+                ModelPriceStats.marketplace == country,
+                ModelPriceStats.listing_count >= 5
+            ).first()
+
+            if not stats:
+                continue  # skip models with too few listings in this country
+
+            lastmod = stats.updated_at.date().isoformat() if stats.updated_at else today
+
+            pages.append({
+                "loc": url_for("main.model_price", country=country, slug=model.slug, _external=True),
+                "lastmod": lastmod,
+                "changefreq": "daily",
+                "priority": "0.8",
+            })
+
+    xml = render_template("sitemap.xml", pages=pages)
+    return Response(
+        xml,
+        mimetype="application/xml",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+DEFAULT_COUNTRY = "us"
+
+@bp.app_context_processor
+def inject_site_globals():
+    country = request.view_args.get("country") if request.view_args else None
+
+    if not country:
+        country = request.cookies.get("country", DEFAULT_COUNTRY)
+
+    country = (country or DEFAULT_COUNTRY).lower()
+
+    return {
+        "country": country,
+        "country_flags": COUNTRY_FLAGS,
+    }
+
+
+@bp.after_app_request
+def persist_country_cookie(response):
+    if request.view_args and "country" in request.view_args:
+        country = request.view_args["country"].lower()
+        response.set_cookie("country", country, max_age=60 * 60 * 24 * 365)
+    return response
 
 
 @bp.app_template_filter("format_capacity")
@@ -586,3 +699,28 @@ def thinkpad_models(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
+
+
+@bp.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@bp.route("/how-it-works")
+def methodology():
+    return render_template("methodology.html")
+
+
+@bp.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@bp.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@bp.route("/contact")
+def contact():
+    return render_template("contact.html")

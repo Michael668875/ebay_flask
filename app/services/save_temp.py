@@ -4,15 +4,6 @@ from app import db
 from app.models import TempSummaries, TempDetails, ThinkPadModel
 from app.services.field_map import FIELD_MAP
 import re
-from difflib import get_close_matches
-from pathlib import Path
-import json
-from sqlalchemy import text
-
-
-BASE_DIR = Path(__file__).resolve().parent
-LOG_PATH = BASE_DIR / "get_thinkpads_log.txt"
-DETAIL_PATH = BASE_DIR / "get_details_log.txt"
 
 
 def clean_text(text: str) -> str:
@@ -35,13 +26,8 @@ def clean_storage_type(value):
     return value.strip()
 
 
-def save_temp_summaries(items=LOG_PATH):
-    """
-    Inserts json data into temp_summaries table in db.
-    """
-    with open(items, "r", encoding="utf-8") as f:
-        items = json.load(f)
-
+def save_temp_summaries(items):
+    
     # Load all rows once
     ids = [item["itemId"] for item in items if "itemId" in item]
 
@@ -221,10 +207,8 @@ def should_prefer_title_model(aspect_model, title_model):
 # -------------------------
 # Main function
 # -------------------------
-def save_temp_details(items_path=DETAIL_PATH, CANON_MODELS=None):
-    with open(items_path, "r", encoding="utf-8") as f:
-        items = json.load(f)
-
+def save_temp_details(items, CANON_MODELS=None):
+    
     if CANON_MODELS is None:
         CANON_MODELS = [row.name for row in ThinkPadModel.query.with_entities(ThinkPadModel.name).all()]
 

@@ -1,6 +1,6 @@
 
 
-
+{% set nav_country = country if country is defined and country else 'us' %}
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1">
   <div class="container-fluid d-flex align-items-center">
 
@@ -8,8 +8,8 @@
     <div class="dropdown me-3">
       <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="countryDropdown"
               data-bs-toggle="dropdown" aria-expanded="false">
-        {{ country_flags.get(country) }}
-        {{ country.upper() }}
+        {{ country_flags.get(nav_country) }}
+        {{ nav_country.upper() }}
       </button>
 
       <ul class="dropdown-menu" aria-labelledby="countryDropdown">
@@ -50,21 +50,21 @@
 
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
-             href="{{ url_for('main.deals', country=country) }}">
+             href="{{ url_for('main.deals', country=nav_country) }}">
             Market Overview
           </a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
-             href="{{ url_for('main.best_deals', country=country) }}">
+             href="{{ url_for('main.best_deals', country=nav_country) }}">
             Best Deals
           </a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
-             href="{{ url_for('main.price_drops', country=country) }}">
+             href="{{ url_for('main.price_drops', country=nav_country) }}">
             Price Drops
           </a>
         </li>
@@ -72,7 +72,7 @@
         {% if model_slug is defined and model_slug %}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.model_price' %}active{% endif %}"
-             href="{{ url_for('main.model_price', country=country, slug=model_slug) }}">
+             href="{{ url_for('main.model_price', country=nav_country, slug=model_slug) }}">
             Model Price
           </a>
         </li>
@@ -80,7 +80,7 @@
 
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
-             href="{{ url_for('main.thinkpad_models', country=country) }}">
+             href="{{ url_for('main.thinkpad_models', country=nav_country) }}">
             Available Models
           </a>
         </li>

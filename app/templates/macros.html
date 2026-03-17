@@ -219,13 +219,12 @@
 {% endmacro %}
 
 
-{% macro cards(listings, country, show_model=True, show_price=True, show_cpu=True, show_ram=True, 
-    show_storage=True, show_condition=True, show_listing=True) %}
+{% macro cards(listings, country, currency=currency) %}
 <div class="listings-grid">
     {% for item in listings %}
     <div class="listing-card">        
         <div class="card-row"><span class="label">Model:</span> <span class="value">{{ item.model.name if item.model else "—" }}</span></div>        
-        <div class="card-row"><span class="label">Price:</span> <span class="value">{{ item.price or "—" }} {{ item.currency or "" }}</span></div>
+        <div class="card-row"><span class="label">Price:</span> <span class="value">{{ price_display(item.price, item.currency) }}</span></div>
         <div class="card-row"><span class="label">CPU:</span> <span class="value">{{ spec_pair(item.specs, "cpu", "cpu_freq") }} {{ item.specs.cpu_freq or "—" }}</span></div>
         <div class="card-row"><span class="label">RAM:</span> <span class="value">{{ spec(item.specs, "ram", use_capacity=True) }}</span></div>
         <div class="card-row"><span class="label">Storage:</span> <span class="value">{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</span></div>
@@ -292,7 +291,7 @@
 {% macro deals_table(rows, country, currency='', best_deal_model_ids=None) %}
 {% set best_deal_model_ids = best_deal_model_ids or [] %}
 <div class="table-rounded">
-<table class="table table-dark mb-0">
+<table class="table table-dark table-hover mb-0">
     <thead>
         <tr>
             <th>Model</th>
@@ -392,7 +391,7 @@
 
 {% macro best_deals_table(rows, country, currency='') %}
 <div class="table-rounded">
-<table class="table table-dark mb-0">
+<table class="table table-dark table-hover mb-0">
     <thead>
         <tr>
             <th>Model</th>
@@ -433,7 +432,7 @@
 
 {% macro thinkpad_models_table(rows, country, currency='') %}
 <div class="table-rounded">
-<table class="table table-dark mb-0">
+<table class="table table-dark table-hover mb-0">
     <thead>
         <tr>
             <th>Model</th>
@@ -469,62 +468,78 @@
 
 {% macro price_drops_table(rows, country, currency='') %}
 <div class="table-rounded">
-<table class="table table-dark mb-0">
-    <thead>
-        <tr>
-            <th>Model</th>
-            <th>Old</th>
-            <th>New</th>
-            <th>Drop</th>
-        </tr>
-    </thead>
-    <tbody>
+    {% if rows %}
+    <table class="table table-dark table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>Old Price</th>
+                <th>New Price</th>
+                <th>Discount</th>
+                <th>Listing</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for row in rows %}
             <tr>
+                <td><a href="/{{ country }}/{{ row.slug }}/">{{ row.model_name }}</a></td>
+                <td>{{ price_display(row.old_price, currency) }}</td>
+                <td>{{ price_display(row.new_price, currency) }}</td>
+                <td>{{ row.discount_percent }}%</td>
                 <td>
-                    <a href="/{{ country }}/{{ row.slug }}/">
-                        {{ row.model_name }}
-                    </a>
-                </td>
-                <td>${{ row.old_price }}</td>
-                <td><strong>${{ row.new_price }}</strong></td>
-                <td class="text-success">
-                    -${{ row.drop_amount }}
+                    {% if row.item_url %}
+                        <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
+                            View on eBay
+                        </a>
+                    {% else %}
+                        —
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
-    </tbody>
-</table>
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-info text-center my-3">
+            No price drops right now.
+        </div>
+    {% endif %}
 </div>
 {% endmacro %}
 
 {% macro model_price_table(stats, country, currency='') %}
 <table class="table table-dark">
-{% if stats %}
-<tr>
-<td>Lowest price</td>
-<td><strong>{{ price_display(stats.lowest_price, currency=currency) }}</strong></td>
-</tr>
+    {% if stats %}
+    <tr>
+        <td>Lowest price</td>
+        <td><strong>{{ price_display(stats.lowest_price, currency=currency) }}</strong></td>
+    </tr>
 
-<tr>
-<td>Average price</td>
-<td>{{ price_display(stats.avg_price|round, currency=currency) }}</td>
-</tr>
+    <tr>
+        <td>Average price</td>
+        <td>{{ price_display(stats.avg_price|round, currency=currency) }}</td>
+    </tr>
 
-<tr>
-<td>Highest price</td>
-<td>{{ price_display(stats.highest_price, currency=currency) }}</td>
-</tr>
+    <tr>
+        <td>Highest price</td>
+        <td>{{ price_display(stats.highest_price, currency=currency) }}</td>
+    </tr>
 
-<tr>
-<td>Listings tracked</td>
-<td>{{ stats.listing_count }}</td>
-</tr>
-{% else %}
-<tr>
-    <td colspan="2">No price data available for this model in {{ country|upper }}.</td>
-</tr>
-{% endif %}
+    <tr>
+        <td>Listings tracked</td>
+        <td>{{ stats.listing_count }}</td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="2">No price data available for this model in {{ country|upper }}.</td>
+    </tr>
+    {% endif %}
 </table>
 
+{% endmacro %}
+
+{% macro price_disclaimer() %}
+<div class="alert alert-secondary small mt-3">
+    Prices are estimates based on recent used listings and may vary depending on condition, battery health, included accessories, shipping, and seller location. Always review the full listing before buying.
+</div>
 {% endmacro %}
