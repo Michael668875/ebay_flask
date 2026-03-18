@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
 
-{% block body %}
+{% block content %}
 <h2>🔥 Recent Price Drops</h2>
 
 {{ macros.price_drops_table(rows, country, currency=currency) }}

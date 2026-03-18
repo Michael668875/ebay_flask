@@ -457,7 +457,9 @@
                 <strong>{{ price_display(row.lowest_price, currency, show_code=False) }}</strong>
             </td>
             <td>
-                {{ row.listing_count }}
+                <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
+                    {{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}
+                </a>
             </td>
         </tr>
         {% endfor %}
@@ -541,5 +543,11 @@
 {% macro price_disclaimer() %}
 <div class="alert alert-secondary small mt-3">
     Prices are estimates based on recent used listings and may vary depending on condition, battery health, included accessories, shipping, and seller location. Always review the full listing before buying.
+</div>
+{% endmacro %}
+
+{% macro affiliate_disclaimer() %}
+<div class=" text-secondary">
+    This site uses affiliate links. Purchases may earn a commission.
 </div>
 {% endmacro %}

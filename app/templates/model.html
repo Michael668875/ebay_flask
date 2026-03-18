@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
 
-{% block body %}
+{% block content %}
 <h2>
 ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 </h2>
@@ -19,7 +19,7 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 </div>
 
 <div class="d-none d-md-block">
-    {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
+    {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False) }}
 </div>
 {{ macros.price_disclaimer() }}
 {% endblock %}

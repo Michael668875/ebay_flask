@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc, func
 from collections import OrderedDict
 from datetime import datetime, timezone
+import re
 
 bp = Blueprint("main", __name__)
 
@@ -78,9 +79,6 @@ def robots():
 
 @bp.route("/sitemap.xml")
 def sitemap_xml():
-    from flask import Response, url_for, render_template
-    from datetime import datetime, timezone
-
     today = datetime.now(timezone.utc).date().isoformat()
     pages = []
 
@@ -253,13 +251,16 @@ def inject_helpers():
 
 @bp.route("/")
 def index():
-    preferred = request.cookies.get("preferred_country", "us").lower()
-    valid_countries = set(get_enabled_markets().keys()) | {"all"}
+    # Only redirect if preferred_country cookie exists
+    preferred = request.cookies.get("preferred_country")
+    if preferred:
+        preferred = preferred.lower()
+        valid_countries = set(get_enabled_markets().keys())
+        if preferred in valid_countries:
+            return redirect(url_for("main.country_home", country=preferred))
 
-    if preferred not in valid_countries:
-        preferred = "us"
-
-    return redirect(url_for("main.country_home", country=preferred))
+    # fallback if no cookie or invalid
+    return redirect(url_for("main.country_home", country="us"))
 
 # -------------------------------------------------
 # Country Home Page
@@ -724,3 +725,41 @@ def terms():
 @bp.route("/contact")
 def contact():
     return render_template("contact.html")
+
+@bp.route("/affiliate-disclosure")
+def affiliate_disclosure():
+    return render_template("affiliate_disclosure.html")
+
+def slugify_model(text):
+    """
+    Example: 't480' -> 'thinkpad-t480'
+             'Lenovo X1 Carbon' -> 'thinkpad-x1-carbon'
+    """
+    text = text.lower().strip()
+    text = text.replace("thinkpad", "").replace("lenovo", "").strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    text = re.sub(r"-+", "-", text)
+    text = text.strip("-")
+
+    if not text.startswith("thinkpad-"):
+        text = f"thinkpad-{text}"
+
+    return text
+
+@bp.route("/search")
+def search_model():
+    query = request.args.get("q", "").strip()
+    country = request.args.get("country")  # comes from hidden input
+
+    if not query or not country:
+        # fallback if something is missing
+        return redirect(url_for("main.home"))
+
+    # safe now: country is provided by template
+    country, _, _ = get_market_context(country)
+
+    # Convert user input into slug
+    model_slug = slugify_model(query)
+
+    # Redirect to the model page
+    return redirect(url_for("main.model_page", country=country, model_slug=model_slug))

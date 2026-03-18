@@ -26,10 +26,10 @@
       </ul>
     </div>
 
-    <!-- Brand -->
+    <!-- Brand 
     <a class="navbar-brand fw-semibold me-3" href="{{ url_for('main.index') }}">
       ThinkPad Prices
-    </a>
+    </a>-->
 
     <!-- Mobile toggler -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNavbar"
@@ -43,7 +43,7 @@
 
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}"
-             href="{{ url_for('main.index') }}">
+             href="{{ url_for('main.country_home', country=country) }}">
             Home
           </a>
         </li>
@@ -87,6 +87,19 @@
 
       </ul>
     </div>
+    <form class="d-flex ms-auto" method="get" action="{{ url_for('main.search_model') }}">
+        <input
+            class="form-control me-2"
+            type="search"
+            name="q"
+            placeholder="Search model (e.g. T480)"
+            aria-label="Search model"
+            required
+        >
+        <!-- Pass the currently selected country -->
+        <input type="hidden" name="country" value="{{ country }}">
+        <button class="btn btn-outline-light" type="submit">Search</button>
+    </form>
 
   </div>
 </nav>

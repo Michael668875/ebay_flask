@@ -290,3 +290,21 @@ button:hover {
 .discount {
     color:rgb(50, 220, 50);
 }
+
+.page-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;   /* keeps them on same vertical line */
+    gap: 16px;
+    flex-wrap: wrap;       /* allows stacking on small screens */
+    margin-bottom: 1rem;
+}
+
+.page-title {
+    margin: 0;             /* remove default h1 bottom margin */
+}
+
+.aff-disclaimer-wrap {
+    margin-left: auto;     /* pushes it to the right */
+    text-align: right;
+}
