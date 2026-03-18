@@ -8,7 +8,6 @@ import asyncio
 import httpx
 import time
 import random
-import json
 
 
 load_dotenv()
@@ -176,81 +175,4 @@ async def fetch_item_details_async(listings):
 
     return [r for r in results if r]
 
-
-#if __name__ == "__main__":
-#    print("Fetching all ThinkPad summaries...")
-#    summaries = get_paginated_summaries()
-#    print(f"Total summaries fetched: {len(summaries)}")
-#
-#    # insert into temp summaries
-#    # testing_db - save_temp_summaries(summaries)
-#
-#    # find summaries not in listings table
-#    listings = new_listings()
-#
-#    print("Fetching item details for new listings...")
-#    details = fetch_item_details(listings) # fetch only new thinkpads
-#    print(f"Total detailed items fetched: {len(details)}")
-#
-#    # insert details into temp details
-#    #testing_db - save_temp_details(details)
-
-    
-
-    # move data to permanent tables
-    # pipeline
-
-
-
-
-
-
-"""
-# how to call it
-listings = new_listings()
-
-details = asyncio.run(fetch_item_details_async(listings))
-"""
-
-"""
-
-Instead of lowering maximum_items, add a cap on detail fetches per run.
-
-Example:
-
-MAX_DETAIL_CALLS = 300
-
-new_listings = new_listings_query()[:MAX_DETAIL_CALLS]
-
-This guarantees you never exceed your budget.
-
-Example daily usage:
-
-300 calls/run
-6 runs/day
-= 1800 calls/day
-
-Safe.
-"""
-
-# THIS IS FOR TESTING PURPOSES. FETCH DETAILS FOR A SINGLE ITEM AND OUTPUT TO A FILE
-def get_item_details(item_id, marketplace_id):
-    token = get_token()
-
-    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "X-EBAY-C-MARKETPLACE-ID": marketplace_id,
-        "X-EBAY-C-ENDUSERCTX": f"affiliateCampaignId={CAMPAIGN_ID}"
-    }
-
-    resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
-    output = resp.json()
-    itemNumber = item_id[3:-2]
-
-    with open(f"{itemNumber}_output.txt", "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
-    return None
 
