@@ -277,7 +277,7 @@ def country_home(country):
 
     query = (
         Listing.query
-        .join(Listing.model)
+        .outerjoin(Listing.model)
         .outerjoin(Listing.specs)
         .filter(
             Listing.status == "ACTIVE",

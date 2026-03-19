@@ -22,33 +22,45 @@ def clean_temp_data():
     """))
 
 # add models from temp to main table. one of each model type.
+#def insert_models():
+#    db.session.execute(text(r"""
+#        INSERT INTO models (name, canon_model_id)
+#        SELECT name, canon_model_id
+#        FROM (
+#            SELECT DISTINCT ON (td.model)
+#                td.model AS name,
+#                ml.id AS canon_model_id
+#            FROM temp_details td
+#            JOIN model_list ml
+#                ON td.model ILIKE '%' || ml.name || '%'
+#            WHERE td.model IS NOT NULL
+#            ORDER BY td.model, LENGTH(ml.name) DESC
+#        ) sub
+#        ON CONFLICT (name) DO NOTHING;
+#    """))
+
+#    raw_model = db.Column(db.String)
+#    raw_mpn = db.Column(db.String)
+#    parsed_aspect = db.Column(db.String)
+#    parsed_title = db.Column(db.String)
+#    parsed_mpn = db.Column(db.String)
+#    model_source = db.Column(db.String) # source of final model name
+    
 def insert_models():
     db.session.execute(text(r"""
-        INSERT INTO models (name, canon_model_id)
-        SELECT name, canon_model_id
-        FROM (
-            SELECT DISTINCT ON (td.model)
-                td.model AS name,
-                ml.id AS canon_model_id
-            FROM temp_details td
-            JOIN model_list ml
-                ON td.model ILIKE '%' || ml.name || '%'
-            WHERE td.model IS NOT NULL
-            ORDER BY td.model, LENGTH(ml.name) DESC
-        ) sub
-        ON CONFLICT (name) DO NOTHING;
-    """))
-
-# this connects listings with models
-def update_listing_models():
-    db.session.execute(text(r"""
-        UPDATE listings l
-        SET model_id = m.id
-        FROM temp_details td
-        JOIN models m
-            ON m.name = td.model
-        WHERE l.ebay_item_id = td.ebay_item_id
-        AND l.model_id IS NULL;
+        INSERT INTO models (listing_id, raw_model, raw_mpn)
+        SELECT
+            l.id,
+            NULLIF(TRIM(td.model), ''),
+            NULLIF(TRIM(td.mpn), '')
+        FROM listings l
+        JOIN temp_details td
+          ON td.ebay_item_id = l.ebay_item_id
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM models m
+            WHERE m.listing_id = l.id
+        );
     """))
 
 # add detailed specs from temp to main table.
@@ -60,9 +72,9 @@ def insert_specs():
         INSERT INTO specs (
             cpu,
             cpu_freq,
-            ram,
-            storage,
-            storage_type,
+            raw_ram,
+            raw_storage,
+            raw_storage_type,
             screen_size,
             display,
             gpu,
@@ -72,27 +84,8 @@ def insert_specs():
         SELECT
             td.cpu,
             td.cpu_freq,
-
-            CASE
-                WHEN td.ram ILIKE '%MB%'
-                    THEN regexp_replace(td.ram, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric / 1024
-                WHEN td.ram ILIKE '%GB%'
-                    THEN regexp_replace(td.ram, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric
-                WHEN td.ram ILIKE '%TB%'
-                    THEN regexp_replace(td.ram, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric * 1024                            
-                ELSE NULL
-            END AS ram,
-
-            CASE
-                WHEN td.storage ILIKE '%TB%'
-                    THEN regexp_replace(td.storage, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric * 1024
-                WHEN td.storage ILIKE '%GB%'
-                    THEN regexp_replace(td.storage, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric
-                WHEN td.storage ILIKE '%MB%'
-                    THEN regexp_replace(td.storage, '^.*?(\d+(\.\d+)?).*$', '\1')::numeric / 1024
-                ELSE NULL
-            END AS storage,
-
+            td.ram,
+            td.storage,         
             td.storage_type,
             td.screen_size,
             td.display,
@@ -108,7 +101,10 @@ def insert_specs():
         ram = COALESCE(EXCLUDED.ram, specs.ram),
         storage = COALESCE(EXCLUDED.storage, specs.storage),
         cpu = COALESCE(EXCLUDED.cpu, specs.cpu),
-        cpu_freq = COALESCE(EXCLUDED.cpu_freq, specs.cpu_freq);
+        cpu_freq = COALESCE(EXCLUDED.cpu_freq, specs.cpu_freq),
+        raw_ram = EXCLUDED.raw_ram,
+        raw_storage = EXCLUDED.raw_storage,
+        raw_storage_type = EXCLUDED.raw_storage_type;
     """))
 
 # add summaries from temp tabel into main listings table
@@ -128,11 +124,11 @@ def insert_listings():
             marketplace,
             item_country,
             item_url,
+            status,
             first_seen,
             last_seen,
             last_updated,
-            ended_at,
-            status
+            ended_at
         )
         SELECT
             ts.category_id,
@@ -145,11 +141,11 @@ def insert_listings():
             ts.marketplace,
             ts.item_country,
             ts.item_url,
+            'ACTIVE',
             NOW(),
             NOW(),
             NOW(),
-            NULL,
-            'ACTIVE'
+            NULL
         FROM temp_summaries ts
         WHERE ts.category_id = '177'
         ON CONFLICT (ebay_item_id) DO NOTHING;
@@ -227,10 +223,9 @@ def insert_price_history():
     Insert price history for newly inserted listings.
     """
     db.session.execute(text(r"""
-        INSERT INTO price_history (listing_id, model_id, price, currency)
+        INSERT INTO price_history (listing_id, price, currency)
         SELECT
             l.id,
-            l.model_id,
             l.price,
             l.currency
         FROM listings l
@@ -244,7 +239,7 @@ def insert_price_history():
 # track prices by model
 def update_model_price_stats():
     """
-    Update aggregated model pricing stats.
+    Update aggregated model pricing stats using the new Model → Listing relationship.
     """
     db.session.execute(text(r"""
         INSERT INTO model_price_stats (
@@ -257,17 +252,18 @@ def update_model_price_stats():
             updated_at
         )
         SELECT
-            model_id,
-            marketplace,
-            AVG(price),
-            MIN(price),
-            MAX(price),
+            m.id AS model_id,
+            l.marketplace,
+            AVG(l.price),
+            MIN(l.price),
+            MAX(l.price),
             COUNT(*),
             NOW()
-        FROM listings
-        WHERE status = 'ACTIVE'
-        AND model_id IS NOT NULL
-        GROUP BY model_id, marketplace
+        FROM listings l
+        JOIN models m
+          ON m.listing_id = l.id
+        WHERE l.status = 'ACTIVE'
+        GROUP BY m.id, l.marketplace
         ON CONFLICT (model_id, marketplace)
         DO UPDATE SET
             avg_price = EXCLUDED.avg_price,
@@ -291,12 +287,11 @@ def run_pipeline():
     """
     Full ingestion pipeline.
     """
-    clean_temp_data()
-    insert_models()
+    #clean_temp_data()
     insert_listings()
+    insert_models()
     update_listing_prices()
     mark_sold_listings()
-    update_listing_models()
     update_seen_listings()
     increment_miss_count()
     mark_ended_listings()

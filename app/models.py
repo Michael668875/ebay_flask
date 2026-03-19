@@ -23,14 +23,29 @@ class Model(db.Model):
     __tablename__ = "models"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True, index=True)  # parsed/raw name
+    listing_id = db.Column(
+        db.Integer,
+        db.ForeignKey("listings.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    name = db.Column(db.String, nullable=True, index=True)  # final model name
+
+    raw_model = db.Column(db.String)
+    raw_mpn = db.Column(db.String)
+    parsed_aspect = db.Column(db.String)
+    parsed_title = db.Column(db.String)
+    parsed_mpn = db.Column(db.String)
+    model_source = db.Column(db.String) # source of final model name
 
     # Link to canonical model (optional, for browser display)
     canon_model_id = db.Column(db.Integer, db.ForeignKey("model_list.id", ondelete="SET NULL"))
     canon_model = db.relationship("ThinkPadModel", back_populates="models", lazy="joined")
 
     # Listings associated with this model
-    listings = db.relationship("Listing", back_populates="model", cascade="all, delete-orphan")
+    listing = db.relationship("Listing", back_populates="model", uselist=False)
     stats = db.relationship("ModelPriceStats", back_populates="model", cascade="all, delete-orphan")
 
 
@@ -63,16 +78,14 @@ class Listing(db.Model):
     )
 
     # Link to parsed model
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id", ondelete="CASCADE"), index=True)
-    model = db.relationship("Model", back_populates="listings")
+    model = db.relationship("Model", back_populates="listing", uselist=False, cascade="all, delete-orphan", single_parent=True)
 
     # Relationships
     price_history = db.relationship("PriceHistory", back_populates="listing", cascade="all, delete-orphan")
     specs = db.relationship("Specs", back_populates="listing", uselist=False, cascade="all, delete-orphan")
 
     __table_args__ = (
-        db.Index("idx_listings_marketplace_status_model", "marketplace", "status", "model_id"),
-        db.Index("idx_listings_marketplace_status_price", "marketplace", "status", "price")
+        db.Index("idx_listings_marketplace_status_price", "marketplace", "status", "price"),
     )
 
     @property
@@ -98,6 +111,9 @@ class Specs(db.Model):
     display = db.Column(db.String)
     gpu = db.Column(db.String)
     os = db.Column(db.String)
+    raw_ram = db.Column(db.String)
+    raw_storage = db.Column(db.String)
+    raw_storage_type = db.Column(db.String)
 
     listing = db.relationship("Listing", back_populates="specs")
 
@@ -113,7 +129,6 @@ class PriceHistory(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     listing_id = db.Column(db.Integer, db.ForeignKey("listings.id", ondelete="CASCADE"))
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id", ondelete="CASCADE"), index=True)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
     recorded_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
@@ -161,6 +176,7 @@ class TempDetails(db.Model):
     gpu = db.Column(db.String)
     os = db.Column(db.String)
     model = db.Column(db.String)
+    mpn = db.Column(db.String) # add as backup model
     seller_username = db.Column(db.String)
     seller_feedback_score = db.Column(db.Integer)
     seller_feedback_percent = db.Column(db.Numeric(5, 2))

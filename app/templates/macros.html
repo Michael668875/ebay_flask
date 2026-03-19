@@ -5,6 +5,8 @@
         <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
             {{ item.model.name or "—" }}
         </a>
+    {% elif item.model.raw_model %}
+        {{ item.model.raw_model or "—"}}
     {% else %}
         {{ item.model.name if item.model else "—" }}
     {% endif %}

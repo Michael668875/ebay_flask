@@ -3,9 +3,15 @@ FIELD_MAP = {
     "model": {
         "keys": [
             "Model", 
-            "Modell", 
-            #"MPN", 
-            #"Herstellernummer"
+            "Modell"
+        ],
+        "type": "relation"
+    },
+    # MPN
+    "mpn": {
+        "keys": [
+            "MPN", 
+            "Herstellernummer"
         ],
         "type": "relation"
     },

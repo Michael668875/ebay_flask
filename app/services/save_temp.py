@@ -1,7 +1,7 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime
 from app import db
-from app.models import TempSummaries, TempDetails, ThinkPadModel
+from app.models import TempSummaries, TempDetails
 from app.services.field_map import FIELD_MAP
 import re
 
@@ -204,15 +204,28 @@ def should_prefer_title_model(aspect_model, title_model):
         return len(title_model) > len(aspect_model)
     return False
 
+def save_seller_info(listing, item):
+    # -------------------------
+    # Save seller info
+    # -------------------------
+    seller = item.get("seller", {})
+
+    listing.seller_username = seller.get("username")
+    listing.seller_feedback_score = seller.get("feedbackScore")
+
+    feedback_percent = seller.get("feedbackPercentage")
+    if feedback_percent not in (None, ""):
+        try:
+            listing.seller_feedback_percent = Decimal(str(feedback_percent))
+        except (InvalidOperation, ValueError):
+            listing.seller_feedback_percent = None
+    else:
+        listing.seller_feedback_percent = None
+
 # -------------------------
 # Main function
 # -------------------------
-def save_temp_details(items, CANON_MODELS=None):
-    
-    if CANON_MODELS is None:
-        CANON_MODELS = [row.name for row in ThinkPadModel.query.with_entities(ThinkPadModel.name).all()]
-
-    model_groups = build_model_index(CANON_MODELS)
+def save_temp_details(items):
 
     ids = [item["itemId"] for item in items if "itemId" in item]
     existing = {
@@ -234,6 +247,8 @@ def save_temp_details(items, CANON_MODELS=None):
             db.session.add(listing)
             existing[item_id] = listing
 
+        save_seller_info(listing, item)
+
         # -------------------------
         # Collect aspects
         # -------------------------
@@ -253,37 +268,23 @@ def save_temp_details(items, CANON_MODELS=None):
                     continue
                 value = aspects[key]
 
-                if field in ["ram", "storage"] and not valid_capacity(value):
-                    continue
-                if field == "storage_type":
-                    value = clean_storage_type(value)
-
-                # Special handling for model aspect
-                if field == "model":
-                    matched = find_best_model_match(value, model_groups)
-                    if not matched:
-                        continue
-                    value = matched
-
                 setattr(listing, field, value)
                 break  # stop lower-priority keys
-
-        # -------------------------
-        # Parse model from title
-        # -------------------------
-        title = item.get("title", "")
-        title_model = find_best_model_match(title, model_groups)
-
-        if getattr(listing, "model", None):
-            if title_model and should_prefer_title_model(listing.model, title_model):
-                listing.model = title_model
-        else:
-            listing.model = title_model
 
         updated += 1
 
     db.session.commit()
     print(f"Updated {updated} temp_details.")
+
+
+"""
+if field in ["ram", "storage"] and not valid_capacity(value):
+                    continue
+                if field == "storage_type":
+                    value = clean_storage_type(value)
+    do something with this in pipeline
+
+"""
 
 
 """
