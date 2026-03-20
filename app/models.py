@@ -104,8 +104,8 @@ class Specs(db.Model):
 
     cpu = db.Column(db.String)
     cpu_freq = db.Column(db.String(50))
-    ram = db.Column(db.Integer)
-    storage = db.Column(db.Integer)
+    ram = db.Column(db.Float)
+    storage = db.Column(db.Float)
     storage_type = db.Column(db.String)
     screen_size = db.Column(db.String)
     display = db.Column(db.String)
@@ -114,6 +114,9 @@ class Specs(db.Model):
     raw_ram = db.Column(db.String)
     raw_storage = db.Column(db.String)
     raw_storage_type = db.Column(db.String)
+    ram_processed = db.Column(db.Boolean, default=False, nullable=False)
+    storage_processed = db.Column(db.Boolean, default=False, nullable=False)
+    storage_type_processed = db.Column(db.Boolean, default=False, nullable=False)
 
     listing = db.relationship("Listing", back_populates="specs")
 

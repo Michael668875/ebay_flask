@@ -1,50 +1,6 @@
 from app.extensions import db
 from sqlalchemy import text
-
-
-# remove "thinkpad" and "lenovo" from model name
-def clean_temp_data():
-    """
-    Clean raw temp table data.
-    """
-    db.session.execute(text(r"""
-        UPDATE temp_details
-        SET model =
-            INITCAP(
-                TRIM(
-                    REPLACE(
-                        REPLACE(LOWER(model), 'lenovo', ''),
-                        'thinkpad', ''
-                    )
-                )
-            )
-        WHERE model IS NOT NULL;
-    """))
-
-# add models from temp to main table. one of each model type.
-#def insert_models():
-#    db.session.execute(text(r"""
-#        INSERT INTO models (name, canon_model_id)
-#        SELECT name, canon_model_id
-#        FROM (
-#            SELECT DISTINCT ON (td.model)
-#                td.model AS name,
-#                ml.id AS canon_model_id
-#            FROM temp_details td
-#            JOIN model_list ml
-#                ON td.model ILIKE '%' || ml.name || '%'
-#            WHERE td.model IS NOT NULL
-#            ORDER BY td.model, LENGTH(ml.name) DESC
-#        ) sub
-#        ON CONFLICT (name) DO NOTHING;
-#    """))
-
-#    raw_model = db.Column(db.String)
-#    raw_mpn = db.Column(db.String)
-#    parsed_aspect = db.Column(db.String)
-#    parsed_title = db.Column(db.String)
-#    parsed_mpn = db.Column(db.String)
-#    model_source = db.Column(db.String) # source of final model name
+from app.services.parse import insert_storage_type
     
 def insert_models():
     db.session.execute(text(r"""
@@ -298,6 +254,7 @@ def run_pipeline():
     insert_price_history()
     update_model_price_stats()
     insert_specs()
+    insert_storage_type() # gets storage_type from raw_storage_type
     #truncate_temp_tables()
 
     db.session.commit()

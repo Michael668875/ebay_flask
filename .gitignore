@@ -5,3 +5,4 @@ instance/
 *.json
 *.csv
 venv/
+pics/
