@@ -23,7 +23,7 @@ class Model(db.Model):
     __tablename__ = "models"
 
     id = db.Column(db.Integer, primary_key=True)
-    listing_id = db.Column(
+    listing_id = db.Column( # removed model_id from listings to avoid circular logic
         db.Integer,
         db.ForeignKey("listings.id", ondelete="CASCADE"),
         nullable=False,
@@ -66,7 +66,7 @@ class Listing(db.Model):
     marketplace = db.Column(db.String)
     item_country = db.Column(db.String(2))
     item_url = db.Column(db.Text)
-    status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True)  # ACTIVE, SOLD, ENDED
+    status = db.Column(db.String, default="ACTIVE", server_default="ACTIVE", index=True)
     first_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     miss_count = db.Column(db.Integer, nullable=False, default=0)
@@ -78,11 +78,25 @@ class Listing(db.Model):
     )
 
     # Link to parsed model
-    model = db.relationship("Model", back_populates="listing", uselist=False, cascade="all, delete-orphan", single_parent=True)
+    model = db.relationship(
+        "Model",
+        back_populates="listing",
+        uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True
+    )
 
     # Relationships
     price_history = db.relationship("PriceHistory", back_populates="listing", cascade="all, delete-orphan")
     specs = db.relationship("Specs", back_populates="listing", uselist=False, cascade="all, delete-orphan")
+
+    # FIXED parse relationship
+    parse = db.relationship(
+        "Parse",
+        back_populates="listing",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         db.Index("idx_listings_marketplace_status_price", "marketplace", "status", "price"),
@@ -91,7 +105,6 @@ class Listing(db.Model):
     @property
     def is_active(self):
         return self.status == "ACTIVE" and self.ended_at is None
-
 
 # --------------------------
 # Specs
@@ -233,3 +246,34 @@ class Storage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     size = db.Column(db.String(20), unique=True, nullable=False)
 
+class Parse(db.Model):
+    __tablename__ = "parse"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.Integer,
+        db.ForeignKey("listings.id"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    model_candidate_raw_model = db.Column(db.String)
+    model_candidate_title = db.Column(db.String)
+    model_candidate_mpn = db.Column(db.String)
+
+    model_match_raw_model = db.Column(db.String)
+    model_match_title = db.Column(db.String)
+    model_match_mpn = db.Column(db.String)
+
+    model_confidence_raw_model = db.Column(db.Float)
+    model_confidence_title = db.Column(db.Float)
+    model_confidence_mpn = db.Column(db.Float)
+
+    model_name_resolved = db.Column(db.String)
+    model_confidence_resolved = db.Column(db.Float)
+    model_source_resolved = db.Column(db.String)
+    model_method_resolved = db.Column(db.String)
+
+    listing = db.relationship("Listing", back_populates="parse")
