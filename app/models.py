@@ -90,14 +90,6 @@ class Listing(db.Model):
     price_history = db.relationship("PriceHistory", back_populates="listing", cascade="all, delete-orphan")
     specs = db.relationship("Specs", back_populates="listing", uselist=False, cascade="all, delete-orphan")
 
-    # FIXED parse relationship
-    parse = db.relationship(
-        "Parse",
-        back_populates="listing",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
     __table_args__ = (
         db.Index("idx_listings_marketplace_status_price", "marketplace", "status", "price"),
     )
@@ -246,34 +238,4 @@ class Storage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     size = db.Column(db.String(20), unique=True, nullable=False)
 
-class Parse(db.Model):
-    __tablename__ = "parse"
 
-    id = db.Column(db.Integer, primary_key=True)
-
-    listing_id = db.Column(
-        db.Integer,
-        db.ForeignKey("listings.id"),
-        nullable=False,
-        unique=True,
-        index=True
-    )
-
-    model_candidate_raw_model = db.Column(db.String)
-    model_candidate_title = db.Column(db.String)
-    model_candidate_mpn = db.Column(db.String)
-
-    model_match_raw_model = db.Column(db.String)
-    model_match_title = db.Column(db.String)
-    model_match_mpn = db.Column(db.String)
-
-    model_confidence_raw_model = db.Column(db.Float)
-    model_confidence_title = db.Column(db.Float)
-    model_confidence_mpn = db.Column(db.Float)
-
-    model_name_resolved = db.Column(db.String)
-    model_confidence_resolved = db.Column(db.Float)
-    model_source_resolved = db.Column(db.String)
-    model_method_resolved = db.Column(db.String)
-
-    listing = db.relationship("Listing", back_populates="parse")
