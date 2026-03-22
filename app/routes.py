@@ -12,7 +12,7 @@ from flask import (
 from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory, ModelPriceStats
 from app import db
 from sqlalchemy.orm import joinedload
-from sqlalchemy import asc, desc, func, literal
+from sqlalchemy import asc, desc, func
 from collections import OrderedDict
 from datetime import datetime, timezone
 import re
@@ -402,93 +402,130 @@ def set_country(country):
 # -----------------------------
 # /<country>/deals
 # -----------------------------
+from sqlalchemy import func, asc, desc
+
+
 @bp.route("/<country>/deals")
 def deals(country):
     country, marketplaces, currency = get_market_context(country)
     sort = request.args.get("sort", "price")
 
-    # -----------------------------
-    # Subquery: cheapest listing per canonical model
-    # -----------------------------
-    canon_subq = (
+    # =========================================================
+    # 1) BASE: active listings joined to parsed models
+    #    Grain = one row per listing (assuming one Model row per listing)
+    # =========================================================
+    base_q = (
         db.session.query(
             Model.canon_model_id.label("canon_model_id"),
-            func.min(Listing.price).label("cheapest_price"),
-            func.count(Model.id).label("listing_count"),
-            func.max(Listing.first_seen).label("newest_listing"),
+            Listing.id.label("listing_id"),
+            Listing.ebay_item_id.label("ebay_item_id"),
+            Listing.price.label("price"),
+            Listing.first_seen.label("first_seen"),
         )
         .join(Listing, Listing.id == Model.listing_id)
         .filter(
+            Model.canon_model_id.isnot(None),
             Listing.status == "ACTIVE",
             Listing.marketplace.in_(marketplaces),
         )
-        .group_by(Model.canon_model_id)
+    ).subquery()
+
+    # =========================================================
+    # 2) MODEL SUMMARY: one row per canonical model
+    #    Grain = one row per canonical model
+    # =========================================================
+    model_summary = (
+        db.session.query(
+            base_q.c.canon_model_id,
+            func.min(base_q.c.price).label("cheapest_price"),
+            func.count(func.distinct(base_q.c.listing_id)).label("listing_count"),
+            func.max(base_q.c.first_seen).label("newest_listing"),
+        )
+        .group_by(base_q.c.canon_model_id)
         .subquery()
     )
 
-    # Correlated subquery for cheapest ebay item id
+    # =========================================================
+    # 3) CHEAPEST ITEM ID per canonical model
+    #    Correlated subquery: returns one ebay_item_id per model
+    # =========================================================
     cheapest_item_subq = (
-        db.session.query(Listing.ebay_item_id)
-        .join(Model, Model.listing_id == Listing.id)
-        .filter(Listing.status == "ACTIVE", Listing.marketplace.in_(marketplaces))
-        .order_by(Listing.price.asc())
+        db.session.query(base_q.c.ebay_item_id)
+        .filter(base_q.c.canon_model_id == model_summary.c.canon_model_id)
+        .order_by(base_q.c.price.asc(), base_q.c.first_seen.desc())
         .limit(1)
-        .correlate(Model)
+        .correlate(model_summary)
         .scalar_subquery()
     )
 
-    # -----------------------------
-    # Main query: one row per canonical model
-    # -----------------------------
+    # =========================================================
+    # 4) MAIN QUERY: one row per canonical model
+    # =========================================================
     query = (
         db.session.query(
-            Model.id.label("model_id"),
-            Model.name.label("model_name"),
+            ThinkPadModel.id.label("canon_model_id"),
+            ThinkPadModel.name.label("model_name"),
             ThinkPadModel.slug.label("slug"),
-            canon_subq.c.cheapest_price,
-            canon_subq.c.listing_count,
-            canon_subq.c.newest_listing,
+            model_summary.c.cheapest_price,
+            model_summary.c.listing_count,
+            model_summary.c.newest_listing,
             cheapest_item_subq.label("cheapest_item"),
         )
-        .join(canon_subq, canon_subq.c.canon_model_id == Model.canon_model_id)
-        .join(ThinkPadModel, Model.canon_model_id == ThinkPadModel.id)
+        .select_from(model_summary)
+        .join(ThinkPadModel, ThinkPadModel.id == model_summary.c.canon_model_id)
     )
 
+    # =========================================================
+    # 5) SORTING
+    # =========================================================
     if sort == "listings":
-        query = query.order_by(asc(canon_subq.c.cheapest_price))  # only 1 listing per model
+        query = query.order_by(
+            desc(model_summary.c.listing_count),
+            asc(model_summary.c.cheapest_price),
+        )
     elif sort == "newest":
-        query = query.order_by(desc(canon_subq.c.newest_listing))
-    else:  # price
-        query = query.order_by(asc(canon_subq.c.cheapest_price))
+        query = query.order_by(desc(model_summary.c.newest_listing))
+    else:  # default: cheapest first
+        query = query.order_by(asc(model_summary.c.cheapest_price))
 
     rows = query.limit(50).all()
 
-    # -----------------------------
-    # BEST DEAL MODEL IDS
-    # -----------------------------
-    # Compare listing price to cheapest price for that canonical model
-    best_deal_subq = (
+    # =========================================================
+    # 6) BEST DEAL MODELS
+    #    A model is a "best deal" if any active listing is < 75% of that
+    #    model's current cheapest tracked baseline
+    # =========================================================
+    avg_subq = (
         db.session.query(
-            Model.canon_model_id.label("canon_model_id"),
-            Listing.price.label("listing_price"),
-            canon_subq.c.cheapest_price.label("base_price"),
+            base_q.c.canon_model_id,
+            func.avg(base_q.c.price).label("avg_price"),
         )
-        .join(Listing, Listing.id == Model.listing_id)
-        .join(canon_subq, canon_subq.c.canon_model_id == Model.canon_model_id)
-        .filter(
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-            Listing.price < canon_subq.c.cheapest_price * 0.75,  # 25% below cheapest
-        )
-        .distinct(canon_subq.c.canon_model_id)
+        .group_by(base_q.c.canon_model_id)
+        .subquery()
     )
 
-    best_deal_model_rows = best_deal_subq.all()
-    best_deal_model_ids = {row[0] for row in best_deal_model_rows}  # use index 0 for canon_model_id
+    best_deal_rows = (
+        db.session.query(base_q.c.canon_model_id)
+        .join(avg_subq, avg_subq.c.canon_model_id == base_q.c.canon_model_id)
+        .filter(base_q.c.price < avg_subq.c.avg_price * 0.75)
+        .distinct()
+        .all()
+    )
+    best_deal_model_ids = {row[0] for row in best_deal_rows}
+    
+    # =========================================================
+    # 7) DEBUG (optional - remove later)
+    # =========================================================
+    # for row in rows:
+    #     print(
+    #         "[DEALS DEBUG]",
+    #         row.canon_model_id,
+    #         row.model_name,
+    #         row.cheapest_price,
+    #         row.listing_count,
+    #         row.cheapest_item,
+    #     )
 
-    # -----------------------------
-    # Render
-    # -----------------------------
     return render_template(
         "deals.html",
         rows=rows,
@@ -510,7 +547,7 @@ def deals_model(country, model_slug):
             Listing.ebay_item_id,
             Listing.title,
             Listing.item_url,
-            Listing.currency,   # useful when country == "all"
+            Listing.currency,   
         )
         .join(Model, Model.listing_id == Listing.id)
         .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
@@ -592,42 +629,74 @@ def price_drops(country):
 def best_deals(country):
     country, marketplaces, currency = get_market_context(country)
 
-    # Compute average price per model
-    avg_subq = (
+    # =========================================================
+    # 1) BASE: active listings with canonical model
+    #    Grain = one row per listing
+    # =========================================================
+    base_q = (
         db.session.query(
+            Model.canon_model_id.label("canon_model_id"),
             Model.id.label("model_id"),
-            func.avg(Listing.price).label("avg_price")
+            Listing.id.label("listing_id"),
+            Listing.ebay_item_id.label("ebay_item_id"),
+            Listing.title.label("title"),
+            Listing.price.label("price"),
+            Listing.first_seen.label("first_seen"),
+            Listing.item_url.label("item_url"),
         )
         .join(Listing, Listing.id == Model.listing_id)
         .filter(
+            Model.canon_model_id.isnot(None),
             Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces)
+            Listing.marketplace.in_(marketplaces),
         )
-        .group_by(Model.id)
+    ).subquery()
+
+    # =========================================================
+    # 2) Average price per canonical model
+    #    Grain = one row per canonical model
+    # =========================================================
+    avg_subq = (
+        db.session.query(
+            base_q.c.canon_model_id,
+            func.avg(base_q.c.price).label("avg_price"),
+        )
+        .group_by(base_q.c.canon_model_id)
         .subquery()
     )
 
+    # =========================================================
+    # 3) Listings that are 25% below their model's average
+    #    Grain = one row per listing
+    # =========================================================
     rows = (
-        db.session.query(Model.id)
-        .join(Listing, Listing.id == Model.listing_id)
-        .join(avg_subq, avg_subq.c.model_id == Model.id)
-        .filter(
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-            Listing.price < avg_subq.c.avg_price * 0.75
+        db.session.query(
+            base_q.c.listing_id,
+            base_q.c.ebay_item_id,
+            base_q.c.title,
+            base_q.c.price,
+            base_q.c.item_url,
+            avg_subq.c.avg_price,
+            ThinkPadModel.id.label("canon_model_id"),
+            ThinkPadModel.name.label("model_name"),
+            ThinkPadModel.slug.label("slug"),
+            ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price).label("discount_ratio"),
+            ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price * 100).label("discount_percent"),  # optional    
         )
-        .distinct()
+        .join(avg_subq, avg_subq.c.canon_model_id == base_q.c.canon_model_id)
+        .join(ThinkPadModel, ThinkPadModel.id == base_q.c.canon_model_id)
+        .filter(base_q.c.price < avg_subq.c.avg_price * 0.75)
+        .order_by(base_q.c.price.asc())
         .all()
     )
 
     return render_template(
-            "best_deals.html",
-            rows=rows,
-            country=country,
-            currency=currency,
-            country_flags=COUNTRY_FLAGS,
-        )
-
+        "best_deals.html",
+        rows=rows,
+        country=country,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
 
 @bp.route("/<country>/<slug>-price")
 def model_price(country, slug):
