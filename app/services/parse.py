@@ -1,5 +1,5 @@
 import re
-from app.models import db, Specs, Model, ThinkPadModel, Listing, Parse
+from app.models import db, Specs, Model, ThinkPadModel, Listing
 from difflib import SequenceMatcher
 
 
