@@ -1,6 +1,5 @@
 import re
 from app.models import db, Specs, Model, ThinkPadModel, Listing
-from difflib import SequenceMatcher
 
 
 STORAGE_MAP = {
