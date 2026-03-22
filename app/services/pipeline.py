@@ -35,7 +35,10 @@ def insert_specs():
             display,
             gpu,
             os,
-            listing_id
+            listing_id,
+            ram_processed,
+            storage_processed,
+            storage_type_processed
         )
         SELECT
             td.cpu,
@@ -47,7 +50,10 @@ def insert_specs():
             td.display,
             td.gpu,
             td.os,
-            l.id
+            l.id,
+            FALSE,
+            FALSE,
+            FALSE
         FROM temp_details td
         JOIN listings l
         ON l.ebay_item_id = td.ebay_item_id
@@ -84,7 +90,8 @@ def insert_listings():
             first_seen,
             last_seen,
             last_updated,
-            ended_at
+            ended_at,
+            miss_count
         )
         SELECT
             ts.category_id,
@@ -101,7 +108,8 @@ def insert_listings():
             NOW(),
             NOW(),
             NOW(),
-            NULL
+            NULL,
+            0
         FROM temp_summaries ts
         WHERE ts.category_id = '177'
         ON CONFLICT (ebay_item_id) DO NOTHING;
