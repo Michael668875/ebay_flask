@@ -70,16 +70,6 @@
             Price Drops
           </a>
         </li>
-
-        {% if model_slug is defined and model_slug %}
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.model_price' %}active{% endif %}"
-             href="{{ url_for('main.model_price', country=nav_country, slug=model_slug) }}">
-            Model Price
-          </a>
-        </li>
-        {% endif %}
-
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
              href="{{ url_for('main.thinkpad_models', country=nav_country) }}">

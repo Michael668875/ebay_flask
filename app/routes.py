@@ -16,47 +16,10 @@ from sqlalchemy import asc, desc, func
 from collections import OrderedDict
 from datetime import datetime, timezone
 import re
+from app.route_helpers import *
 
 bp = Blueprint("main", __name__)
 
-SPEC_FILTERS = {
-    "ram": Specs.ram,
-    "cpu": Specs.cpu,
-    "storage": Specs.storage,
-    "storage_type": Specs.storage_type
-}
-
-COUNTRY_FLAGS = {
-    "us": "🇺🇸",
-    "au": "🇦🇺",
-    "de": "🇩🇪",
-    "gb": "🇬🇧",
-}
-
-CURRENCY_BY_COUNTRY = {
-    "us": "USD",
-    "au": "AUD",
-    "de": "EUR",
-    "gb": "GBP",
-}
-
-ENABLED_MARKETS = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
-
-def get_enabled_markets():
-    """Return enabled marketplaces as dict keyed by country code."""
-    return {m.split("_")[1].lower(): m for m in ENABLED_MARKETS}
-
-def get_market_context(country):
-    country = country.lower()
-    markets = get_enabled_markets()
-
-    if country not in markets:
-        abort(404)
-
-    marketplaces = [markets[country]]
-    currency = CURRENCY_BY_COUNTRY.get(country, "")
-
-    return country, marketplaces, currency
 
 @bp.app_errorhandler(404)
 def not_found_error(error):
@@ -251,15 +214,14 @@ def inject_helpers():
 
 @bp.route("/")
 def index():
-    # Only redirect if preferred_country cookie exists
     preferred = request.cookies.get("preferred_country")
+    valid_countries = set(get_enabled_markets().keys())
+
     if preferred:
         preferred = preferred.lower()
-        valid_countries = set(get_enabled_markets().keys())
         if preferred in valid_countries:
             return redirect(url_for("main.country_home", country=preferred))
 
-    # fallback if no cookie or invalid
     return redirect(url_for("main.country_home", country="us"))
 
 # -------------------------------------------------
@@ -270,18 +232,18 @@ def index():
 
 @bp.route("/<country>/")
 def country_home(country):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
 
     sort = request.args.get("sort", "price")
     direction = request.args.get("direction", "asc")
 
     query = (
         Listing.query
-        .outerjoin(Listing.model)
         .outerjoin(Listing.specs)
+        .options(joinedload(Listing.model), joinedload(Listing.specs))
         .filter(
             Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces)
+            Listing.marketplace.in_(marketplaces),
         )
     )
 
@@ -299,7 +261,7 @@ def country_home(country):
             .join(Listing)
             .filter(
                 Listing.status == "ACTIVE",
-                Listing.marketplace.in_(marketplaces)
+                Listing.marketplace.in_(marketplaces),
             )
             .distinct()
             .order_by(column.asc().nullslast())
@@ -315,21 +277,13 @@ def country_home(country):
     }
 
     order_col = SORT_COLUMNS.get(sort, Listing.price)
-    primary_sort = desc(order_col) if direction == "desc" else asc(order_col)
-    primary_sort = primary_sort.nullslast()
+    primary_sort = (desc(order_col) if direction == "desc" else asc(order_col)).nullslast()
 
-    query = query.order_by(primary_sort if sort == "price" else primary_sort, Listing.price.asc())
+    query = query.order_by(primary_sort, Listing.price.asc())
     listings = query.limit(100).all()
 
-    # Desired order of filter fields
     desired_order = ["cpu", "ram", "storage", "storage_type"]
-
-    filters_ordered = OrderedDict()
-    for key in desired_order:
-        if key in filters:
-            filters_ordered[key] = filters[key]
-        else:
-            filters_ordered[key] = []  # empty list if not present
+    filters_ordered = OrderedDict((key, filters.get(key, [])) for key in desired_order)
 
     return render_template(
         "listings.html",
@@ -337,7 +291,7 @@ def country_home(country):
         country=country,
         filters=filters_ordered,
         currency=currency,
-        country_flags=COUNTRY_FLAGS
+        country_flags=COUNTRY_FLAGS,
     )
 
 # -------------------------------------------------
@@ -347,37 +301,43 @@ def country_home(country):
 
 @bp.route("/<country>/<model_slug>/")
 def model_page(country, model_slug):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
+
+    model = get_model_by_slug(model_slug)
+    if not model:
+        return render_template(
+            "search.html",
+            query=model_slug,
+            country=country,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS,
+        )
 
     listings = (
-        Listing.query
-        .join(Listing.model)
-        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
-        .options(joinedload(Listing.model), joinedload(Listing.specs))
-        .filter(
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-            ThinkPadModel.slug == model_slug
-        )
+        active_listings_query_for_model(model.id, marketplaces)
         .order_by(Listing.price.asc())
         .limit(100)
         .all()
     )
 
     if not listings:
-        page = render_template("none.html")
-    else:
-        page = render_template(
-            "model.html",
-            listings=listings,
+        return render_template(
+            "search.html",
+            query=model.name,
             country=country,
-            model_slug=model_slug,
             currency=currency,
-            country_flags=COUNTRY_FLAGS
+            country_flags=COUNTRY_FLAGS,
         )
 
-    return page
-
+    return render_template(
+        "model.html",
+        listings=listings,
+        country=country,
+        model_slug=model.slug,
+        model_name=model.name,
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )
 
 # -------------------------------------------------
 # Set Preferred Country Cookie
@@ -392,18 +352,15 @@ def set_country(country):
         abort(404)
 
     response = make_response(
-        redirect(request.referrer or url_for("main.country_home", country=country))
+        redirect(url_for("main.country_home", country=country))
     )
     response.set_cookie("preferred_country", country, max_age=60 * 60 * 24 * 30)
 
     return response
 
-
 # -----------------------------
 # /<country>/deals
 # -----------------------------
-from sqlalchemy import func, asc, desc
-
 
 @bp.route("/<country>/deals")
 def deals(country):
@@ -539,54 +496,78 @@ def deals(country):
 
 @bp.route("/<country>/deals/<model_slug>")
 def deals_model(country, model_slug):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
+
+    model = get_model_by_slug(model_slug)
+    if not model:
+        return render_template(
+            "search.html",
+            query=model_slug,
+            country=country,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS,
+        )
 
     rows = (
-        db.session.query(
+        Listing.query
+        .join(Model, Model.listing_id == Listing.id)
+        .filter(
+            Model.canon_model_id == model.id,
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+        )
+        .with_entities(
             Listing.price,
             Listing.ebay_item_id,
             Listing.title,
             Listing.item_url,
-            Listing.currency,   
-        )
-        .join(Model, Model.listing_id == Listing.id)
-        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
-        .filter(
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-            ThinkPadModel.slug == model_slug,
+            Listing.currency,
         )
         .order_by(Listing.price.asc())
         .limit(50)
         .all()
     )
 
+    if not rows:
+        return render_template(
+            "search.html",
+            query=model.name,
+            country=country,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS,
+        )
+
     return render_template(
         "deals_model.html",
         rows=rows,
         country=country,
-        slug=model_slug,
+        slug=model.slug,
+        model_name=model.name,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
 
+
 @bp.route("/<country>/price-drops")
 def price_drops(country):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
 
+    # Previous price per listing
     old_price = func.lag(PriceHistory.price).over(
         partition_by=PriceHistory.listing_id,
-        order_by=PriceHistory.recorded_at
+        order_by=(PriceHistory.recorded_at, PriceHistory.id)
     )
 
+    # Join directly Listing → Model → ThinkPadModel
     price_changes_subq = (
         db.session.query(
-            Model.name.label("model_name"),
-            ThinkPadModel.slug.label("slug"),
+            PriceHistory.listing_id.label("listing_id"),
             Listing.ebay_item_id.label("ebay_item_id"),
             PriceHistory.price.label("new_price"),
             old_price.label("old_price"),
             Listing.currency.label("currency"),
+            ThinkPadModel.name.label("model_name"),
+            ThinkPadModel.slug.label("slug"),
         )
         .join(Listing, Listing.id == PriceHistory.listing_id)
         .join(Model, Model.listing_id == Listing.id)
@@ -624,6 +605,7 @@ def price_drops(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
+
 
 @bp.route("/<country>/best-deals")
 def best_deals(country):
@@ -700,31 +682,39 @@ def best_deals(country):
 
 @bp.route("/<country>/<slug>-price")
 def model_price(country, slug):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
 
-    stats = (
-        db.session.query(
-            Model.name.label("name"),
-            ThinkPadModel.slug.label("slug"),
-            func.min(Listing.price).label("lowest_price"),
-            func.avg(Listing.price).label("avg_price"),
-            func.max(Listing.price).label("highest_price"),
-            func.count(Listing.id).label("listing_count"),
+    model = get_model_by_slug(slug)
+    if not model:
+        return render_template(
+            "search.html",
+            query=slug,
+            country=country,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS,
         )
-        .join(Model, Model.listing_id == Listing.id)
-        .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
-        .filter(
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-            ThinkPadModel.slug == slug,
+
+    stats = canonical_model_stats(model.id, marketplaces)
+
+    if not stats or stats.listing_count == 0:
+        return render_template(
+            "search.html",
+            query=model.name,
+            country=country,
+            currency=currency,
+            country_flags=COUNTRY_FLAGS,
         )
-        .group_by(Model.name, ThinkPadModel.slug)
-        .first()
-    )
 
     return render_template(
         "model_price.html",
-        stats=stats,
+        stats={
+            "name": model.name,
+            "slug": model.slug,
+            "lowest_price": stats.lowest_price,
+            "avg_price": stats.avg_price,
+            "highest_price": stats.highest_price,
+            "listing_count": stats.listing_count,
+        },
         country=country,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
@@ -732,11 +722,11 @@ def model_price(country, slug):
 
 @bp.route("/<country>/thinkpad_models")
 def thinkpad_models(country):
-    country, marketplaces, currency = get_market_context(country)
+    country, marketplaces, currency = get_country_context_or_404(country)
 
     rows = (
         db.session.query(
-            Model.name.label("name"),
+            ThinkPadModel.name.label("name"),
             ThinkPadModel.slug.label("slug"),
             func.min(Listing.price).label("lowest_price"),
             func.count(Listing.id).label("listing_count"),
@@ -747,8 +737,8 @@ def thinkpad_models(country):
             Listing.status == "ACTIVE",
             Listing.marketplace.in_(marketplaces),
         )
-        .group_by(Model.id, Model.name, ThinkPadModel.slug)
-        .order_by(Model.name.asc())
+        .group_by(ThinkPadModel.id, ThinkPadModel.name, ThinkPadModel.slug)
+        .order_by(ThinkPadModel.name.asc())
         .all()
     )
 
@@ -808,17 +798,17 @@ def slugify_model(text):
 @bp.route("/search")
 def search_model():
     query = request.args.get("q", "").strip()
-    country = request.args.get("country")  # comes from hidden input
+    country = request.args.get("country")
 
     if not query or not country:
-        # fallback if something is missing
         return redirect(url_for("main.home"))
 
-    # safe now: country is provided by template
-    country, _, _ = get_market_context(country)
-
-    # Convert user input into slug
+    country, _, _ = get_country_context_or_404(country)
     model_slug = slugify_model(query)
 
-    # Redirect to the model page
-    return redirect(url_for("main.model_page", country=country, model_slug=model_slug))
+    model = get_model_by_slug(model_slug)
+
+    if not model:
+        return render_template("search.html", query=query, country=country)
+
+    return redirect(url_for("main.model_page", country=country, model_slug=model.slug))
