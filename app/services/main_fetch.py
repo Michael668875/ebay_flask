@@ -7,7 +7,7 @@ from app import create_app
 from app.services.save_temp import save_temp_summaries, save_temp_details
 from app.services.pipeline import run_pipeline
 from app.services.fetch import new_listings, get_paginated_summaries, fetch_item_details_async
-from app.services.parse import insert_storage_type, normalize_specs_field, parse_all_models
+from app.services.parse import insert_storage_type, normalize_specs_field, parse_all_models, blacklist
 
 # -----------------------------
 # CONFIG
@@ -49,7 +49,8 @@ def main():
         with app.app_context():
             # Fetch summaries
             items = get_paginated_summaries()
-            save_temp_summaries(items)
+            clean_items = blacklist(items)
+            save_temp_summaries(clean_items)
             logging.info(f"Fetched and saved {len(items)} summaries")
 
             # Fetch new listings and details

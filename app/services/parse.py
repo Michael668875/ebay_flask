@@ -229,3 +229,44 @@ def parse_all_models():
             model_row.name = "UNKNOWN"
 
     db.session.commit()
+
+
+
+
+# blacklist items in wrong category
+# Load blacklist from a file
+def load_blacklist(file_path="blacklist.txt"):
+    """
+    Load blacklist keywords/phrases from a file.
+    - One entry per line
+    - Lines starting with '#' are ignored as comments
+    - Case-insensitive (converted to lowercase)
+    """
+    blacklist = []
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue  # skip empty lines or comments
+                blacklist.append(line.lower())
+    except FileNotFoundError:
+        print(f"Warning: Blacklist file '{file_path}' not found. Continuing without blacklist.")
+    return blacklist
+
+# Check if a listing title contains any blacklisted word
+def is_blacklisted(title, blacklist):
+    title_lower = title.lower()
+    return any(word in title_lower for word in blacklist)
+
+def blacklist(listings):
+    bl = load_blacklist()   
+    clean_items = []
+
+    for listing in listings:
+        if is_blacklisted(listing["title"], bl):
+            # Skip blacklisted item
+            continue
+        clean_items.append(listing)
+    
+    return clean_items
