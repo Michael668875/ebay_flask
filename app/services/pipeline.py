@@ -251,7 +251,6 @@ def run_pipeline():
     """
     Full ingestion pipeline.
     """
-    #clean_temp_data()
     insert_listings()
     insert_models()
     update_listing_prices()
