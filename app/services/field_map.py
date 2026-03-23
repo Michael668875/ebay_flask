@@ -45,7 +45,8 @@ FIELD_MAP = {
             "Ram:",
             "Memory",
             "RAM",
-            "Memory+Storage"
+            "Memory+Storage",
+            "Memory Size"
         ]
     },
     # Storage
