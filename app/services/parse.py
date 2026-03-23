@@ -1,4 +1,6 @@
 import re
+import os
+import logging
 from app.models import db, Specs, Model, ThinkPadModel, Listing
 
 
@@ -234,8 +236,12 @@ def parse_all_models():
 
 
 # blacklist items in wrong category
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BLACKLIST_PATH = os.path.join(BASE_DIR, "blacklist.txt")
+
 # Load blacklist from a file
-def load_blacklist(file_path="blacklist.txt"):
+def load_blacklist():
     """
     Load blacklist keywords/phrases from a file.
     - One entry per line
@@ -244,14 +250,14 @@ def load_blacklist(file_path="blacklist.txt"):
     """
     blacklist = []
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(BLACKLIST_PATH, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue  # skip empty lines or comments
                 blacklist.append(line.lower())
     except FileNotFoundError:
-        print(f"Warning: Blacklist file '{file_path}' not found. Continuing without blacklist.")
+        logging.warning(f"Warning: Blacklist file '{BLACKLIST_PATH}' not found. Continuing without blacklist.")
     return blacklist
 
 # Check if a listing title contains any blacklisted word
