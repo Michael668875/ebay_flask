@@ -239,10 +239,11 @@ def country_home(country):
 
     query = (
         Listing.query
+        .join(Listing.model)
         .outerjoin(Listing.specs)
         .options(joinedload(Listing.model), joinedload(Listing.specs))
-        .filter(Model.canon_model_id.isnot(None))
         .filter(
+            Model.canon_model_id.isnot(None),
             Listing.status == "ACTIVE",
             Listing.marketplace.in_(marketplaces),
         )
