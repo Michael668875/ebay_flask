@@ -4,6 +4,7 @@ from app import db
 from app.models import TempSummaries, TempDetails
 from app.services.field_map import FIELD_MAP
 import re
+from sqlalchemy.exc import SQLAlchemyError
 
 
 def clean_text(text: str) -> str: # I might move this into pipeline instead.
@@ -90,6 +91,60 @@ def save_seller_info(listing, item):
 # -------------------------
 # Main function
 # -------------------------
+#def save_temp_details(items):
+#
+#    ids = [item["itemId"] for item in items if "itemId" in item]
+#    existing = {
+#        row.ebay_item_id: row
+#        for row in TempDetails.query.filter(
+#            TempDetails.ebay_item_id.in_(ids)
+#        )
+#    }
+#
+#    updated = 0
+#    for item in items:
+#        item_id = item.get("itemId")
+#        if not item_id:
+#            continue
+#
+#        listing = existing.get(item_id)
+#        if not listing:
+#            listing = TempDetails(ebay_item_id=item_id)
+#            db.session.add(listing)
+#            existing[item_id] = listing
+#
+#        save_seller_info(listing, item)
+#
+#        # -------------------------
+#        # Collect aspects
+#        # -------------------------
+#        aspects = {}
+#        for aspect in item.get("localizedAspects", []):
+#            name = aspect.get("name")
+#            value = aspect.get("value")
+#            if name and value:
+#                aspects[name] = value
+#
+#        # -------------------------
+#        # Apply FIELD_MAP
+#        # -------------------------
+#        for field, config in FIELD_MAP.items():
+#            for key in config["keys"]:
+#                if key not in aspects:
+#                    continue
+#                value = aspects[key]
+#
+#                setattr(listing, field, value)
+#                break  # stop lower-priority keys
+#
+#        updated += 1
+#
+#    db.session.commit()
+#    print(f"Updated {updated} temp_details.")
+#
+    
+
+
 def save_temp_details(items):
 
     ids = [item["itemId"] for item in items if "itemId" in item]
@@ -97,7 +152,7 @@ def save_temp_details(items):
         row.ebay_item_id: row
         for row in TempDetails.query.filter(
             TempDetails.ebay_item_id.in_(ids)
-        )
+        ).all()
     }
 
     updated = 0
@@ -106,43 +161,56 @@ def save_temp_details(items):
         if not item_id:
             continue
 
-        listing = existing.get(item_id)
-        if not listing:
-            listing = TempDetails(ebay_item_id=item_id)
-            db.session.add(listing)
-            existing[item_id] = listing
+        try:
+            listing = existing.get(item_id)
+            if not listing:
+                listing = TempDetails(ebay_item_id=item_id)
+                db.session.add(listing)
+                existing[item_id] = listing
 
-        save_seller_info(listing, item)
+            save_seller_info(listing, item)
 
-        # -------------------------
-        # Collect aspects
-        # -------------------------
-        aspects = {}
-        for aspect in item.get("localizedAspects", []):
-            name = aspect.get("name")
-            value = aspect.get("value")
-            if name and value:
-                aspects[name] = value
+            # -------------------------
+            # Collect aspects
+            # -------------------------
+            aspects = {}
+            for aspect in item.get("localizedAspects", []):
+                name = aspect.get("name")
+                value = aspect.get("value")
+                if name and value:
+                    aspects[name] = value
 
-        # -------------------------
-        # Apply FIELD_MAP
-        # -------------------------
-        for field, config in FIELD_MAP.items():
-            for key in config["keys"]:
-                if key not in aspects:
-                    continue
-                value = aspects[key]
+            # -------------------------
+            # Apply FIELD_MAP
+            # -------------------------
+            for field, config in FIELD_MAP.items():
+                for key in config["keys"]:
+                    if key not in aspects:
+                        continue
+                    value = aspects[key]
 
-                setattr(listing, field, value)
-                break  # stop lower-priority keys
+                    # force string just for debugging safety
+                    if value is not None:
+                        value = str(value)
 
-        updated += 1
+                    setattr(listing, field, value)
+                    break
 
-    db.session.commit()
-    print(f"Updated {updated} temp_details.")
+            db.session.flush()  # catches bad row earlier
+            updated += 1
 
+        except Exception as e:
+            db.session.rollback()
+            print(f"[ERROR] Failed on item {item_id}: {e}")
+            raise
 
-
+    try:
+        db.session.commit()
+        print(f"Updated {updated} temp_details.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] save_temp_details commit failed: {e}")
+        raise
 
 
 

@@ -1,7 +1,9 @@
 # Add blacklisted words and phrases here. One item per line.
 trackpoint caps
-chromebook
 ideapad
 accessory for
 adaptor for
+thinkbook
+kompanio
+DC power jack
 
