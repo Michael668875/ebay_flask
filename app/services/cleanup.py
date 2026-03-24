@@ -17,14 +17,14 @@ def remove_blacklisted_listings():
 
         print(f"Found {len(to_delete)} blacklisted listings to delete.")
 
-        #for listing in to_delete:
-        #    print(f"Deleting: {listing.ebay_item_id} | {listing.title}")
-        #    db.session.delete(listing)
+        for listing in to_delete:
+            print(f"Deleting: {listing.ebay_item_id} | {listing.title}")
+            db.session.delete(listing)
 
-        for listing in to_delete: # this is for debug. remove later
-            print(f"WILL DELETE: {listing.ebay_item_id} | {listing.title}")
+        #for listing in to_delete: # this is for debug. remove later
+        #    print(f"WILL DELETE: {listing.ebay_item_id} | {listing.title}")
 
-        #db.session.commit()
+        db.session.commit()
         print("Done.")
 
 if __name__ == "__main__":

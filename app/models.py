@@ -154,7 +154,7 @@ class TempSummaries(db.Model):
     category_id = db.Column(db.String(20))
 
     ebay_item_id = db.Column(db.String, unique=True, nullable=False)
-    title = db.Column(db.String)
+    title = db.Column(db.Text)
     price = db.Column(db.Numeric(10, 2))
     currency = db.Column(db.String(10), nullable=False)
     condition = db.Column(db.String)
@@ -173,19 +173,19 @@ class TempDetails(db.Model):
     __tablename__ = "temp_details"
 
     id = db.Column(db.Integer, primary_key=True)
-    ebay_item_id = db.Column(db.String, unique=True, nullable=False)
-    cpu = db.Column(db.String)
-    cpu_freq = db.Column(db.String(50))
-    ram = db.Column(db.String)
-    storage = db.Column(db.String)
-    storage_type = db.Column(db.String)
-    screen_size = db.Column(db.String)
-    display = db.Column(db.String)
-    gpu = db.Column(db.String)
-    os = db.Column(db.String)
-    model = db.Column(db.String)
-    mpn = db.Column(db.String) # add as backup model
-    seller_username = db.Column(db.String)
+    ebay_item_id = db.Column(db.Text, unique=True, nullable=False)
+    cpu = db.Column(db.Text)
+    cpu_freq = db.Column(db.Text)
+    ram = db.Column(db.Text)
+    storage = db.Column(db.Text)
+    storage_type = db.Column(db.Text)
+    screen_size = db.Column(db.Text)
+    display = db.Column(db.Text)
+    gpu = db.Column(db.Text)
+    os = db.Column(db.Text)
+    model = db.Column(db.Text)
+    mpn = db.Column(db.Text) # add as backup model
+    seller_username = db.Column(db.Text)
     seller_feedback_score = db.Column(db.Integer)
     seller_feedback_percent = db.Column(db.Numeric(5, 2))
 
