@@ -2,7 +2,6 @@
 import os
 import sys
 import asyncio
-import logging
 from app import create_app
 from app.services.save_temp import save_temp_summaries, save_temp_details
 from app.services.pipeline import run_pipeline
@@ -21,23 +20,12 @@ LOCK_FILE = "/tmp/main_fetch.lock"
 # Ensure logs directory exists
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# -----------------------------
-# Logging setup
-# -----------------------------
-logging.basicConfig(
-    level=logging.INFO,               # minimum level to capture
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE),  # write logs to a file
-        logging.StreamHandler()            # also print to console
-    ]
-)
 
 # -----------------------------
 # Prevent overlapping runs
 # -----------------------------
 if os.path.exists(LOCK_FILE):
-    logging.warning("Another main_fetch.py job is already running. Exiting.")
+    print("Another main_fetch.py job is already running. Exiting.")
     sys.exit(0)
 
 # Create lock file
@@ -48,7 +36,7 @@ with open(LOCK_FILE, "w") as f:
 # Main job
 # -----------------------------
 def main():
-    logging.info("Starting main_fetch.py job")
+    print("Starting main_fetch.py job")
     app = create_app()
     try:
         with app.app_context():
@@ -56,13 +44,13 @@ def main():
             items = get_paginated_summaries()
             clean_items = blacklist(items)
             save_temp_summaries(clean_items)
-            logging.info(f"Fetched and saved {len(items)} summaries")
+            print(f"Fetched and saved {len(items)} summaries")
 
             # Fetch new listings and details
             listings = new_listings()
             details = asyncio.run(fetch_item_details_async(listings))
             save_temp_details(details)
-            logging.info(f"Fetched and saved details for {len(details)} listings")
+            print(f"Fetched and saved details for {len(details)} listings")
 
             # Run pipeline and parsing
             run_pipeline()
@@ -70,15 +58,15 @@ def main():
             normalize_specs_field("raw_ram", "ram", "ram_processed")
             normalize_specs_field("raw_storage", "storage", "storage_processed")
             parse_all_models()
-            logging.info("Pipeline and parsing completed successfully")
+            print("Pipeline and parsing completed successfully")
 
     except Exception:
-        logging.exception("Error occurred in main_fetch.py")
+        print("Error occurred in main_fetch.py")
     finally:
         # Remove lock file
         if os.path.exists(LOCK_FILE):
             os.remove(LOCK_FILE)
-        logging.info("Finished main_fetch.py job")
+        print("Finished main_fetch.py job")
 
 # -----------------------------
 # Entry point
