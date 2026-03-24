@@ -46,7 +46,7 @@ class Model(db.Model):
 
     # Listings associated with this model
     listing = db.relationship("Listing", back_populates="model", uselist=False)
-    stats = db.relationship("ModelPriceStats", back_populates="model", cascade="all, delete-orphan")
+    stats = db.relationship("ModelPriceStats", back_populates="model", uselist=False, cascade="all, delete-orphan", single_parent=True)
 
 
 # --------------------------
@@ -197,7 +197,7 @@ class ModelPriceStats(db.Model):
     __tablename__ = "model_price_stats"
 
     id = db.Column(db.Integer, primary_key=True)
-    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), index=True)
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), nullable=False, unique=True, index=True)
     marketplace = db.Column(db.String)
     avg_price = db.Column(db.Numeric(10, 2))
     min_price = db.Column(db.Numeric(10, 2))
