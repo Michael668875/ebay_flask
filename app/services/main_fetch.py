@@ -7,6 +7,7 @@ from app.services.save_temp import save_temp_summaries, save_temp_details
 from app.services.pipeline import run_pipeline
 from app.services.fetch import new_listings, get_paginated_summaries, fetch_item_details_async
 from app.services.parse import insert_storage_type, normalize_specs_field, parse_all_models, blacklist
+from pipeline import truncate_temp_tables
 import traceback
 
 # -----------------------------
@@ -41,6 +42,8 @@ def main():
     app = create_app()
     try:
         with app.app_context():
+            # truncate old data
+            truncate_temp_tables()
             # Fetch summaries
             items = get_paginated_summaries()
             clean_items = blacklist(items)

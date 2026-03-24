@@ -251,7 +251,6 @@ def run_pipeline():
     """
     Full ingestion pipeline.
     """
-    truncate_temp_tables()
     insert_listings()
     insert_models()
     update_listing_prices()
@@ -263,6 +262,7 @@ def run_pipeline():
     update_model_price_stats()
     insert_specs()
     insert_storage_type() # gets storage_type from raw_storage_type
+    
 
     db.session.commit()
 
