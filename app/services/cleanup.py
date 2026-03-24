@@ -1,3 +1,6 @@
+# THIS FILE IS TO MANUALLY REMOVE LISTINGS USING THE BLACKLIST. NORMALLY IT HAPPENS DURING API CALL
+
+
 from app import create_app, db
 from app.models import Listing
 from app.services.parse import load_blacklist, is_blacklisted

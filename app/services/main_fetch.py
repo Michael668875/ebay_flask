@@ -17,6 +17,7 @@ LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 LOG_FILE = os.path.join(LOG_DIR, "main_fetch.log")
 LOCK_FILE = "/tmp/main_fetch.lock"
 
+
 # Ensure logs directory exists
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -24,9 +25,12 @@ os.makedirs(LOG_DIR, exist_ok=True)
 # Logging setup
 # -----------------------------
 logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
+    level=logging.INFO,               # minimum level to capture
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),  # write logs to a file
+        logging.StreamHandler()            # also print to console
+    ]
 )
 
 # -----------------------------
@@ -37,7 +41,8 @@ if os.path.exists(LOCK_FILE):
     sys.exit(0)
 
 # Create lock file
-open(LOCK_FILE, "w").close()
+with open(LOCK_FILE, "w") as f:
+    f.write("")
 
 # -----------------------------
 # Main job
