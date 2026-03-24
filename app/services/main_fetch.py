@@ -7,6 +7,7 @@ from app.services.save_temp import save_temp_summaries, save_temp_details
 from app.services.pipeline import run_pipeline
 from app.services.fetch import new_listings, get_paginated_summaries, fetch_item_details_async
 from app.services.parse import insert_storage_type, normalize_specs_field, parse_all_models, blacklist
+import traceback
 
 # -----------------------------
 # CONFIG
@@ -61,7 +62,8 @@ def main():
             print("Pipeline and parsing completed successfully")
 
     except Exception:
-        print("Error occurred in main_fetch.py")
+        print("Error occurred in main_fetch.py:")
+        traceback.print_exc()
     finally:
         # Remove lock file
         if os.path.exists(LOCK_FILE):
