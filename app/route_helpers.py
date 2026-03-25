@@ -6,8 +6,9 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 
 SPEC_FILTERS = {
+    "model": func.lower(Model.name),
     "ram": Specs.ram,
-    "cpu": Specs.cpu,
+    "cpu": func.lower(Specs.cpu),
     "storage": Specs.storage,
     "storage_type": Specs.storage_type
 }
