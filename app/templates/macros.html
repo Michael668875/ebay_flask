@@ -442,7 +442,7 @@
     <thead>
         <tr>
             <th>{{ sort_link('Model', 'name') }}</th>
-            <th>Lowest{{ sort_link(price_heading(currency=currency), 'lowest_price') }}</th>
+            <th>{{ sort_link("Lowest " ~ price_heading(currency=currency), 'lowest_price') }}</th>
             <th>{{ sort_link('Listings', 'listing_count') }}</th>
         </tr>
     </thead>
