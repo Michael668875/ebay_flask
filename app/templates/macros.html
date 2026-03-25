@@ -87,7 +87,7 @@
 
     <a href="{{ request.path }}?{{ args|urlencode }}"
        class="text-decoration-none text-reset d-inline-flex align-items-center gap-1 text-nowrap">
-        <span>{{ label }}</span>
+        <span>{{ label|safe }}</span>
         <span class="sort-arrow">{{ arrow }}</span>
     </a>
 {% endmacro %}
@@ -157,7 +157,7 @@
     <thead class="table-dark sticky-top">
         <tr>
             {% if show_model %}
-                <th>Model</th>
+                <th>{{ sort_link('Model', 'model') }}</th>
             {% endif %}
                 <th>
                     {% set price_label %}
@@ -399,10 +399,10 @@
 <table class="table table-dark table-hover mb-0">
     <thead>
         <tr>
-            <th>Model</th>
-            <th>{{ price_heading(currency=currency) }}</th>
-            <th>Market Avg</th>
-            <th>Discount</th>
+            <th>{{ sort_link('Model', 'model') }}</th>
+            <th>{{ sort_link(price_heading(currency=currency), 'price') }}</th>
+            <th>{{ sort_link('Market Avg', 'avg_price') }}</th>
+            <th>{{ sort_link('Discount', 'discount') }}</th>
             <th>Listing</th>
         </tr>
     </thead>

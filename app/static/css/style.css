@@ -20,6 +20,7 @@ body {
     border-radius: 12px;
     background-color: #212529; /* Bootstrap dark table base */
     border: 1px solid #444;
+    overflow: hidden;
 }
       
 .container {

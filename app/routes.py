@@ -272,8 +272,9 @@ def country_home(country):
         filters[name] = [v[0] for v in values if v[0] is not None]
 
     SORT_COLUMNS = {
+        "model": func.lower(Model.name),
         "price": Listing.price,
-        "cpu": Specs.cpu,
+        "cpu": func.lower(Specs.cpu),
         "ram": Specs.ram,
         "storage": Specs.storage,
     }
@@ -284,7 +285,7 @@ def country_home(country):
     query = query.order_by(primary_sort, Listing.price.asc())
     listings = query.limit(100).all()
 
-    desired_order = ["cpu", "ram", "storage", "storage_type"]
+    desired_order = ["model", "cpu", "ram", "storage", "storage_type"]
     filters_ordered = OrderedDict((key, filters.get(key, [])) for key in desired_order)
 
     return render_template(
@@ -673,6 +674,21 @@ def best_deals(country):
         .order_by(base_q.c.price.asc())
         .all()
     )
+
+    sort = request.args.get("sort", "discount")
+    direction = request.args.get("direction", "desc")
+    reverse = direction == "desc"
+
+    if sort == "model":
+        rows.sort(key=lambda r: (r.model_name or "").lower(), reverse=reverse)
+    elif sort == "price":
+        rows.sort(key=lambda r: r.price or 0, reverse=reverse)
+    elif sort == "avg_price":
+        rows.sort(key=lambda r: r.avg_price or 0, reverse=reverse)
+    elif sort == "discount":
+        rows.sort(key=lambda r: r.discount_percent or 0, reverse=reverse)
+    else:
+        rows.sort(key=lambda r: r.discount_percent or 0, reverse=True)
 
     return render_template(
         "best_deals.html",

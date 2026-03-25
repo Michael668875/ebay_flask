@@ -131,7 +131,7 @@ def mark_sold_listings():
     """
     Mark listings as ENDED if temp_summaries.sold_at is not NULL.
     """
-    db.session.execute(text(r"""
+    result = db.session.execute(text(r"""
         UPDATE listings l
         SET
             status = 'ENDED',
@@ -142,6 +142,7 @@ def mark_sold_listings():
         AND ts.sold_at IS NOT NULL
         AND l.status != 'ENDED';
     """))
+    print(f"Marked {result.rowcount} listings as sold.")
 
 # update last_seen, miss_count, last_updated 
 # each time a listing appears from api
@@ -172,14 +173,16 @@ def increment_miss_count():
 
 # change status to ended for listings
 def mark_ended_listings():
-    db.session.execute(text(r"""
+    result = db.session.execute(text(r"""
         UPDATE listings
         SET
             status = 'ENDED',
             ended_at = NOW()
+            last_updated = NOW()
         WHERE status = 'ACTIVE'
         AND miss_count >= 3;
     """))
+    print(f"Marked {result.rowcount} listings as ended.")
 
 # create data for price_history table
 def insert_price_history():
@@ -261,8 +264,7 @@ def run_pipeline():
     insert_price_history()
     update_model_price_stats()
     insert_specs()
-    insert_storage_type() # gets storage_type from raw_storage_type
-    
+    insert_storage_type() # gets storage_type from raw_storage_type    
 
     db.session.commit()
 
