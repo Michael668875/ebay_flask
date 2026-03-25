@@ -760,6 +760,19 @@ def thinkpad_models(country):
         .all()
     )
 
+    sort = request.args.get("sort", "lowest_price")
+    direction = request.args.get("direction", "desc")
+    reverse = direction == "desc"
+
+    if sort == "name":
+        rows.sort(key=lambda r: (r.name or "").lower(), reverse=reverse)
+    elif sort == "lowest_price":
+        rows.sort(key=lambda r: r.lowest_price or 0, reverse=reverse)
+    elif sort == "listing_count":
+        rows.sort(key=lambda r: r.listing_count or 0, reverse=reverse)
+    else:
+        rows.sort(key=lambda r: r.lowest_price or 0, reverse=True)
+
     return render_template(
         "thinkpad_models.html",
         rows=rows,

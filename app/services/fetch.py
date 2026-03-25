@@ -40,10 +40,17 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=100):
     """Fetch item summaries with pagination across marketplaces."""
 
     token = get_token()
-    marketplaces = ["EBAY_US", "EBAY_GB", "EBAY_DE", "EBAY_AU"]
+    
+    marketplaces = {
+        "EBAY_US": "US", 
+        "EBAY_GB": "GB", 
+        "EBAY_DE": "DE", 
+        "EBAY_AU": "AU"
+    }
+
     all_items = []
 
-    for market in marketplaces:
+    for market, country_code in marketplaces.items():
 
         offset = 0
         market_items = []
@@ -65,7 +72,9 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=100):
                 "offset": offset,
                 "fieldgroups": "EXTENDED",
                 "sort": "newlyListed",
-                "filter": "conditionIds:{1000|1500|2000|2500|3000},buyingOptions:{FIXED_PRICE},itemLocationCountry:{market.split('_')[1]}"
+                "filter": f"conditionIds:{{1000|1500|2000|2500|3000}},"
+                        f"buyingOptions:{{FIXED_PRICE}},"
+                        f"itemLocationCountry:{{{country_code}}}"
             }
 
             try:

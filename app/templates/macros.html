@@ -441,9 +441,9 @@
 <table class="table table-dark table-hover mb-0">
     <thead>
         <tr>
-            <th>Model</th>
-            <th>Lowest {{ price_heading(currency=currency) }}</th>
-            <th>Listings</th>
+            <th>{{ sort_link('Model', 'name') }}</th>
+            <th>Lowest{{ sort_link(price_heading(currency=currency), 'lowest_price') }}</th>
+            <th>{{ sort_link('Listings', 'listing_count') }}</th>
         </tr>
     </thead>
     <tbody>

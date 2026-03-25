@@ -7,6 +7,7 @@ from app.services.save_temp import save_temp_summaries, save_temp_details
 from app.services.pipeline import run_pipeline, truncate_temp_tables
 from app.services.fetch import new_listings, get_paginated_summaries, fetch_item_details_async
 from app.services.parse import insert_storage_type, normalize_specs_field, parse_all_models, blacklist
+from datetime import datetime
 import traceback
 
 # -----------------------------
@@ -37,7 +38,7 @@ with open(LOCK_FILE, "w") as f:
 # Main job
 # -----------------------------
 def main():
-    print("Starting main_fetch.py job")
+    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Starting main_fetch.py job")
     app = create_app()
     try:
         with app.app_context():

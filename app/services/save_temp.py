@@ -4,7 +4,6 @@ from app import db
 from app.models import TempSummaries, TempDetails
 from app.services.field_map import FIELD_MAP
 import re
-from sqlalchemy.exc import SQLAlchemyError
 
 
 def clean_text(text: str) -> str: # I might move this into pipeline instead.
