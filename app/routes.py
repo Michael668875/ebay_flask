@@ -316,12 +316,29 @@ def model_page(country, model_slug):
             country_flags=COUNTRY_FLAGS,
         )
 
-    listings = (
-        active_listings_query_for_model(model.id, marketplaces)
-        .order_by(Listing.price.asc())
-        .limit(100)
-        .all()
-    )
+    sort = request.args.get("sort", "price")
+    direction = request.args.get("direction", "asc")
+    
+    query = active_listings_query_for_model(model.id, marketplaces)
+
+    if sort == "price":
+        order_col = Listing.price
+    elif sort == "cpu":
+        order_col = func.lower(Specs.cpu)
+    elif sort == "ram":
+        order_col = Specs.ram
+    elif sort == "storage":
+        order_col = Specs.storage
+    else:
+        order_col = Listing.price
+
+    if direction == "desc":
+        query = query.order_by(order_col.desc())
+    else:
+        query = query.order_by(order_col.asc())
+        direction = "asc"
+
+    listings = query.limit(100).all()
 
     if not listings:
         return render_template(

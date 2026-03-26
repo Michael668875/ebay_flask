@@ -67,6 +67,7 @@ def active_listings_query_for_model(model_id, marketplaces):
     return (
         Listing.query
         .join(Model, Model.listing_id == Listing.id)
+        .join(Specs, Specs.listing_id == Listing.id)
         .options(joinedload(Listing.model), joinedload(Listing.specs))
         .filter(
             Model.canon_model_id == model_id,
