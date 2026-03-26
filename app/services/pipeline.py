@@ -124,6 +124,7 @@ def update_listing_prices():
             last_updated = NOW()
         FROM temp_summaries ts
         WHERE l.ebay_item_id = ts.ebay_item_id
+        AND l.status = 'ACTIVE'
         AND l.price <> ts.price;
     """))
 
@@ -154,7 +155,8 @@ def update_seen_listings():
             miss_count = 0,
             last_updated = NOW()
         FROM temp_summaries ts
-        WHERE l.ebay_item_id = ts.ebay_item_id;
+        WHERE l.ebay_item_id = ts.ebay_item_id
+        AND l.status = 'ACTIVE';
     """))
 
 # increment the miss_count so listings can be marked as ended.
@@ -162,7 +164,8 @@ def increment_miss_count():
     db.session.execute(text(r"""
         UPDATE listings l
         SET
-            miss_count = miss_count + 1
+            miss_count = miss_count + 1,
+            last_updated = NOW()
         WHERE status = 'ACTIVE'
         AND NOT EXISTS (
             SELECT 1
@@ -177,7 +180,7 @@ def mark_ended_listings():
         UPDATE listings
         SET
             status = 'ENDED',
-            ended_at = NOW()
+            ended_at = NOW(),
             last_updated = NOW()
         WHERE status = 'ACTIVE'
         AND miss_count >= 3;
@@ -187,7 +190,9 @@ def mark_ended_listings():
 # create data for price_history table
 def insert_price_history():
     """
-    Insert price history for newly inserted listings.
+    Append a price_history row only when the current listing price differs
+    from the most recent recorded price (or if no history exists yet),
+    limited to listings present in the current scrape.
     """
     db.session.execute(text(r"""
         INSERT INTO price_history (listing_id, price, currency)
@@ -196,13 +201,20 @@ def insert_price_history():
             l.price,
             l.currency
         FROM listings l
-        WHERE NOT EXISTS (
-            SELECT 1
+        JOIN temp_summaries ts
+          ON ts.ebay_item_id = l.ebay_item_id
+        LEFT JOIN LATERAL (
+            SELECT ph.price, ph.currency
             FROM price_history ph
             WHERE ph.listing_id = l.id
-        );
+            ORDER BY ph.recorded_at DESC, ph.id DESC
+            LIMIT 1
+        ) last_ph ON TRUE
+        WHERE last_ph.price IS NULL
+           OR last_ph.price <> l.price
+           OR last_ph.currency <> l.currency;
     """))
-
+    
 # track prices by model
 def update_model_price_stats():
     """
