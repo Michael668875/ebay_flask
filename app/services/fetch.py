@@ -74,7 +74,7 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=100):
                 "sort": "newlyListed",
                 "filter": f"conditionIds:{{1000|1500|2000|2500|3000}},"
                         f"buyingOptions:{{FIXED_PRICE}},"
-                        f"itemLocationCountry:{{{country_code}}}"
+                        f"itemLocationCountry:{country_code}"
             }
 
             try:
@@ -87,12 +87,20 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=100):
                 if not items:
                     break
 
+                filtered_items = []
+
                 for item in items:
+                    item_country = item.get("itemLocation", {}).get("country")
+
+                    if item_country != country_code:
+                        continue
+
                     item["marketplace_id"] = market
                     item["marketplace_country"] = market.split("_", 1)[1]
+                    filtered_items.append(item)
 
-                    remaining = maximum_items - len(market_items)
-                    market_items.extend(items[:remaining])
+                remaining = maximum_items - len(market_items)
+                market_items.extend(filtered_items[:remaining])
 
                 offset += limit
 
