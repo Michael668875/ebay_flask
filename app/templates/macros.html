@@ -657,7 +657,7 @@
                 <td><a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a></td>
                 <td>{{ price_display(row.old_price, currency) }}</td>
                 <td>{{ price_display(row.new_price, currency) }}</td>
-                <td>{{ row.discount_percent }}%</td>
+                <td>{{ row.discount_percent|round(0)|int }}%</td>
                 <td>
                     {% if row.item_url %}
                         <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
@@ -703,7 +703,7 @@
 
             <div class="card-row">
                 <span class="label">Discount:</span>
-                <span class="value">{{ row.discount_percent }}%</span>
+                <span class="value">{{ row.discount_percent|round(0)|int }}%</span>
             </div>
 
             <div class="mt-2">

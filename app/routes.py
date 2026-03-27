@@ -583,6 +583,7 @@ def price_drops(country):
         db.session.query(
             PriceHistory.listing_id.label("listing_id"),
             Listing.ebay_item_id.label("ebay_item_id"),
+            Listing.item_url.label("item_url"),
             PriceHistory.price.label("new_price"),
             old_price.label("old_price"),
             Listing.currency.label("currency"),
@@ -607,7 +608,9 @@ def price_drops(country):
             price_changes_subq.c.old_price,
             price_changes_subq.c.new_price,
             (price_changes_subq.c.old_price - price_changes_subq.c.new_price).label("drop_amount"),
+            ((price_changes_subq.c.old_price - price_changes_subq.c.new_price) / price_changes_subq.c.old_price * 100).label("discount_percent"),
             price_changes_subq.c.currency,
+            price_changes_subq.c.item_url,
         )
         .filter(
             price_changes_subq.c.old_price.isnot(None),
