@@ -59,6 +59,7 @@ def save_temp_summaries(items):
             marketplace=item.get("marketplace_id"),            
             item_country = location.get("country"),
             item_url=item.get("itemWebUrl"),
+            affiliate_url=item.get("itemAffiliateWebUrl"),
             creation_date = creation_date            
         )
         db.session.add(listing)

@@ -13,7 +13,7 @@
 
 {% macro listing_link(item) %}
     {% if item.item_url %}
-        <a href="{{ item.item_url }}" target="_blank" rel="noopener">
+        <a href="{{ item.affiliate_url or item.item_url }}" target="_blank" rel="nofollow sponsored noopener">
             {{ item.title or "—" }}
         </a>
     {% else %}
@@ -418,7 +418,7 @@
                 <td>{{ row.title }}</td>
                 <td>
                     {% if row.item_url %}
-                        <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
+                        <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary">
                             View on eBay
                         </a>
                     {% else %}
@@ -464,7 +464,7 @@
 
         <div class="mt-2">
             {% if row.item_url %}
-                <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary w-100">
+                <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary w-100">
                     View on eBay
                 </a>
             {% else %}
@@ -503,7 +503,7 @@
             </td>
             <td>
                 {% if row.ebay_item_id %}
-                    <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
+                    <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary">
                         View on eBay
                     </a>
                 {% else %}
@@ -547,7 +547,7 @@
 
         <div class="mt-2">
             {% if row.ebay_item_id %}
-                <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary w-100">
+                <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary w-100">
                     View on eBay
                 </a>
             {% else %}
@@ -660,7 +660,7 @@
                 <td><div class="discount">{{ row.discount_percent|round(0)|int }}%</div></td>
                 <td>
                     {% if row.item_url %}
-                        <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary">
+                        <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary">
                             View on eBay
                         </a>
                     {% else %}
@@ -708,7 +708,7 @@
 
             <div class="mt-2">
                 {% if row.item_url %}
-                    <a href="{{ row.item_url }}" target="_blank" class="btn btn-sm btn-primary w-100">
+                    <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary w-100">
                         View on eBay
                     </a>
                 {% else %}

@@ -541,6 +541,7 @@ def deals_model(country, model_slug):
             Listing.ebay_item_id,
             Listing.title,
             Listing.item_url,
+            Listing.affiliate_url,
             Listing.currency,
         )
         .order_by(Listing.price.asc())
@@ -584,6 +585,7 @@ def price_drops(country):
             PriceHistory.listing_id.label("listing_id"),
             Listing.ebay_item_id.label("ebay_item_id"),
             Listing.item_url.label("item_url"),
+            Listing.affiliate_url.label("affiliate_url"),
             PriceHistory.price.label("new_price"),
             old_price.label("old_price"),
             Listing.currency.label("currency"),
@@ -611,6 +613,7 @@ def price_drops(country):
             ((price_changes_subq.c.old_price - price_changes_subq.c.new_price) / price_changes_subq.c.old_price * 100).label("discount_percent"),
             price_changes_subq.c.currency,
             price_changes_subq.c.item_url,
+            price_changes_subq.c.affiliate_url,
         )
         .filter(
             price_changes_subq.c.old_price.isnot(None),
@@ -648,6 +651,7 @@ def best_deals(country):
             Listing.price.label("price"),
             Listing.first_seen.label("first_seen"),
             Listing.item_url.label("item_url"),
+            Listing.affiliate_url.label("affiliate_url"),
         )
         .join(Listing, Listing.id == Model.listing_id)
         .filter(
@@ -681,6 +685,7 @@ def best_deals(country):
             base_q.c.title,
             base_q.c.price,
             base_q.c.item_url,
+            base_q.c.affiliate_url,
             avg_subq.c.avg_price,
             ThinkPadModel.id.label("canon_model_id"),
             ThinkPadModel.name.label("model_name"),

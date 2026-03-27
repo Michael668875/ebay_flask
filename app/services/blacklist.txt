@@ -6,4 +6,5 @@ adaptor for
 thinkbook
 kompanio
 DC power jack
+speaker for
 
