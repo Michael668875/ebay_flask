@@ -115,6 +115,14 @@ def get_paginated_summaries(query="thinkpad", limit=200, maximum_items=100):
                 break
 
         print(f"{market}: fetched {len(market_items)} items")
+        print(resp.url) # for debugging. remove later
+        data = resp.json() # for debugging. remove later
+
+        if "warnings" in data: # for debugging. remove later
+            print("WARNINGS:", data["warnings"])
+
+        if "errors" in data: # for debugging. remove later
+            print("ERRORS:", data["errors"])
 
         all_items.extend(market_items)
 
