@@ -343,6 +343,7 @@
     {% for row in rows %}
     <div class="listing-card">
         <div class="card-row">
+            <span class="label">Model:</span>
             <span class="value">
                 {% if row.slug %}
                     <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
@@ -521,6 +522,7 @@
     {% for row in rows %}
     <div class="listing-card">
         <div class="card-row">
+            <span class="label">Model:</span>
             <span class="value">
                 🔥 <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
                     <strong>{{ row.model_name }}</strong>
@@ -601,6 +603,7 @@
     {% for row in rows %}
     <div class="listing-card">
         <div class="card-row">
+            <span class="label">Model:</span>
             <span class="value">
                 {% if row.slug %}
                     <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
@@ -682,6 +685,7 @@
         {% for row in rows %}
         <div class="listing-card">
             <div class="card-row">
+                <span class="label">Model:</span>
                 <span class="value">
                     <a href="/{{ country }}/{{ row.slug }}/"><strong>{{ row.model_name }}</strong></a>
                 </span>
