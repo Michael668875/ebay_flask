@@ -14,12 +14,10 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
     </button>
 </a>
 </div>
-<div class="d-md-none">
-    {{ macros.cards(listings, country) }}
-</div>
 
-<div class="d-none d-md-block">
-    {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False) }}
-</div>
+{{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False) }}
+{{ macros.cards(listings, country, currency=currency) }}
+
+
 {{ macros.price_disclaimer() }}
 {% endblock %}

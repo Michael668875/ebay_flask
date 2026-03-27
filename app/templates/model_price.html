@@ -18,6 +18,7 @@ Live {{ stats.name }} prices from eBay listings. Compare the lowest, average and
 
 {% if stats %}
     {{ macros.model_price_table(stats, country, currency=currency) }}
+    {{ macros.model_price_cards(stats, country, currency=currency) }}
 {% else %}
     <div class="alert alert-secondary">
         No price data available yet for this model in {{ country|upper }}.

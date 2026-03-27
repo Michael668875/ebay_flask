@@ -23,6 +23,9 @@ Sort by:
 </div>
 
 {{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
+
+{{ macros.deals_cards(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
+
 {{ macros.price_disclaimer() }}
 {% endblock %}
 

@@ -1,11 +1,4 @@
-thead th {
-    position: sticky;
-    top: 0; /* distance from the top of the viewport */
-    background-color: #fff; /* needed so content doesn’t show through */
-    z-index: 10; /* ensures headings are above other elements */
-    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); /* optional shadow for visibility */
-}
-
+/* ================= Base ================= */
 body {
   background-color: #1e1e1e;  /* dark page background */
   color: #f8f9fa;             /* light text for readability */
@@ -16,24 +9,23 @@ body {
   padding-right: 1rem;
 }
 
-.table-rounded {
-    border-radius: 12px;
-    background-color: #212529; /* Bootstrap dark table base */
-    border: 1px solid #444;
-    overflow: hidden;
-}
-      
 .container {
   padding-top: 2rem;
   padding-bottom: 2rem;
 }
 
-      
+.table-rounded {
+    border-radius: 12px;
+    background-color: #212529; /* Bootstrap dark table base */
+    border: 1px solid #444;
+}
+
 /* Links */
 a {
     color: #66aaff;
     text-decoration: none;
 }
+
 a:hover {
     text-decoration: underline;
 }
@@ -45,37 +37,34 @@ a:hover {
     margin: 20px 0;
 }
 
-.table-sm td, .table-sm th {
-padding: .3rem .4rem;
+.table-sm td,
+.table-sm th {
+    padding: .3rem .4rem;
+}
+
+/* desktop table visible by default */
+.listings-table-wrap {
+    display: block;       /* allows scrolling */
+    overflow-x: auto;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .listings-table {
-    border-collapse: collapse;
     width: 100%;
-    min-width: 600px; /* ensures horizontal scroll if needed */
-}
-
-.listings-table th,
-.listings-table td {
-    border: 1px solid #333;
-    padding: 8px 12px;
-    text-align: left;
+    min-width: 600px;
+    border-collapse: collapse;
 }
 
 .listings-table thead th {
     position: sticky;
     top: 0;
-    background-color: #1f1f1f;
-    z-index: 10;
+    background-color: #212529; /* match Bootstrap table-dark */
+    z-index: 20;
     box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5);
-}
-
-.listings-table tbody tr:nth-child(even) {
-    background-color: #1a1a1a;
-}
-
-.listings-table tbody tr:hover {
-    background-color: #2a2a2a;
 }
 
 /* ================= Card Styles ================= */
@@ -103,26 +92,45 @@ padding: .3rem .4rem;
 .card-row {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
     padding: 4px 0;
 }
 
 .card-row .label {
     font-weight: 600;
     color: #aaa;
+    flex: 0 0 auto;
 }
 
 .card-row .value {
     color: #fff;
+    text-align: right;
+    flex: 1 1 auto;
+    min-width: 0;
 }
-
 
 /* ================= Responsive Rules ================= */
 @media screen and (max-width: 768px) {
-    .listings-table {
-        display: none; /* hide table on mobile */
+    /* hide desktop table wrapper entirely */
+    .listings-table-wrap {
+        display: none;
     }
+
+    /* hide any direct table fallback */
+    .listings-table {
+        display: none;
+    }
+
+    /* show cards on mobile */
     .listings-grid {
-        display: grid; /* show cards on mobile */
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 12px 0;
+    }
+
+    .listing-card {
+        padding: 12px;
     }
 }
 
@@ -130,27 +138,33 @@ padding: .3rem .4rem;
     .card-row {
         flex-direction: column;
         align-items: flex-start;
+        gap: 2px;
     }
+
     .card-row .value {
         margin-top: 2px;
+        text-align: left;
     }
 }
 
 /* ================= Filters & Sorts ================= */
-.filter-container, .sort-container {
+.filter-container,
+.sort-container {
     margin: 12px 0;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
 }
 
-.filter-container label, .sort-container label {
+.filter-container label,
+.sort-container label {
     font-weight: 600;
     margin-right: 6px;
 }
 
 /* Inputs & selects dark mode */
-input, select {
+input,
+select {
     background-color: #1a1a1a;
     color: #e0e0e0;
     border: 1px solid #333;
@@ -189,8 +203,7 @@ button:hover {
   min-width: 140px;
 }
 
-/*=============== navbar ====================*/
-
+/* ================= Navbar ================= */
 .navbar-compact {
   min-height: 42px;
   padding-top: 0;
@@ -236,7 +249,7 @@ button:hover {
     z-index: 1050 !important; /* higher than sticky-top (1020) */
 }
 
-/*========== sorting =============*/
+/* ================= Sorting ================= */
 .sort-arrow {
     display: inline-block;
     width: 1.2em;      /* fixed space so headers don't jump */
@@ -246,7 +259,7 @@ button:hover {
     opacity: 0.8;
 }
 
-/*============= price ==============*/
+/* ================= Price ================= */
 .price-wrap {
     display: inline-flex;
     align-items: baseline;
@@ -289,7 +302,7 @@ button:hover {
 }
 
 .discount {
-    color:rgb(50, 220, 50);
+    color: rgb(50, 220, 50);
 }
 
 .page-header-row {

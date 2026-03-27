@@ -10,15 +10,9 @@
 {{ macros.active_filters(filters) }}
 {% endif %}
 
+{{ macros.cards(listings, country) }}
 
+{{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
 
-
-<div class="d-md-none">
-    {{ macros.cards(listings, country) }}
-</div>
-
-<div class="d-none d-md-block">
-    {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
-</div>
 {{ macros.price_disclaimer() }}
 {% endblock %}

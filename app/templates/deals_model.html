@@ -4,5 +4,7 @@
 {% block content %}
 
 {{ macros.deals_model_table(rows, country, slug, currency=currency) }}
+{{ macros.deals_model_cards(rows, currency=currency) }}
+
 {{ macros.price_disclaimer() }}
 {% endblock %}
