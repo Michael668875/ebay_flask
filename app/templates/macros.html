@@ -320,7 +320,7 @@
                         </a>
                     {% endif %}
                     {% if row.canon_model_id in price_drop_model_ids %}
-                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge bg-success-subtle border border-success-subtle text-success-emphasis ms-2 text-decoration-none">
+                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge text-bg-warning ms-2 text-decoration-none">
                             Price Drop
                         </a>
                     {% endif %}
@@ -342,7 +342,7 @@
 </div>
 {% endmacro %}
 
-{% macro deals_cards(rows, country, currency='', best_deal_model_ids=None) %}
+{% macro deals_cards(rows, country, currency='', best_deal_model_ids=None, price_drop_model_ids=None) %}
 {% set best_deal_model_ids = best_deal_model_ids or [] %}
 <div class="listings-grid">
     {% for row in rows %}
@@ -371,7 +371,7 @@
                             </a>
                 {% endif %}
                 {% if row.canon_model_id in price_drop_model_ids %}
-                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge badge-drop">
+                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge text-bg-warning ms-1">
                             Price Drop
                         </a>
                 {% endif %}
