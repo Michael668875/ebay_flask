@@ -320,7 +320,7 @@
                         </a>
                     {% endif %}
                     {% if row.canon_model_id in price_drop_model_ids %}
-                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge bg-primary-subtle text-primary-emphasis ms-2 text-decoration-none">
+                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge bg-success-subtle border border-success-subtle text-success-emphasis ms-2 text-decoration-none">
                             Price Drop
                         </a>
                     {% endif %}
