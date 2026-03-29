@@ -13,7 +13,7 @@ from app.models import Listing, Model, Specs, ThinkPadModel, PriceHistory, Model
 from app import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc, func
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime, timezone
 import re
 from app.route_helpers import *
@@ -206,6 +206,32 @@ def inject_helpers():
         "country_for_item": country_for_item
     }
 
+@bp.app_template_filter("timeago")
+def timeago(dt):
+    if not dt:
+        return ""
+
+    # If datetime is naive, assume UTC
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc).astimezone(dt.tzinfo)
+    diff = now - dt
+    seconds = int(diff.total_seconds())
+
+    if seconds < 60:
+        return "just now"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        return f"{minutes} min ago"
+    elif seconds < 86400:
+        hours = seconds // 3600
+        return f"{hours} hr ago"
+    elif seconds < 604800:
+        days = seconds // 86400
+        return f"{days} day{'s' if days != 1 else ''} ago"
+    else:
+        return dt.strftime("%d %b %Y")
 
 
 # -------------------------------------------------
@@ -453,22 +479,7 @@ def deals(country):
     )
 
     # =========================================================
-    # 5) SORTING
-    # =========================================================
-    if sort == "listings":
-        query = query.order_by(
-            desc(model_summary.c.listing_count),
-            asc(model_summary.c.cheapest_price),
-        )
-    elif sort == "newest":
-        query = query.order_by(desc(model_summary.c.newest_listing))
-    else:  # default: cheapest first
-        query = query.order_by(asc(model_summary.c.cheapest_price))
-
-    rows = query.limit(50).all()
-
-    # =========================================================
-    # 6) BEST DEAL MODELS
+    # 5) BEST DEAL MODELS
     #    A model is a "best deal" if any active listing is < 75% of that
     #    model's current cheapest tracked baseline
     # =========================================================
@@ -489,6 +500,36 @@ def deals(country):
         .all()
     )
     best_deal_model_ids = {row[0] for row in best_deal_rows}
+
+    # =========================================================
+    # 6) Price Drop logic for badges
+    #==========================================================
+
+    # after your base_q or main query
+    price_history_max = (
+        db.session.query(
+            PriceHistory.listing_id.label("listing_id"),
+            func.max(PriceHistory.price).label("historical_max_price"),
+        )
+        .group_by(PriceHistory.listing_id)
+        .subquery()
+    )
+
+    price_drop_rows = (
+        db.session.query(Model.canon_model_id)
+        .join(Listing, Listing.id == Model.listing_id)
+        .join(price_history_max, price_history_max.c.listing_id == Listing.id)
+        .filter(
+            Model.canon_model_id.isnot(None),
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+            Listing.price < price_history_max.c.historical_max_price,
+        )
+        .distinct()
+        .all()
+    )
+
+    price_drop_model_ids = {row[0] for row in price_drop_rows}
     
     # =========================================================
     # 7) DEBUG (optional - remove later)
@@ -503,6 +544,30 @@ def deals(country):
     #         row.cheapest_item,
     #     )
 
+    sort = request.args.get("sort", "cheapest_price")
+    direction = request.args.get("direction", "asc")
+
+    if direction not in ("asc", "desc"):
+        direction = "asc"
+
+    if sort == "model_name":
+        sort_col = func.lower(ThinkPadModel.name)
+    elif sort == "listing_count":
+        sort_col = model_summary.c.listing_count
+    else:  # default
+        sort = "cheapest_price"
+        sort_col = model_summary.c.cheapest_price
+
+    if direction == "desc":
+        query = query.order_by(desc(sort_col))
+    else:
+        query = query.order_by(asc(sort_col))
+
+    # optional stable secondary sort
+    query = query.order_by(func.lower(ThinkPadModel.name))
+
+    rows = query.all()
+
     return render_template(
         "deals.html",
         rows=rows,
@@ -511,6 +576,7 @@ def deals(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
         best_deal_model_ids=best_deal_model_ids,
+        price_drop_model_ids=price_drop_model_ids,
     )
 
 
@@ -623,6 +689,21 @@ def price_drops(country):
         .limit(50)
         .all()
     )
+
+    sort = request.args.get("sort", "lowest_price")
+    direction = request.args.get("direction", "desc")
+    reverse = direction == "desc"
+
+    if sort == "model_name":
+        rows.sort(key=lambda r: (r.model_name or "").lower(), reverse=reverse)
+    elif sort == "old_price":
+        rows.sort(key=lambda r: r.old_price or 0, reverse=reverse)
+    elif sort == "new_price":
+        rows.sort(key=lambda r: r.new_price or 0, reverse=reverse)
+    elif sort == "discount_percent":
+        rows.sort(key=lambda r: r.discount_percent or 0, reverse=reverse)
+    else:
+        rows.sort(key=lambda r: r.new_price or 0, reverse=True)
 
     return render_template(
         "price_drops.html",
@@ -763,6 +844,7 @@ def model_price(country, slug):
         country_flags=COUNTRY_FLAGS,
     )
 
+
 @bp.route("/<country>/thinkpad_models")
 def thinkpad_models(country):
     country, marketplaces, currency = get_country_context_or_404(country)
@@ -771,9 +853,9 @@ def thinkpad_models(country):
         db.session.query(
             ThinkPadModel.name.label("name"),
             ThinkPadModel.slug.label("slug"),
-            func.min(Listing.price).label("lowest_price"),
-            func.count(Listing.id).label("listing_count"),
+            func.max(Listing.last_seen).label("last_seen"),
         )
+        .select_from(Listing)
         .join(Model, Model.listing_id == Listing.id)
         .join(ThinkPadModel, ThinkPadModel.id == Model.canon_model_id)
         .filter(
@@ -785,27 +867,45 @@ def thinkpad_models(country):
         .all()
     )
 
-    sort = request.args.get("sort", "lowest_price")
-    direction = request.args.get("direction", "desc")
-    reverse = direction == "desc"
+    def get_series(name):
+        if not name:
+            return "Other"
 
-    if sort == "name":
-        rows.sort(key=lambda r: (r.name or "").lower(), reverse=reverse)
-    elif sort == "lowest_price":
-        rows.sort(key=lambda r: r.lowest_price or 0, reverse=reverse)
-    elif sort == "listing_count":
-        rows.sort(key=lambda r: r.listing_count or 0, reverse=reverse)
-    else:
-        rows.sort(key=lambda r: r.lowest_price or 0, reverse=True)
+        upper = name.upper()
+
+        # Put X1 before X so it doesn't get caught by X
+        if upper.startswith("X1"):
+            return "X1"
+        elif upper.startswith("T"):
+            return "T"
+        elif upper.startswith("X"):
+            return "X"
+        elif upper.startswith("P"):
+            return "P"
+        elif upper.startswith("L"):
+            return "L"
+        elif upper.startswith("E"):
+            return "E"
+        elif upper.startswith("W"):
+            return "W"
+        else:
+            return "Other"
+
+    grouped_models = defaultdict(list)
+    for row in rows:
+        grouped_models[get_series(row.name)].append(row)
+
+    # Control display order
+    series_order = ["T", "X", "X1", "P", "L", "E", "W", "Other"]
 
     return render_template(
         "thinkpad_models.html",
-        rows=rows,
+        grouped_models=grouped_models,
+        series_order=series_order,
         country=country,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
-
 
 @bp.route("/about")
 def about():

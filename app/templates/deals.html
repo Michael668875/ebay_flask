@@ -9,18 +9,6 @@ Find the lowest price by model. Click the model name or listing count to view al
 </div>
 <div class="mb-3">
 
-Sort by:
-<a href="/{{ country }}/deals?sort=price"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-        <div class="button-text">Lowest Price</div>
-        </button></a> 
-<a href="/{{ country }}/deals?sort=listings"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-          <div class="button-text">Most Listings</div>
-        </button></a> 
-<a href="/{{ country }}/deals?sort=newest"><button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button">
-        <div class="button-text">Newest</div>
-        </button></a>
-
-</div>
 
 {{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
 

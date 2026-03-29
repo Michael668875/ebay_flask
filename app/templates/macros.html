@@ -292,9 +292,9 @@
 <table class="table table-dark table-hover mb-0 listings-table">
     <thead>
         <tr>
-            <th>Model</th>
-            <th>Starting From</th>
-            <th>Listings</th>
+            <th>{{ sort_link('Model', 'model_name') }}</th>
+            <th>{{ sort_link('Starting From', 'cheapest_item') }}</th>
+            <th>{{ sort_link('Number of Listings', 'listing_count') }}</th>
         </tr>
     </thead>
     <tbody>
@@ -307,7 +307,7 @@
                     </a>
                 {% else %}
                     —
-                {% endif %}
+                {% endif %}                
             </td>
             
             <td>
@@ -319,6 +319,11 @@
                             Deal
                         </a>
                     {% endif %}
+                    {% if row.canon_model_id in price_drop_model_ids %}
+                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge badge-drop">
+                            Price Drop
+                        </a>
+                    {% endif %}
                 </div>
             </td>
             
@@ -328,7 +333,7 @@
                     {% if row.listing_count > 10 %}
                         &nbsp;<span class="badge bg-success">Popular</span>
                     {% endif %}
-                </a>
+                </a>                
             </td>
         </tr>
     {% endfor %}
@@ -364,6 +369,11 @@
                             class="badge text-bg-danger ms-1">
                             Deal
                             </a>
+                {% endif %}
+                {% if row.canon_model_id in price_drop_model_ids %}
+                        <a href="{{ url_for('main.price_drops', country=country, model_id=row.canon_model_id) }}" class="badge badge-drop">
+                            Price Drop
+                        </a>
                 {% endif %}
             </span>
         </div>
@@ -560,82 +570,34 @@
 {% endmacro %}
 
 
-{% macro thinkpad_models_table(rows, country, currency='') %}
-<div class="table-rounded listings-table-wrap">
-<table class="table table-dark table-hover mb-0 listings-table">
-    <thead>
-        <tr>
-            <th>{{ sort_link('Model', 'name') }}</th>
-            <th>{{ sort_link("Lowest " ~ price_heading(currency=currency), 'lowest_price') }}</th>
-            <th>{{ sort_link('Listings', 'listing_count') }}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in rows %}
-        <tr>
-            <td>
-                {% if row.slug %}
-                    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
-                        {{ row.name }}
-                    </a>
-                {% else %}
-                    —
-                {% endif %}
-
-            </td>
-            <td>
-                <strong>{{ price_display(row.lowest_price, currency, show_code=False) }}</strong>
-            </td>
-            <td>
-                <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
-                    {{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}
-                </a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% macro thinkpad_models_table(grouped_models, series_order, country) %}
+<div class="series-nav">
+  {% for series in series_order %}
+    {% if grouped_models.get(series) %}
+      <a href="#series-{{ series }}">{{ series }}</a>
+    {% endif %}
+  {% endfor %}
 </div>
-{% endmacro %}
 
-{% macro thinkpad_models_cards(rows, country, currency='') %}
-<div class="listings-grid">
-    {% for row in rows %}
-    <div class="listing-card">
-        <div class="card-row">
-            <span class="label">Model:</span>
-            <span class="value">
-                {% if row.slug %}
-                    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
-                        <strong>{{ row.name }}</strong>
-                    </a>
-                {% else %}
-                    —
-                {% endif %}
-            </span>
-        </div>
+{% for series in series_order %}
+  {% if grouped_models.get(series) %}
+    <section id="series-{{ series }}" class="model-series">
+      <h2>{{ series }} Series</h2>
 
-        <div class="card-row">
-            <span class="label">Lowest Price:</span>
-            <span class="value"><strong>{{ price_display(row.lowest_price, currency, show_code=False) }}</strong></span>
-        </div>
-
-        <div class="card-row">
-            <span class="label">Listings:</span>
-            <span class="value">{{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}</span>
-        </div>
-
-        <div class="mt-2">
-            {% if row.slug %}
-                <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}"
-                   class="btn btn-sm btn-outline-primary w-100">
-                    View Model
-                </a>
+      <div class="model-grid">
+        {% for row in grouped_models[series] %}
+          <a class="model-chip" href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
+            <span class="model-name">{{ row.name }}</span>
+            {% if row.last_seen %}
+              <small class="model-last-seen">Seen {{ row.last_seen|timeago }}</small>
             {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endfor %}
+
 {% endmacro %}
 
 {% macro price_drops_table(rows, country, currency='') %}
@@ -644,11 +606,11 @@
     <table class="table table-dark table-hover mb-0 listings-table">
         <thead>
             <tr>
-                <th>Model</th>
-                <th>Old Price</th>
-                <th>New Price</th>
-                <th>Discount</th>
-                <th>Listing</th>
+                <th>{{ sort_link('Model', 'model_name') }}</th>
+                <th>{{ sort_link('Old Price', 'old_price') }}</th>
+                <th>{{ sort_link('New Price', 'new_price') }}</th>
+                <th>{{ sort_link('Discount', 'discount_percent') }}</th>
+                <th>Listing Title</th>
             </tr>
         </thead>
         <tbody>
