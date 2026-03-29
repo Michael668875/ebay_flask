@@ -286,7 +286,7 @@
     </span>
 {% endmacro %}
 
-{% macro deals_table(rows, country, currency='', best_deal_model_ids=None) %}
+{% macro deals_table(rows, country, currency='', best_deal_model_ids=None, price_drop_model_ids=None) %}
 {% set best_deal_model_ids = best_deal_model_ids or [] %}
 <div class="table-rounded listings-table-wrap">
 <table class="table table-dark table-hover mb-0 listings-table">

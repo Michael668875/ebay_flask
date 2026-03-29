@@ -8,9 +8,9 @@
 Find the lowest price by model. Click the model name or listing count to view all available listings for that model.
 </div>
 <div class="mb-3">
+{{ price_drop_model_ids }}
 
-
-{{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
+{{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids, price_drop_model_ids=price_drop_model_ids) }}
 
 {{ macros.deals_cards(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids) }}
 

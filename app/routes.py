@@ -564,7 +564,7 @@ def deals(country):
         query = query.order_by(asc(sort_col))
 
     # optional stable secondary sort
-    query = query.order_by(func.lower(ThinkPadModel.name))
+    #query = query.order_by(func.lower(ThinkPadModel.name))
 
     rows = query.all()
 
