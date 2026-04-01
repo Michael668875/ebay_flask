@@ -295,7 +295,22 @@ def country_home(country):
             .order_by(column.asc().nullslast())
             .all()
         )
-        filters[name] = [v[0] for v in values if v[0] is not None]
+
+        # Apply formatting for ram/storage/cpu/model
+        formatted_values = []
+        for v in values:
+            val = v[0]
+            if val is None:
+                continue
+            if name == "ram":
+                val = format_ram(val)
+            elif name == "storage":
+                val = format_storage(val)
+            elif name in ["cpu", "model"]:
+                val = str(val).title()
+            formatted_values.append(val)
+
+        filters[name] = formatted_values
 
     SORT_COLUMNS = {
         "model": func.lower(Model.name),
