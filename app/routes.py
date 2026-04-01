@@ -242,6 +242,12 @@ def country_home(country):
     for param, column in SPEC_FILTERS.items():
         value = request.args.get(param)
         if value:
+            # Convert numeric fields to float
+            if param in ["ram", "storage"]:
+                try:
+                    value = float(value)
+                except ValueError:
+                    continue  # ignore invalid inputs
             query = query.filter(column == value)
 
     # Dropdown filter options
