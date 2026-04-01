@@ -184,8 +184,12 @@
 
                 {% for option in options %}
                     {% set arg_val = request.args.get(name) %}
-                    <option value="{{ option.value }}"
-                        {% if arg_val is not none and (arg_val|float if name in ['ram','storage'] else arg_val) == option.value %}selected{% endif %}>
+                    {% if name in ['ram', 'storage'] %}
+                        {% set selected = arg_val is not none and arg_val|float == option.value %}
+                    {% else %}
+                        {% set selected = arg_val == option.value|string %}
+                    {% endif %}
+                    <option value="{{ option.value }}" {% if selected %}selected{% endif %}>
                         {{ option.label }}
                     </option>
                 {% endfor %}
@@ -201,6 +205,9 @@
   </div>
 </nav>
 {% endmacro %}
+
+
+
 
 {% macro listings_table(listings, country, currency='', show_model=True, show_last_updated=True) %}
 <div class="table-rounded listings-table-wrap table-container">

@@ -226,6 +226,7 @@ def country_home(country):
     sort = request.args.get("sort", "price")
     direction = request.args.get("direction", "asc")
 
+    # Base query
     query = (
         Listing.query
         .join(Listing.model)
@@ -242,23 +243,19 @@ def country_home(country):
     for param, column in SPEC_FILTERS.items():
         value = request.args.get(param)
         if value:
+            # Convert numeric fields to float
             if param in ["ram", "storage"]:
                 try:
                     value = float(value)
                 except ValueError:
-                    continue  # skip invalid input
+                    continue
             query = query.filter(column == value)
 
     # Build dropdown filters
     filters = {}
     for name, column in SPEC_FILTERS.items():
         values = (
-            db.session.query(column)
-            .join(Listing)
-            .filter(
-                Listing.status == "ACTIVE",
-                Listing.marketplace.in_(marketplaces),
-            )
+            query.with_entities(column)
             .distinct()
             .order_by(column.asc().nullslast())
             .all()
@@ -266,16 +263,30 @@ def country_home(country):
 
         filters[name] = []
         for v in values:
-            if v[0] is None:
+            val = v[0]
+            if val is None:
                 continue
-            val = v[0]  # raw DB value
+            
             if name in ["ram", "storage"]:
                 label = format_capacity(val)
-            else:  # cpu, model, storage_type
+            elif name == "storage_type":
+                # Keep exactly "HDD", "SSD", "NVMe"
+                label = str(val)
+            else:  # model, cpu, etc.
                 label = str(val).title()
-            filters[name].append({"value": val, "label": label})
             
-                        
+
+            filters[name].append({
+                "value": val,    # raw numeric or string
+                "label": label   # display label
+            })
+
+        # Minimal change: sort storage_type dropdown
+        if name == "storage_type":
+            STORAGE_TYPE_ORDER = {"HDD": 0, "SSD": 1, "NVMe": 2}
+            filters[name] = sorted(filters[name], key=lambda x: STORAGE_TYPE_ORDER.get(x["value"], 99))
+
+    # Sorting
     SORT_COLUMNS = {
         "model": func.lower(Model.name),
         "price": Listing.price,
@@ -284,17 +295,17 @@ def country_home(country):
         "storage": Specs.storage,
     }
 
-    
     order_col = SORT_COLUMNS.get(sort, Listing.price)
     primary_sort = (desc(order_col) if direction == "desc" else asc(order_col)).nullslast()
-
-    
     query = query.order_by(primary_sort, Listing.price.asc())
+
+    # Pagination
     page = request.args.get("page", 1, type=int)
     per_page = 50
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     listings = pagination.items
 
+    # Order filters consistently
     desired_order = ["model", "cpu", "ram", "storage", "storage_type"]
     filters_ordered = OrderedDict((key, filters.get(key, [])) for key in desired_order)
 
@@ -309,6 +320,7 @@ def country_home(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
+
 
 # -------------------------------------------------
 # Model Page
