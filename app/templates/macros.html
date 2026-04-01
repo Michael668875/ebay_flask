@@ -185,7 +185,7 @@
                 {% for option in options %}
                     {% set arg_val = request.args.get(name) %}
                     <option value="{{ option.value }}"
-                            {% if (arg_val|float if name in ['ram','storage'] else arg_val) == option.value %}selected{% endif %}>
+                        {% if arg_val is not none and (arg_val|float if name in ['ram','storage'] else arg_val) == option.value %}selected{% endif %}>
                         {{ option.label }}
                     </option>
                 {% endfor %}

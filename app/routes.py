@@ -242,15 +242,14 @@ def country_home(country):
     for param, column in SPEC_FILTERS.items():
         value = request.args.get(param)
         if value:
-            # Convert numeric fields to float
             if param in ["ram", "storage"]:
                 try:
                     value = float(value)
                 except ValueError:
-                    continue  # ignore invalid inputs
+                    continue  # skip invalid input
             query = query.filter(column == value)
 
-    # Dropdown filter options
+    # Build dropdown filters
     filters = {}
     for name, column in SPEC_FILTERS.items():
         values = (
@@ -265,29 +264,18 @@ def country_home(country):
             .all()
         )
 
-        # Apply formatting for ram/storage/cpu/model
-        formatted_values = []
+        filters[name] = []
         for v in values:
-            val = v[0]
-            if val is None:
+            if v[0] is None:
                 continue
+            val = v[0]  # raw DB value
             if name in ["ram", "storage"]:
-                val = format_capacity(val)
-            elif name in ["cpu", "model"]:
-                val = str(val).title()
-            formatted_values.append(val)
-
-        filters[name] = [
-            {
-                "value": v[0],
-                "label": format_capacity(v[0]) if name in ["ram", "storage"] 
-                        else str(v[0]).title() if name in ["cpu", "model"] 
-                        else str(v[0])
-            }
-            for v in values
-            if v[0] is not None
-        ]
-
+                label = format_capacity(val)
+            else:  # cpu, model, storage_type
+                label = str(val).title()
+            filters[name].append({"value": val, "label": label})
+            
+                        
     SORT_COLUMNS = {
         "model": func.lower(Model.name),
         "price": Listing.price,
