@@ -14,7 +14,8 @@
 
 {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
 
-{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
+{% set current_args = request.args.to_dict() %}
+{{ macros.render_pagination(pagination, current_args) }}
 
 {{ macros.price_disclaimer() }}
 {% endblock %}
