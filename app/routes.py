@@ -242,7 +242,7 @@ def country_home(country):
     # Apply spec filters
     for param, column in SPEC_FILTERS.items():
         value = request.args.get(param)
-        if value:
+        if value not in (None, ""):
             # Convert numeric fields to float
             if param in ["ram", "storage"]:
                 try:
