@@ -271,7 +271,16 @@ def country_home(country):
                 val = str(val).title()
             formatted_values.append(val)
 
-        filters[name] = formatted_values
+        filters[name] = [
+            {
+                "value": v[0],
+                "label": format_capacity(v[0]) if name in ["ram", "storage"] 
+                        else str(v[0]).title() if name in ["cpu", "model"] 
+                        else str(v[0])
+            }
+            for v in values
+            if v[0] is not None
+        ]
 
     SORT_COLUMNS = {
         "model": func.lower(Model.name),

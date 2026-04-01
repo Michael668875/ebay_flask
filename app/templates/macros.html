@@ -183,10 +183,10 @@
                 <option value="">{{ name|replace('_', ' ')|title }}</option>
 
                 {% for option in options %}
-                    {% set option_str = option|string %}
-                    <option value="{{ option_str }}"
-                            {% if request.args.get(name) == option_str %}selected{% endif %}>
-                        {{ spec_filter_label(name, option) }}
+                    {% set arg_val = request.args.get(name) %}
+                    <option value="{{ option.value }}"
+                            {% if (arg_val|float if name in ['ram','storage'] else arg_val) == option.value %}selected{% endif %}>
+                        {{ option.label }}
                     </option>
                 {% endfor %}
             </select>
