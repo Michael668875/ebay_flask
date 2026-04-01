@@ -33,6 +33,82 @@
         </div>
     </div>
 
+    <nav class="site-nav">
+      <div class="nav-top">
+        <a href="{{ url_for('main.index') }}" class="brand">
+          ThinkPad Deals
+        </a>
+
+        <form action="{{ url_for('main.search_model') }}" method="get" class="nav-search">
+          <input
+            type="text"
+            name="q"
+            placeholder="Search models..."
+            value="{{ request.args.get('q', '') }}"
+          >
+          <button type="submit">Search</button>
+        </form>
+      </div>
+
+      <!-- Desktop nav -->
+      <div class="nav-links desktop-nav">
+        <a href="{{ url_for('main.country_home', country=country) }}"
+          class="{% if request.endpoint == 'main.index' %}active{% endif %}">
+          Home
+        </a>
+
+        <a href="{{ url_for('main.deals', country=nav_country) }}"
+          class="{% if request.endpoint == 'main.market_overview' %}active{% endif %}"
+          class="mobile-chip">
+          <span class="desktop-label">Market Overview</span>
+          <span class="mobile-label">Overview</span>
+        </a>
+
+        <a href="{{ url_for('main.best_deals', country=nav_country) }}"
+          class="{% if request.endpoint == 'main.best_deals' %}active{% endif %}">
+          Best Deals
+        </a>
+
+        <a href="{{ url_for('main.price_drops', country=nav_country) }}"
+          class="{% if request.endpoint == 'main.price_drops' %}active{% endif %}">
+          Price Drops
+        </a>
+
+        <a href="{{ url_for('main.thinkpad_models', country=nav_country) }}"
+          class="{% if request.endpoint == 'main.available_models' %}active{% endif %}">
+          Available Models
+        </a>
+      </div>
+
+      <!-- Mobile primary nav (scrollable chips) -->
+      <div class="mobile-primary-nav">
+        <a href="{{ url_for('main.country_home', country=country) }}"
+          class="mobile-chip {% if request.endpoint == 'main.index' %}active{% endif %}">
+          Home
+        </a>
+
+        <a href="{{ url_for('main.deals', country=nav_country) }}"
+          class="mobile-chip {% if request.endpoint == 'main.market_overview' %}active{% endif %}">
+          Market Overview
+        </a>
+
+        <a href="{{ url_for('main.best_deals', country=nav_country) }}"
+          class="mobile-chip {% if request.endpoint == 'main.best_deals' %}active{% endif %}">
+          Best Deals
+        </a>
+
+        <a href="{{ url_for('main.price_drops', country=nav_country) }}"
+          class="mobile-chip {% if request.endpoint == 'main.price_drops' %}active{% endif %}">
+          Price Drops
+        </a>
+
+        <a href="{{ url_for('main.thinkpad_models', country=nav_country) }}"
+          class="mobile-chip {% if request.endpoint == 'main.available_models' %}active{% endif %}">
+          Available Models
+        </a>
+      </div>
+    </nav>
+
     {% include "_navbar.html" %}
     
     {% block content %}{% endblock %}
