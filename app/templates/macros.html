@@ -118,12 +118,13 @@
 
 {% macro render_pagination(pagination, extra_args=None) %}
   {% if pagination and pagination.pages > 1 %}
-    {% set args = dict(request.view_args or {}) %}
+    {% set args = dict(request.view_args or {}) %}  {# includes 'country' from route #}
         {% for k, v in request.args.items() %}
-            {% if v is not none and v != '' %}
-                {% set _ = args.update({k: v}) %}
-            {% endif %}
+        {% set _ = args.update({k: v}) %}
         {% endfor %}
+
+        {# remove page to avoid conflict #}
+        {% set _ = args.pop('page', None) %}
 
     <nav class="pagination">
       {% if pagination.has_prev %}
