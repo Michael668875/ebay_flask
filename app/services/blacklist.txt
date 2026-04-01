@@ -15,3 +15,5 @@ keyboard for thinkpad
 keyboard with pointing for
 keyboard, for lenovo
 keyboard, for thinkpad
+touchpad for lenovo
+touchpad for thinkpad
