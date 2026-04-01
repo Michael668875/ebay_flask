@@ -119,16 +119,11 @@
 {% macro render_pagination(pagination, extra_args=None) %}
   {% if pagination and pagination.pages > 1 %}
     {% set args = dict(request.view_args or {}) %}
-
-    {% set _ = args.update(request.args.to_dict()) %}
-
-    {% if extra_args %}
-      {% for k, v in extra_args.items() %}
-        {% if v is not none %}
-          {% set _ = args.update({k: v}) %}
-        {% endif %}
-      {% endfor %}
-    {% endif %}
+        {% for k, v in request.args.items() %}
+            {% if v is not none and v != '' %}
+                {% set _ = args.update({k: v}) %}
+            {% endif %}
+        {% endfor %}
 
     <nav class="pagination">
       {% if pagination.has_prev %}
