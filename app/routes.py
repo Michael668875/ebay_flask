@@ -134,6 +134,11 @@ def persist_country_cookie(response):
 def format_capacity(value):
     if value is None:
         return "—"
+    
+    try:
+        value = float(value)  
+    except (TypeError, ValueError):
+        return str(value)
 
     if value >= 1024:
         tb = value / 1024
@@ -145,48 +150,6 @@ def format_capacity(value):
 
     return f"{value:g}" + "GB"
 
-@bp.app_template_filter("format_ram")
-def format_ram(value):
-    """
-    Specs.ram is stored in GB by the pipeline.
-    Example: 8192 MB -> 8, 16 GB -> 16, 1 TB -> 1024
-    """
-    if value is None:
-        return "—"
-
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return str(value)
-
-    if value.is_integer():
-        value = int(value)
-
-    # ram is stored in GB in your DB
-    return f"{value} GB"
-
-
-@bp.app_template_filter("format_storage")
-def format_storage(value):
-    if value is None:
-        return "—"
-
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return str(value)
-
-    # storage is stored in GB in your DB
-    if value >= 1024:
-        tb = value / 1024
-        if tb.is_integer():
-            return f"{int(tb)} TB"
-        return f"{tb:.1f} TB"
-
-    if value.is_integer():
-        return f"{int(value)} GB"
-
-    return f"{value:.1f} GB"
 
 MARKETPLACE_TO_COUNTRY = {
     "EBAY_US": "us",
@@ -302,10 +265,8 @@ def country_home(country):
             val = v[0]
             if val is None:
                 continue
-            if name == "ram":
-                val = format_ram(val)
-            elif name == "storage":
-                val = format_storage(val)
+            if name in ["ram", "storage"]:
+                val = format_capacity(val)
             elif name in ["cpu", "model"]:
                 val = str(val).title()
             formatted_values.append(val)

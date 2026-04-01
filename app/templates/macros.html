@@ -95,9 +95,9 @@
 
 {% macro spec_filter_label(name, value) %}
     {% if name == "ram" %}
-        {{ value|format_ram }}
+        {{ value|format_capacity }}
     {% elif name == "storage" %}
-        {{ value|format_storage }}
+        {{ value|format_capacity }}
     {% else %}
         {{ value }}
     {% endif %}
