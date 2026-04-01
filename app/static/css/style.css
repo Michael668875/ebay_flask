@@ -446,3 +446,52 @@ button:hover {
   }
 }
 
+/* pagination */
+
+.page-num,
+.page-ellipsis {
+  display: inline-block;
+  margin: 0 8px;   /* increase/decrease this */
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;   /* controls spacing between all items */
+}
+
+.pagination {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.pagination a,
+.pagination strong,
+.pagination span {
+  display: inline-block;
+}
+
+.page-num,
+.page-link {
+  padding: 6px 10px;
+  text-decoration: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.current-page {
+  padding: 6px 10px;
+  border: 1px solid #333;
+  border-radius: 6px;
+}
+
+.page-ellipsis {
+  padding: 6px 4px;
+}

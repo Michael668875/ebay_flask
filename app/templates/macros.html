@@ -116,6 +116,57 @@
 {% endmacro %}
 
 
+{% macro render_pagination(pagination, extra_args=None) %}
+  {% if pagination and pagination.pages > 1 %}
+    {% set args = dict(request.view_args or {}) %}
+    {% if extra_args %}
+      {% for k, v in extra_args.items() %}
+        {% if v is not none %}
+          {% set _ = args.update({k: v}) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <nav class="pagination">
+      {% if pagination.has_prev %}
+        <a
+          class="page-link prev-link"
+          href="{{ url_for(request.endpoint, page=pagination.prev_num, **args) }}"
+        >
+          ← Prev
+        </a>
+      {% endif %}
+
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == pagination.page %}
+            <strong class="page-num current-page">{{ p }}</strong>
+          {% else %}
+            <a
+              class="page-num"
+              href="{{ url_for(request.endpoint, page=p, **args) }}"
+            >
+              {{ p }}
+            </a>
+          {% endif %}
+        {% else %}
+          <span class="page-ellipsis">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if pagination.has_next %}
+        <a
+          class="page-link next-link"
+          href="{{ url_for(request.endpoint, page=pagination.next_num, **args) }}"
+        >
+          Next →
+        </a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endmacro %}
+
+
 {% macro search_specs(filters) %}
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1 mt-2">
   <div class="container-fluid d-flex align-items-center">
@@ -211,9 +262,11 @@
         </td>
     </tr>
     {% endfor %}
+
     </tbody>
 </table>
 </div>
+    
 {% endmacro %}
 
 

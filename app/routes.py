@@ -305,11 +305,16 @@ def country_home(country):
         "storage": Specs.storage,
     }
 
+    
     order_col = SORT_COLUMNS.get(sort, Listing.price)
     primary_sort = (desc(order_col) if direction == "desc" else asc(order_col)).nullslast()
 
+    
     query = query.order_by(primary_sort, Listing.price.asc())
-    listings = query.limit(100).all()
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    listings = pagination.items
 
     desired_order = ["model", "cpu", "ram", "storage", "storage_type"]
     filters_ordered = OrderedDict((key, filters.get(key, [])) for key in desired_order)
@@ -317,6 +322,9 @@ def country_home(country):
     return render_template(
         "listings.html",
         listings=listings,
+        pagination=pagination,
+        sort=sort,
+        direction=direction,
         country=country,
         filters=filters_ordered,
         currency=currency,
@@ -364,7 +372,12 @@ def model_page(country, model_slug):
         query = query.order_by(order_col.asc())
         direction = "asc"
 
-    listings = query.limit(100).all()
+    
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    listings = pagination.items
 
     if not listings:
         return render_template(
@@ -378,6 +391,9 @@ def model_page(country, model_slug):
     return render_template(
         "model.html",
         listings=listings,
+        pagination=pagination,
+        sort=sort,
+        direction=direction,
         country=country,
         model_slug=model.slug,
         model_name=model.name,
@@ -566,13 +582,20 @@ def deals(country):
     # optional stable secondary sort
     #query = query.order_by(func.lower(ThinkPadModel.name))
 
-    rows = query.all()
+    
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    rows = pagination.items
 
     return render_template(
         "deals.html",
         rows=rows,
-        country=country,
+        pagination=pagination,
         sort=sort,
+        direction=direction,
+        country=country,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
         best_deal_model_ids=best_deal_model_ids,
@@ -611,8 +634,6 @@ def deals_model(country, model_slug):
             Listing.currency,
         )
         .order_by(Listing.price.asc())
-        .limit(50)
-        .all()
     )
 
     if not rows:
@@ -623,10 +644,18 @@ def deals_model(country, model_slug):
             currency=currency,
             country_flags=COUNTRY_FLAGS,
         )
+    
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = rows.paginate(page=page, per_page=per_page, error_out=False)
+    rows = pagination.items
 
     return render_template(
         "deals_model.html",
         rows=rows,
+        pagination=pagination,
+
         country=country,
         slug=model.slug,
         model_name=model.name,
@@ -685,29 +714,38 @@ def price_drops(country):
             price_changes_subq.c.old_price.isnot(None),
             price_changes_subq.c.new_price < price_changes_subq.c.old_price,
         )
-        .order_by(desc("drop_amount"))
-        .limit(50)
-        .all()
     )
 
     sort = request.args.get("sort", "lowest_price")
     direction = request.args.get("direction", "desc")
-    reverse = direction == "desc"
-
+    
+    # SQL-level sorting
     if sort == "model_name":
-        rows.sort(key=lambda r: (r.model_name or "").lower(), reverse=reverse)
+        order_col = price_changes_subq.c.model_name
     elif sort == "old_price":
-        rows.sort(key=lambda r: r.old_price or 0, reverse=reverse)
+        order_col = price_changes_subq.c.old_price
     elif sort == "new_price":
-        rows.sort(key=lambda r: r.new_price or 0, reverse=reverse)
+        order_col = price_changes_subq.c.new_price
     elif sort == "discount_percent":
-        rows.sort(key=lambda r: r.discount_percent or 0, reverse=reverse)
+        order_col = ((price_changes_subq.c.old_price - price_changes_subq.c.new_price) / price_changes_subq.c.old_price * 100)
     else:
-        rows.sort(key=lambda r: r.new_price or 0, reverse=True)
+        order_col = ((price_changes_subq.c.old_price - price_changes_subq.c.new_price) / price_changes_subq.c.old_price * 100)
+
+    primary_sort = desc(order_col) if direction == "desc" else asc(order_col)
+
+    rows = rows.order_by(primary_sort, (price_changes_subq.c.old_price - price_changes_subq.c.new_price).asc())
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = rows.paginate(page=page, per_page=per_page, error_out=False)
+    rows = pagination.items
 
     return render_template(
         "price_drops.html",
         rows=rows,
+        pagination=pagination,
+        sort=sort,
+        direction=direction,
         country=country,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
@@ -720,7 +758,6 @@ def best_deals(country):
 
     # =========================================================
     # 1) BASE: active listings with canonical model
-    #    Grain = one row per listing
     # =========================================================
     base_q = (
         db.session.query(
@@ -744,7 +781,6 @@ def best_deals(country):
 
     # =========================================================
     # 2) Average price per canonical model
-    #    Grain = one row per canonical model
     # =========================================================
     avg_subq = (
         db.session.query(
@@ -756,10 +792,9 @@ def best_deals(country):
     )
 
     # =========================================================
-    # 3) Listings that are 25% below their model's average
-    #    Grain = one row per listing
+    # 3) Build query (DO NOT call .all() yet)
     # =========================================================
-    rows = (
+    query = (
         db.session.query(
             base_q.c.listing_id,
             base_q.c.ebay_item_id,
@@ -772,33 +807,44 @@ def best_deals(country):
             ThinkPadModel.name.label("model_name"),
             ThinkPadModel.slug.label("slug"),
             ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price).label("discount_ratio"),
-            ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price * 100).label("discount_percent"),  # optional    
+            ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price * 100).label("discount_percent"),
         )
         .join(avg_subq, avg_subq.c.canon_model_id == base_q.c.canon_model_id)
         .join(ThinkPadModel, ThinkPadModel.id == base_q.c.canon_model_id)
         .filter(base_q.c.price < avg_subq.c.avg_price * 0.75)
-        .order_by(base_q.c.price.asc())
-        .all()
     )
 
     sort = request.args.get("sort", "discount")
     direction = request.args.get("direction", "desc")
-    reverse = direction == "desc"
 
+    # SQL-level sorting
     if sort == "model":
-        rows.sort(key=lambda r: (r.model_name or "").lower(), reverse=reverse)
+        order_col = ThinkPadModel.name
     elif sort == "price":
-        rows.sort(key=lambda r: r.price or 0, reverse=reverse)
+        order_col = base_q.c.price
     elif sort == "avg_price":
-        rows.sort(key=lambda r: r.avg_price or 0, reverse=reverse)
+        order_col = avg_subq.c.avg_price
     elif sort == "discount":
-        rows.sort(key=lambda r: r.discount_percent or 0, reverse=reverse)
+        order_col = ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price * 100)
     else:
-        rows.sort(key=lambda r: r.discount_percent or 0, reverse=True)
+        order_col = ((avg_subq.c.avg_price - base_q.c.price) / avg_subq.c.avg_price * 100)
+
+    primary_sort = desc(order_col) if direction == "desc" else asc(order_col)
+
+    query = query.order_by(primary_sort, base_q.c.price.asc())
+
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    rows = pagination.items
 
     return render_template(
         "best_deals.html",
         rows=rows,
+        pagination=pagination,
+        sort=sort,
+        direction=direction,
         country=country,
         currency=currency,
         country_flags=COUNTRY_FLAGS,

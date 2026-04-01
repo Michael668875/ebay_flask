@@ -17,7 +17,7 @@ ThinkPad {{ model_slug|replace('thinkpad-', ' ')|upper }}
 
 {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False) }}
 {{ macros.cards(listings, country, currency=currency) }}
-
+{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
 {{ macros.price_disclaimer() }}
 {% endblock %}

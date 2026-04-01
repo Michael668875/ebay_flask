@@ -5,6 +5,7 @@
 
 {{ macros.deals_model_table(rows, country, slug, currency=currency) }}
 {{ macros.deals_model_cards(rows, currency=currency) }}
+{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
 {{ macros.price_disclaimer() }}
 {% endblock %}

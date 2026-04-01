@@ -6,6 +6,7 @@
 
 {{ macros.price_drops_table(rows, country, currency=currency) }}
 {{ macros.price_drops_cards(rows, country, currency=currency) }}
+{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
 {{ macros.price_disclaimer() }}
 {% endblock %}
