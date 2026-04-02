@@ -90,7 +90,7 @@ a:hover {
 
 .card-row {
     display: grid;
-    grid-template-columns: 80px 1fr;
+    grid-template-columns: 95px 1fr;
     gap: 0.5rem;
     align-items: start;
 }
