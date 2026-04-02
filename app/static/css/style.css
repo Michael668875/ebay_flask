@@ -89,23 +89,21 @@ a:hover {
 }
 
 .card-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 4px 0;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0.5rem;
+    align-items: start;
 }
 
 .card-row .label {
     font-weight: 600;
-    color: #aaa;
-    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .card-row .value {
-    color: #fff;
-    text-align: right;
-    flex: 1 1 auto;
     min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /* ================= Responsive Rules ================= */
