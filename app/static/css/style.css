@@ -102,6 +102,7 @@ a:hover {
 
 .card-row .value {
     min-width: 0;
+    text-align: right;
     overflow-wrap: anywhere;
     word-break: break-word;
 }
