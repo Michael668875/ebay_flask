@@ -34,7 +34,6 @@ a:hover {
 .table-container {
     max-width: 100%;
     overflow-x: auto;
-    margin: 20px 0;
 }
 
 .table-sm td,
@@ -495,3 +494,40 @@ button:hover {
 .page-ellipsis {
   padding: 6px 4px;
 }
+
+/*========= model stats ===============*/
+
+.model-price-card {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.model-price-card .stat-box {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    height: 100%;
+}
+
+.model-price-card .stat-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #adb5bd;
+    margin-bottom: 0.35rem;
+}
+
+.model-price-card .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #fff;
+}
+
+@media (min-width: 768px) {
+    .model-price-card .stat-value {
+        font-size: 1.25rem;
+    }
+}
+

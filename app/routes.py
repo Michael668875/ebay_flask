@@ -341,6 +341,8 @@ def model_page(country, model_slug):
             country_flags=COUNTRY_FLAGS,
         )
 
+    stats = canonical_model_stats(model.id, marketplaces)
+
     sort = request.args.get("sort", "price")
     direction = request.args.get("direction", "asc")
     
@@ -390,6 +392,7 @@ def model_page(country, model_slug):
         model_name=model.name,
         currency=currency,
         country_flags=COUNTRY_FLAGS,
+        stats=stats,
     )
 
 # -------------------------------------------------
@@ -840,47 +843,6 @@ def best_deals(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
-
-@bp.route("/<country>/<slug>-price")
-def model_price(country, slug):
-    country, marketplaces, currency = get_country_context_or_404(country)
-
-    model = get_model_by_slug(slug)
-    if not model:
-        return render_template(
-            "search.html",
-            query=slug,
-            country=country,
-            currency=currency,
-            country_flags=COUNTRY_FLAGS,
-        )
-
-    stats = canonical_model_stats(model.id, marketplaces)
-
-    if not stats or stats.listing_count == 0:
-        return render_template(
-            "search.html",
-            query=model.name,
-            country=country,
-            currency=currency,
-            country_flags=COUNTRY_FLAGS,
-        )
-
-    return render_template(
-        "model_price.html",
-        stats={
-            "name": model.name,
-            "slug": model.slug,
-            "lowest_price": stats.lowest_price,
-            "avg_price": stats.avg_price,
-            "highest_price": stats.highest_price,
-            "listing_count": stats.listing_count,
-        },
-        country=country,
-        currency=currency,
-        country_flags=COUNTRY_FLAGS,
-    )
-
 
 @bp.route("/<country>/thinkpad_models")
 def thinkpad_models(country):
