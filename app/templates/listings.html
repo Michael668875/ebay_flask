@@ -3,12 +3,13 @@
 
 {% block content %}
 
+
 {% if filters %}
-{{ macros.search_specs(filters) }}
+    {{ macros.mobile_filter_chips(filters) }}
+    {{ macros.search_specs(filters) }}
+    {{ macros.active_filters(filters) }}
 {% endif %}
-{% if filters %}
-{{ macros.active_filters(filters) }}
-{% endif %}
+
 
 {{ macros.cards(listings, country) }}
 

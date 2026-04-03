@@ -1,97 +1,90 @@
-
-
 {% set nav_country = country if country is defined and country else 'us' %}
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1 mb-2">
-  <div class="container-fluid d-flex align-items-center">
 
-    <!-- Country Dropdown -->
-    <div class="dropdown me-3">
-      <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="countryDropdown"
-              data-bs-toggle="dropdown" aria-expanded="false">
-        {{ country_flags.get(nav_country) }}
-        {{ nav_country.upper() }}
-      </button>
+<nav class="navbar bg-body-tertiary border-bottom navbar-compact rounded my-1 mb-2">
+  <div class="container-fluid d-flex align-items-center gap-2">
 
-      <ul class="dropdown-menu" aria-labelledby="countryDropdown">
-        
-        {% for code, flag in country_flags.items() %}
-          
+    <!-- Left side: country + favicon -->
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      <!-- Country Dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="countryDropdown"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          {{ country_flags.get(nav_country) }}
+          {{ nav_country.upper() }}
+        </button>
+
+        <ul class="dropdown-menu" aria-labelledby="countryDropdown">
+          {% for code, flag in country_flags.items() %}
             <li>
               <a class="dropdown-item" href="{{ switch_country_url(code) }}">
                 {{ flag }} {{ code.upper() }}
               </a>
             </li>
-          
-        {% endfor %}
-      </ul>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Favicon / brand icon -->
+      <a href="{{ url_for('main.country_home', country=nav_country) }}" class="d-inline-flex align-items-center text-decoration-none">
+        <img src="{{ url_for('static', filename='favicon-32x32.png') }}" alt="ThinkPad Prices" width="24" height="24">
+      </a>
     </div>
 
-    <!-- Brand 
-    <a class="navbar-brand fw-semibold me-3" href="{{ url_for('main.index') }}">
-      ThinkPad Prices
-    </a>-->
-    
-    <img src="{{ url_for('static', filename='favicon-32x32.png') }}" alt="favicon">
-
-    <!-- Mobile toggler -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNavbar"
-            aria-controls="siteNavbar" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <!-- Links -->
-    <div class="collapse navbar-collapse" id="siteNavbar">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
+    <!-- Desktop links only -->
+    <div class="d-none d-md-flex align-items-center">
+      <ul class="navbar-nav flex-row gap-2 me-3">
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}"
-             href="{{ url_for('main.country_home', country=country) }}">
+          <a class="nav-link px-2 {% if request.endpoint == 'main.country_home' %}active{% endif %}"
+             href="{{ url_for('main.country_home', country=nav_country) }}">
             Home
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
+          <a class="nav-link px-2 {% if request.endpoint == 'main.deals' %}active{% endif %}"
              href="{{ url_for('main.deals', country=nav_country) }}">
             Market Overview
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
+          <a class="nav-link px-2 {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
              href="{{ url_for('main.best_deals', country=nav_country) }}">
             Best Deals
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
+          <a class="nav-link px-2 {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
              href="{{ url_for('main.price_drops', country=nav_country) }}">
             Price Drops
           </a>
         </li>
+
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
+          <a class="nav-link px-2 {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
              href="{{ url_for('main.thinkpad_models', country=nav_country) }}">
             Available Models
           </a>
         </li>
-
       </ul>
     </div>
-    <form class="d-flex ms-auto" method="get" action="{{ url_for('main.search_model') }}">
+
+    <!-- Search bar: always visible -->
+    <div class="search-wrap ms-auto">
+      <form class="d-flex" method="get" action="{{ url_for('main.search_model') }}">
         <input
-            class="form-control me-2"
-            type="search"
-            name="q"
-            placeholder="Search model (e.g. T480)"
-            aria-label="Search model"
-            required
+          class="form-control me-2"
+          type="search"
+          name="q"
+          placeholder="Search model (e.g. T480)"
+          aria-label="Search model"
+          required
         >
-        <!-- Pass the currently selected country -->
-        <input type="hidden" name="country" value="{{ country }}">
-        <button class="btn btn-outline-light" type="submit">Search</button>
-    </form>
+        <input type="hidden" name="country" value="{{ nav_country }}">
+        <button class="btn btn-outline-light flex-shrink-0" type="submit">Search</button>
+      </form>
+    </div>
 
   </div>
 </nav>

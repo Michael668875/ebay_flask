@@ -1,0 +1,27 @@
+
+<nav class="mobile-bottom-nav">
+  <a href="{{ url_for('main.country_home', country=country) }}"
+     class="{% if request.endpoint == 'main.country_home' %}active{% endif %}">
+    <span>Home</span>
+  </a>
+
+  <a href="{{ url_for('main.deals', country=country) }}"
+     class="{% if request.endpoint == 'main.deals' %}active{% endif %}">
+    <span>Overview</span>
+  </a>
+
+  <a href="{{ url_for('main.best_deals', country=country) }}"
+     class="{% if request.endpoint == 'main.best_deals' %}active{% endif %}">
+    <span>Deals</span>
+  </a>
+
+  <a href="{{ url_for('main.price_drops', country=country) }}"
+     class="{% if request.endpoint == 'main.price_drops' %}active{% endif %}">
+    <span>Drops</span>
+  </a>
+
+  <a href="{{ url_for('main.thinkpad_models', country=country) }}"
+     class="{% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}">
+    <span>Models</span>
+  </a>
+</nav>
