@@ -92,7 +92,7 @@ a:hover {
     display: grid;
     grid-template-columns: 95px 1fr;
     gap: 0.5rem;
-    align-items: start;
+    align-items: center;
 }
 
 .card-row .label {
@@ -102,7 +102,6 @@ a:hover {
 
 .card-row .value {
     min-width: 0;
-    text-align: right;
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -145,7 +144,7 @@ a:hover {
     .card-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 2px;
+        gap: 5px;
     }
 
     .card-row .value {
