@@ -144,7 +144,7 @@ a:hover {
     .card-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 5px;
+        gap: 20px;
     }
 
     .card-row .value {
