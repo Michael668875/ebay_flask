@@ -69,50 +69,6 @@ a:hover {
 /* ================= Card Styles ================= */
 .listings-grid {
     display: none; /* hidden on desktop by default */
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 16px;
-    padding: 16px 0;
-}
-
-.listing-card {
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 12px 16px;
-    background-color: #1e1e1e;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.listing-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.5);
-}
-
-.card-row {
-    display: grid;
-    grid-template-columns: 95px 1fr;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.card-row .label {
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.card-row .value {
-    min-width: 0;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.card-row .value a {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-}
-
-.card-row:last-child {
-    margin-bottom: 0;
 }
 
 /* ================= Responsive Rules ================= */
@@ -136,20 +92,40 @@ a:hover {
     }
 
     .listing-card {
-        padding: 12px;
+        border: 1px solid #333;
+        border-radius: 10px;
+        padding: 12px 16px;
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        transition: transform 0.15s, box-shadow 0.15s;
     }
-}
 
-@media screen and (max-width: 400px) {
-    .card-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
+    .card-row {        
+        display: grid;
+        grid-template-columns: 95px 1fr;
+        gap: 20px;     
     }
 
     .card-row .value {
         margin-top: 2px;
         text-align: left;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .card-row .label {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .card-row .value a {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .card-row:last-child {
+        margin-bottom: 0;
     }
 }
 
