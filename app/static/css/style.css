@@ -102,8 +102,18 @@ a:hover {
 
 .card-row .value {
     min-width: 0;
+    text-align: right;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.card-row .value a {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.card-row:last-child {
+    margin-bottom: 0;
 }
 
 /* ================= Responsive Rules ================= */
