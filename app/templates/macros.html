@@ -319,7 +319,7 @@
 
                 <a href="{{ request.path }}?{{ remove_args|urlencode }}"
                     class="badge rounded-pill text-bg-secondary text-decoration-none px-3 py-2">
-                    {{ name|replace('_', ' ')|title }}: {{ value }} ×
+                    {{ name|replace('_', ' ')|title }}: {{ value|format_capacity }} ×
                 </a>
             {% endif %}
         {% endfor %}
