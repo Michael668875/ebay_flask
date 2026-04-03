@@ -226,13 +226,6 @@
         {% if current_val %}✓{% endif %}
       </button>
     {% endfor %}
-
-    {% if request.args %}
-      <a href="{{ request.path }}"
-         class="btn btn-sm btn-outline-danger rounded-pill flex-shrink-0">
-        Reset
-      </a>
-    {% endif %}
   </div>
 
   <!-- Offcanvas panels (one per filter) -->
