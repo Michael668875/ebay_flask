@@ -16,7 +16,7 @@
 
 
 
-{{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False) }}
+{{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False, show_back_button=True) }}
 {{ macros.cards(listings, country, currency=currency) }}
 {{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
