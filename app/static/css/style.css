@@ -33,7 +33,13 @@ a:hover {
 /* ================= Table Styles ================= */
 .table-container {
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: auto;   /* horizontal scroll only */
+    overflow: visible;
+}
+
+/* remove extra overflow wrappers if possible */
+.listings-table-wrap {
+    overflow: visible;
 }
 
 .table-sm td,
@@ -41,29 +47,18 @@ a:hover {
     padding: .3rem .4rem;
 }
 
-/* desktop table visible by default */
-.listings-table-wrap {
-    display: block;       /* allows scrolling */
-    overflow-x: auto;
-}
-
-.table-scroll {
-  overflow-x: auto;
-  max-width: 100%;
-}
-
 .listings-table {
     width: 100%;
     min-width: 600px;
-    border-collapse: collapse;
+    border-collapse: separate;  /* more reliable for sticky */
+    border-spacing: 0;
 }
 
 .listings-table thead th {
     position: sticky;
     top: 0;
-    background-color: #212529; /* match Bootstrap table-dark */
     z-index: 20;
-    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5);
+    background-color: #212529; /* same as table-dark */
 }
 
 /* ================= Card Styles ================= */
