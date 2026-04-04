@@ -597,67 +597,6 @@ def deals(country):
     )
 
 
-@bp.route("/<country>/deals/<model_slug>")
-def deals_model(country, model_slug):
-    country, marketplaces, currency = get_country_context_or_404(country)
-
-    model = get_model_by_slug(model_slug)
-    if not model:
-        return render_template(
-            "search.html",
-            query=model_slug,
-            country=country,
-            currency=currency,
-            country_flags=COUNTRY_FLAGS,
-        )
-
-    rows = (
-        Listing.query
-        .join(Model, Model.listing_id == Listing.id)
-        .filter(
-            Model.canon_model_id == model.id,
-            Listing.status == "ACTIVE",
-            Listing.marketplace.in_(marketplaces),
-        )
-        .with_entities(
-            Listing.price,
-            Listing.ebay_item_id,
-            Listing.title,
-            Listing.item_url,
-            Listing.affiliate_url,
-            Listing.currency,
-        )
-        .order_by(Listing.price.asc())
-    )
-
-    if not rows:
-        return render_template(
-            "search.html",
-            query=model.name,
-            country=country,
-            currency=currency,
-            country_flags=COUNTRY_FLAGS,
-        )
-    
-    page = request.args.get("page", 1, type=int)
-    per_page = 50
-
-    pagination = rows.paginate(page=page, per_page=per_page, error_out=False)
-    rows = pagination.items
-
-    return render_template(
-        "deals_model.html",
-        rows=rows,
-        pagination=pagination,
-
-        country=country,
-        slug=model.slug,
-        model_name=model.name,
-        currency=currency,
-        country_flags=COUNTRY_FLAGS,
-    )
-
-
 @bp.route("/<country>/price-drops")
 def price_drops(country):
     country, marketplaces, currency = get_country_context_or_404(country)

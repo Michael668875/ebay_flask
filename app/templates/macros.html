@@ -455,7 +455,7 @@
         <tr>
             <td>
                 {% if row.slug %}
-                    <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
+                    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
                         <strong>{{ row.model_name }}</strong>
                     </a>
                 {% else %}
@@ -481,7 +481,7 @@
             </td>
             
             <td>
-                <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
+                <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
                     {{ row.listing_count }} listing{{ 's' if row.listing_count != 1 else '' }}
                     {% if row.listing_count >= 10 %}
                         &nbsp;<span class="badge text-bg-warning">Popular</span>
@@ -504,7 +504,7 @@
             <span class="label">Model:</span>
             <span class="value">
                 {% if row.slug %}
-                    <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}">
+                    <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">
                         <strong>{{ row.model_name }}</strong>
                     </a>
                 {% else %}
@@ -543,7 +543,7 @@
 
         <div class="mt-2">
             {% if row.slug %}
-                <a href="{{ url_for('main.deals_model', country=country, model_slug=row.slug) }}"
+                <a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}"
                    class="btn btn-sm btn-outline-primary w-100">
                     View Listings
                 </a>
@@ -555,89 +555,6 @@
 {% endmacro %}
 
 
-{% macro deals_model_table(rows, country, slug, currency='') %}
-<div class="container mt-4">
-
-    <h2 class="mb-4">
-        Lowest prices for {{ slug.replace('-', ' ').title() }} in ({{ country.upper() }})
-    </h2>
-
-    {% if rows %}
-    <div class="table-rounded listings-table-wrap">
-    <table class="table table-dark table-hover listings-table">
-        <thead>
-            <tr>
-                <th>{{ price_heading(currency=currency) }}</th>
-                <th>Title</th>
-                <th>Listing</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in rows %}
-            <tr>
-                <td>
-                    <strong>{{ price_display(row.price, currency, show_code=False) }}</strong>
-                </td>
-                <td>{{ row.title }}</td>
-                <td>
-                    {% if row.item_url %}
-                        <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary">
-                            View on eBay
-                        </a>
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
-    {% else %}
-
-    <div class="alert alert-warning">
-        No active listings found for this model in {{ country.upper() }}.
-    </div>
-
-    {% endif %}
-
-    <div class="mt-3">
-        <a href="{{ url_for('main.deals', country=country) }}" class="btn btn-secondary">
-            ← Back to Overview
-        </a>
-    </div>
-
-</div>
-
-{% endmacro %}
-
-{% macro deals_model_cards(rows, currency='') %} <!-- this needs fixing -->
-<div class="listings-grid">
-    {% for row in rows %}
-    <div class="listing-card">
-        <div class="card-row">
-            <span class="label">Price:</span>
-            <span class="value"><strong>{{ price_display(row.price, currency, show_code=False) }}</strong></span>
-        </div>
-
-        <div class="card-row">
-            <span class="label">Title:</span>
-            <span class="value">{{ row.title or "—" }}</span>
-        </div>
-
-        <div class="mt-2">
-            {% if row.item_url %}
-                <a href="{{ row.affiliate_url or row.item_url }}" target="_blank" rel="nofollow sponsored noopener" class="btn btn-sm btn-primary w-100">
-                    View on eBay
-                </a>
-            {% else %}
-                —
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endmacro %}
 
 {% macro best_deals_table(rows, country, currency='') %}
 <div class="table-rounded listings-table-wrap">
