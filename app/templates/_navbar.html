@@ -31,43 +31,45 @@
     </div>
 
     <!-- Desktop links only -->
+    <div class="d-flex gap-2">
     <div class="d-none d-md-flex align-items-center">
       <ul class="navbar-nav flex-row gap-2 me-3">
         <li class="nav-item">
-          <a class="nav-link px-2 {% if request.endpoint == 'main.country_home' %}active{% endif %}"
+          <a class="nav-link {% if request.endpoint == 'main.country_home' %}active{% endif %}"
              href="{{ url_for('main.country_home', country=nav_country) }}">
-            Home
+            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Home</button>
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link px-2 {% if request.endpoint == 'main.deals' %}active{% endif %}"
+          <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
              href="{{ url_for('main.deals', country=nav_country) }}">
-            Market Overview
+            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Market Overview</button>
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link px-2 {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
+          <a class="nav-link {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
              href="{{ url_for('main.best_deals', country=nav_country) }}">
-            Best Deals
+            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Best Deals</button>
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link px-2 {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
+          <a class="nav-link {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
              href="{{ url_for('main.price_drops', country=nav_country) }}">
-            Price Drops
+            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Price Drops</button>
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link px-2 {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
+          <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
              href="{{ url_for('main.thinkpad_models', country=nav_country) }}">
-            Available Models
+            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Available Models</button>
           </a>
         </li>
       </ul>
+    </div>
     </div>
 
     <!-- Search bar: always visible -->
