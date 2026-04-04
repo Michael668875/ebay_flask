@@ -16,7 +16,7 @@ body {
 
 .table-rounded {
     border-radius: 12px;
-    background-color: #212529; /* Bootstrap dark table base */
+    background-color: #212529;
     border: 1px solid #444;
 }
 
@@ -33,12 +33,6 @@ a:hover {
 /* ================= Table Styles ================= */
 .table-container {
     max-width: 100%;
-    overflow-x: auto;   /* horizontal scroll only */
-    overflow: visible;
-}
-
-/* remove extra overflow wrappers if possible */
-.listings-table-wrap {
     overflow: visible;
 }
 
@@ -59,6 +53,23 @@ a:hover {
     top: 0;
     z-index: 20;
     background-color: #212529; /* same as table-dark */
+    background-clip: padding-box;
+}
+
+.listings-table thead th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.listings-table thead th:last-child {
+    border-top-right-radius: 12px;
+}
+
+.listings-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+
+.listings-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
 }
 
 /* ================= Card Styles ================= */
@@ -69,7 +80,7 @@ a:hover {
 /* ================= Responsive Rules ================= */
 @media screen and (max-width: 768px) {
     /* hide desktop table wrapper entirely */
-    .listings-table-wrap {
+    .table-container {
         display: none;
     }
 
