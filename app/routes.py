@@ -744,7 +744,7 @@ def best_deals(country):
         )
         .join(avg_subq, avg_subq.c.canon_model_id == base_q.c.canon_model_id)
         .join(ThinkPadModel, ThinkPadModel.id == base_q.c.canon_model_id)
-        .filter(base_q.c.price < avg_subq.c.avg_price * 0.75)
+        .filter(base_q.c.price < avg_subq.c.avg_price * 0.85)
     )
 
     sort = request.args.get("sort", "discount")

@@ -51,6 +51,8 @@ def find_model_and_insert(title, known_models):
     if match:
         model_name = match.group(0).title()   # "E14 Gen 7"
 
+        # return model_name
+
         if model_name not in known_models:
             try:
                 existing = TempModel.query.filter_by(temp_name=model_name).first()
@@ -82,3 +84,11 @@ with app.app_context():
         find_model_near_thinkpad(title, known_models)
         #find_model_and_insert(title, known_models)
         
+
+# Parse title for CPU
+
+# Parse title for RAM values
+
+# Parse title for STORAGE values
+
+# Parse title for STORAGE TYPE
