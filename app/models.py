@@ -15,6 +15,12 @@ class ThinkPadModel(db.Model):
     # backref for models linked to this canonical model
     models = db.relationship("Model", back_populates="canon_model", cascade="all, delete-orphan")
 
+class TempModel(db.Model):
+    __tablename__ = "temp_models"
+
+    id = db.Column(db.Integer, primary_key=True)
+    temp_name = db.Column(db.String, unique=True)
+
 
 # --------------------------
 # Parsed Model from eBay
