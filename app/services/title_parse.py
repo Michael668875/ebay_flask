@@ -41,8 +41,13 @@ def simple_format(name):
 def find_model_by_pattern(title):
     title = normalize_title(title)
 
+    # discard titles that don't contain "thinkpad"
+    if not re.search(r"\bthinkpad\b", title):
+        print("not thinkpad")
+        return None
+
     patterns = [
-    ("base_match", r"\b[a-z]+\d{1,4}[a-z]?(?:-?\d{1,2})?\b"),
+    #("base_match", r"\b[a-z]+\d{1,4}[a-z]?(?:-?\d{1,2})?\b"),
     ("simple_match", r"\b(x|t|p|e|l|w|z|a|sl)(\d{1,4}[a-z]?)\b"),   
     ("number_letter_match", r"\b\d{2,3}[a-z](?=\s|$)"),
     ("edge_match", r"\bedge\s*(\d{1,2})\b"),
@@ -50,33 +55,15 @@ def find_model_by_pattern(title):
     ("numbers_match", r"\b\d{3}(?=\s|$)"),
     ]
 
+    
     has_carbon = bool(re.search(r"\bcarbon\b", title))
     has_yoga = bool(re.search(r"\byoga\b", title))
     has_tablet = bool(re.search(r"\btablet\b", title))
-    has_2in1 = bool(re.search(r"\b2[\s-]?in[\s-]?1\b", title))    
-    gen_match = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)\s*(?:gen|g)\b", title)
-    if gen_match:
-        has_gen = gen_match.group(1)
-    else:
-        gen_match = re.search(r"\b(?:gen|g)\s*(\d{1,2})\b", title)
-        has_gen = gen_match.group(1) if gen_match else None
-
-    
-    
-
-    """
-    issues:
-   
-    X9-14 G1     
+    has_2in1 = bool(re.search(r"\b2[\s-]?in[\s-]?1\b", title))
+    new_model = re.search(r"\b(t14|t14s|t16|t16g|x13|x12|x1|x9|e14|e15|e16|l13|l14|l16|p1|p14s|p15v|p16|p16s|p16v|p17|thinkpad 13|11e)\b", title)  
+    gen_match = re.search(r"\b(?:(\d{1,2})(?:st|nd|rd|th)\s*)?(?:gen|g)(?:\s*(\d{1,2}))?\b", title)
+    has_gen = gen_match.group(1) or gen_match.group(2) if gen_match and new_model else None   
         
-    base_match X13 2-in-1 Gen 13
-    'Lenovo ThinkPad X13 2-in-1 Gen 5 Core Ultra 13th Gen 135U 262GB 16GB 1920 x 1200',
-
-    may also try to insert "None" as a model
-
-    """
-    # results must be normalise to match db values. ie lower() then title() Gen 2 replaces G2, put spaces where needed etc.
-
     # return first match only
     for name, pattern in patterns:
         match = re.search(pattern, title)
@@ -111,12 +98,18 @@ def find_model_by_pattern(title):
 #            matches.append((name, match.group(0)))
 #    print(matches)
 #    return matches
-        
+
+
+"""
+issues:
+may also try to insert "None" as a model
+"""
+
 
 # insert newly discovered model names into temp table    
 def insert_temp_model(model_name, known_models): 
 
-    if model_name not in known_models:
+    if model_name not in known_models and model_name != None:
         try:
             existing = TempModel.query.filter_by(temp_name=model_name).first()
 
@@ -132,13 +125,13 @@ def insert_temp_model(model_name, known_models):
             else:
                 existing.seen_count += 1
                 db.session.commit()
-                print(f"Already exists in TempModel: {model_name}")
+                #print(f"Already exists in TempModel: {model_name}")
 
         except Exception as e:
             print(f"Error inserting {model_name}: {e}")
 
-    else:
-        print(f"Already exists: {model_name}")
+   # else:
+   #     print(f"Already exists: {model_name}")
 
 
 
@@ -147,9 +140,9 @@ with app.app_context():
 
     for title in title_list:
         #find_model_near_thinkpad(title, known_models)
-        #candidates = find_model_by_pattern(title)
-        #insert_temp_model(candidates, known_models)
-        find_model_by_pattern(title)
+        candidates = find_model_by_pattern(title)
+        insert_temp_model(candidates, known_models)
+        #find_model_by_pattern(title)
         
 
 # Parse title for CPU
