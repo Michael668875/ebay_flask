@@ -20,6 +20,7 @@ class TempModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     temp_name = db.Column(db.String, unique=True)
+    seen_count = db.Column(db.Integer, nullable=False)
 
 
 # --------------------------
