@@ -1,7 +1,7 @@
 # TITLE PARSING TO REPLACE DETAILED ITEM FETCH. EXPERIMENTAL DON'T USE YET
 
 import re
-from app.models import ThinkPadModel, TempModel
+from app.models import ThinkPadModel, TempModel, CPU
 from app import create_app, db
 from slugify import slugify
 from app.services.titles import titles
@@ -135,9 +135,19 @@ def insert_temp_model(model_name, known_models):
 
     # compare to canon list in db first
 
+def find_cpu_canon(title):
+    title = normalize_title(title)
+
+    known_cpus = [c.name for c in CPU.query.all()]
+
+    for cpu in sorted(known_cpus, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(cpu.lower())}\b", title):
+            return cpu
+    return None
+
     # possilbe filter logic
 
-def find_cpu(title):
+def find_cpu_pattern(title):
     title = normalize_title(title)
 
     # Intel
@@ -227,4 +237,6 @@ with app.app_context():
         #find_model_by_pattern(title)
         #find_memory(title)
         #print(find_memory(title))
-        print(find_storage_type(title))
+        #print(find_storage_type(title))
+        #print(find_cpu_canon(title))
+        print(find_cpu_pattern(title))
