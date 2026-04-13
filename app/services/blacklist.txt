@@ -19,3 +19,7 @@ touchpad for lenovo
 touchpad for thinkpad
 matte screen protector
 screen protector for
+mediatek
+laptop battery
+ink cartridge
+notebook
