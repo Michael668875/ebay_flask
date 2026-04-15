@@ -1,0 +1,421 @@
+Intel Core i5-10210U
+Intel Core i5-10310U
+Intel Core i7-10510U
+Intel Core i7-10610U
+Intel Core i7-10710U
+Intel Core i7-10810U
+AMD Ryzen 7 PRO 4750U
+Intel Core i5-1135G7
+Intel Core i5-1145G7
+Intel Core i7-1165G7
+Intel Core i7-1185G7
+AMD Ryzen 5 PRO 5650U
+AMD Ryzen 7 PRO 5850U
+Intel Core i5-1240P
+Intel Core i5-1250P
+Intel Core i7-1260P
+Intel Core i7-1270P
+Intel Core i7-1280P
+AMD Ryzen 5 PRO 6650U
+AMD Ryzen 7 PRO 6850U
+Intel Core i3-2310M
+Intel Core i3-2350M
+Intel Core i3-4010U
+Intel Core i3-4030U
+Intel Core i5-2510M
+Intel Core i5-2520M
+Intel Core i5-2540M
+Intel Core i7-2620M
+Intel Core i7-2640M
+Intel Core i7-2630QM
+Intel Core i7-2720QM
+Intel Core i7-2820QM
+Intel Core i3-3217U
+Intel Core i5-3317U
+Intel Core i7-3517U
+Intel Core i5-3337U
+Intel Core i5-3427U
+Intel Core i7-3667U
+Intel Core i3-4000U
+Intel Core i3-4100U
+Intel Core i7-4600U
+Intel Core i7-4600M
+Intel Core i5-4300U
+Intel Core i5-4330U
+Intel Core i5-4200U
+Intel Core i5-4210U
+Intel Core i7-4500U
+Intel Core i5-5200M
+Intel Core i5-5300M
+Intel Core i7-5500U
+Intel Core i7-5600U
+Intel Core i5-7200U
+Intel Core i5-7300U
+Intel Core i7-7300U
+Intel Core i7-7500U
+Intel Core i7-7600U
+Intel Core i5-8250U
+Intel Core i5-8350U
+Intel Core i7-8550U
+Intel Core i7-8650U
+Intel Core-M m3-6Y30
+Intel Core-M m5-6Y54
+Intel Core-M m5-6Y57
+Intel Core-M m7-6Y75
+AMD Athlon Neo Single-Core MV-40
+AMD Athlon Neo X2 Dual-Core L335
+AMD Turion Neo X2 Dual-Core L625
+AMD Fusion C-50
+AMD Fusion E-240
+AMD Fusion E-300
+AMD Fusion E-350
+AMD Fusion E-450
+Intel Core i3-2357M
+Intel Core i3-2367M
+Intel Core i5-2467M
+Intel Core i5-2537M
+Intel Core i7-2617M
+AMD Fusion E-300
+AMD Fusion E-450
+Intel Celeron 857
+Intel Mobile Pentium III 450 MHz
+Intel Mobile Pentium III 500 MHz
+Intel Mobile Pentium III 600 MHz
+Intel Mobile Pentium III 650 MHz
+Intel Mobile Pentium III 700 MHz
+Intel Mobile Pentium III 750 MHz
+Intel Mobile Pentium III 800 MHz
+Intel Mobile Pentium III 850 MHz
+Intel Mobile Pentium III 900 MHz
+Intel Mobile Pentium III 1.0 GHz
+Intel Mobile Pentium III-M 733 MHz
+Intel Mobile Pentium III-M 800 MHz
+Intel Mobile Pentium III-M 866 MHz
+Intel Mobile Pentium III-M 933 MHz
+Intel Mobile Pentium III-M 1.0 GHz
+Intel Mobile Pentium III-M 1.13 GHz
+Intel Mobile Pentium III-M 1.2 GHz
+Intel Mobile Pentium 4-M 1.6 GHz
+Intel Mobile Pentium 4-M 1.7 GHz
+Intel Mobile Pentium 4-M 1.8 GHz
+Intel Mobile Pentium 4-M 1.9 GHz
+Intel Mobile Pentium 4-M 2.0 GHz
+Intel Mobile Pentium 4-M 2.2 GHz
+Intel Mobile Pentium 4-M 2.4 GHz
+Intel Core 2 Duo P7370
+Intel Core 2 Duo P7570
+Intel Core 2 Duo P8400
+Intel Core 2 Duo P8600
+Intel Core 2 Duo P8700
+Intel Core 2 Duo P8800
+Intel Core 2 Duo SL9300
+Intel Core 2 Duo SL9400
+Intel Core 2 Duo SL9600
+Intel Celeron M 723
+Intel Celeron SU2300
+Intel Core 2 Solo SU3500
+Intel Core i5-480M
+Intel Core i5-520M
+Intel Core i5-540M
+Intel Core i5-560M
+Intel Core i5-580M
+Intel Core i7-620M
+Intel Celeron U3400
+Intel Core i5-520UM
+Intel Core i7-620LM
+Intel Core i7-640LM
+Intel Core i3-330M
+Intel Core i3-350M
+Intel Core i3-370M
+Intel Core i5-430M
+Intel Core i5-450M
+Intel Core i3-2310M
+Intel Core i5-2410M
+Intel Core i5-2450M
+Intel Core i7-2620M
+Intel Core i7-2640M
+Intel Core i7-3520M
+Intel Core i5-3360M
+Intel Core i5-3320M
+Intel Core i7-3610QM
+Intel Mobile Pentium III-M 1.13 GHz
+Intel Mobile Pentium III-M 1.06 GHz
+Intel Mobile Pentium III-M 1.2 GHz
+Intel Core i3-5010U
+Intel Core i5-5200U
+Intel Core i5-5300U
+Intel Core i3-6006U
+Intel Core i3-6100U
+Intel Core i5-6200U
+Intel Core i5-6300U
+Intel Core i7-6500U
+Intel Core i7-6600U
+Intel Core 2 Duo SL7100
+Intel Core 2 Duo SU9400
+Intel Core 2 Duo SU9600
+Intel Core 2 Duo L7400
+Intel Core 2 Duo L7300
+Intel Core 2 Duo L7500
+Intel Core 2 Duo L7700
+Intel Pentium M 1.0 GHz
+Intel Pentium M 1.1 GHz
+Intel Pentium M 1.2 GHz
+Intel Pentium M 1.3 GHz
+Intel Pentium M 1.4 GHz
+Intel Pentium M 1.5 GHz
+Intel Pentium M 1.6 GHz
+Intel Pentium M 1.7 GHz
+Intel Pentium M 1.73 GHz
+Intel Pentium M 1.8 GHz
+Intel Pentium M 1.86 GHz
+Intel Pentium M 2.0 GHz
+Intel Pentium M 2.1 GHz
+Intel Pentium M 2.13 GHz
+Intel Pentium M 2.26 GHz
+Intel Core i7-8665U
+Intel Core i5-8265U
+Intel Core i5-10210U
+Intel Core Duo 1.66 GHz
+Intel Core Duo 1.83 GHz
+Intel Core Duo 2.0 GHz
+Intel Core Duo 2.16 GHz
+Intel Core Duo 2.2 GHz
+Intel Core Duo 2.33 GHz
+Intel Core 2 Duo 1.66 GHz
+Intel Core 2 Duo 1.8 GHz
+Intel Core 2 Duo 1.83 GHz
+Intel Core 2 Duo 2.0 GHz
+Intel Core 2 Duo 2.1 GHz
+Intel Core 2 Duo 2.16 GHz
+Intel Core 2 Duo 2.2 GHz
+Intel Core 2 Duo 2.33 GHz
+Intel Core 2 Duo 2.4 GHz
+Intel Core 2 Duo 2.5 GHz
+Intel Core 2 Duo 2.6 GHz
+Intel Core 2 Duo 2.8 GHz
+Intel Core Solo 1.66 GHz
+Intel Core Solo 1.83 GHz
+Intel Core Duo L2300
+Intel Core Duo L2400
+Intel Core Duo L2500
+Intel Core Solo U1400
+Intel Core 2 Duo T7100
+Intel Core 2 Duo T7250
+Intel Core 2 Duo T7300
+Intel Core 2 Duo T7500
+Intel Core 2 Duo T8100
+Intel Core 2 Duo T8300
+Intel Core 2 Duo T9300
+Intel Core 2 Duo T9400
+Intel Core 2 Duo P9500
+Intel Core 2 Duo P9550
+Intel Core 2 Duo T9600
+Intel Core 2 Duo SP9400
+Intel Core 2 Duo SP9600
+Intel Core i3-2328M
+Intel Core i3-2370M
+Intel Core i5-3210M
+Intel Core i5-3230M
+Intel Core i5-3417U
+Intel Core i7-4700MQ
+Intel Core i7-4710MQ
+Intel Core i7-4800MQ
+Intel Core i7-4810MQ
+Intel Core i7-4900MQ
+Intel Core i3-2370QM
+Intel Core i7-3630QM
+Intel Core i7-3720QM
+Intel Core i7-3740QM
+Intel Core i7-3820QM
+Intel Core i7-3840QM
+Intel Core i3-4000M
+Intel Core i3-4100M
+Intel Core i5-4200M
+Intel Core i5-4210M
+Intel Core i5-4330M
+Intel Core i7-4600M
+Intel Core i7-3920XM
+Intel Core 17-3940XM
+Intel Core i7-4930MX
+Intel Core i7-4900MQ
+Intel Core i7-4810MQ
+Intel Core i7-4800MQ
+Intel Core i7-4700MQ
+Intel Core i7-4600MQ
+Intel Core i5-4330M
+Intel Core i7-4200M
+Intel Mobile Pentium III 1000 MHz
+Intel Mobile Celeron 300 MHz
+Intel Mobile Celeron 366 MHz
+Intel Mobile Celeron 400 MHz
+Intel Mobile Celeron 433 MHz
+Intel Mobile Celeron 466 MHz
+Intel Mobile Celeron 500 MHz
+Intel Mobile Celeron 550 MHz
+Intel Mobile Celeron 600 MHz
+Intel Mobile Celeron 700 MHz
+Intel Mobile Celeron 800 MHz
+Intel Mobile Celeron 850 MHz
+Intel Mobile Celeron 900 MHz
+Intel Mobile Pentium III-M 1000 MHz
+Intel Mobile Pentium III-M 1066 MHz
+Intel Mobile Pentium III-M 1133 MHz
+Intel Mobile Pentium III-M 1200 MHz
+Intel Mobile Pentium III-M 1266 MHz
+Intel Mobile Celeron 1066 MHz
+Intel Mobile Celeron 1133 MHz
+Intel Mobile Celeron 1200 MHz
+Intel Mobile Celeron 1333 MHz
+Intel Mobile Celeron 1.5 GHz
+Intel Mobile Celeron 1.6 GHz
+Intel Mobile Celeron 1.7 GHz
+Intel Mobile Celeron 1.8 GHz
+Intel Mobile Celeron 2.0 GHz
+Intel Mobile Celeron 2.2 GHz
+Intel Mobile Celeron 2.4 GHz
+Intel Mobile Celeron 2.5 GHz
+Intel Mobile Celeron 2.6 GHz
+Intel Celeron T1600
+Intel Celeron T3000
+Intel Celeron T3100
+Intel Core 2 Duo T5870
+Intel Core 2 Duo T5670
+Intel Core 2 Duo T6570
+Intel Core 2 Duo T6670
+Intel Celeron M 585
+Intel Celeron M 575
+Intel Pentium M 710
+Intel Pentium M 715
+Intel Pentium M 715A
+Intel Pentium M 725
+Intel Pentium M 725A
+Intel Pentium M 730
+Intel Pentium M 735
+Intel Pentium M 740
+Intel Pentium M 745
+Intel Pentium M 750
+Intel Pentium M 755
+Intel Pentium M 760
+Intel Pentium M 770
+Intel Pentium M 780
+Intel Celeron M 310
+Intel Celeron M 320
+Intel Celeron M 330
+Intel Celeron M 340
+Intel Celeron M 350
+Intel Celeron M 360
+Intel Celeron M 360J
+Intel Celeron M 370
+Intel Celeron M 380
+Intel Celeron M 1.4 GHz
+Intel Celeron M 1.6 GHz
+Intel Centrino Duo T2300E
+Intel Core 2 Duo T5300
+Intel Core Duo T2450
+Intel Pentium T2080
+Intel Pentium T2130
+Intel Core 2 Duo T7700
+Intel Core 2 Duo T8100
+Intel Core 2 Duo T8300
+Intel Pentium Dual Core T2330
+Intel Pentium Dual Core T2370
+Intel Pentium Dual Core T2390
+Intel Core 2 Duo T5250
+Intel Core 2 Duo T5450
+Intel Core 2 Duo T5550
+Intel Core 2 Duo T5670
+Intel Core 2 Duo T5870
+Intel Core 2 Duo T6570
+Intel Core 2 Duo T5750
+Intel Core 2 Duo T8100
+AMD E2-1800
+AMD E2-3000M
+AMD A4-3300M
+AMD Ryzen 3 2200U
+AMD Ryzen 5 2500U
+AMD Ryzen 7 2700U
+AMD E2-3000M
+AMD A4-3305M
+AMD A4-3300M
+Intel Core i7-4702MQ
+Intel Core i7-4712MQ
+Intel Core i3-380U
+Intel Core 2 Duo SU7300
+Intel Core i3-380UM
+AMD Athlon II X2 P320
+AMD Turion II X2 P520
+AMD Turion II X2 P540
+AMD Phenom II X3 P820
+Intel Celeron P4500
+Intel Core i7-10750H
+IBM PowerPC 603e 100
+IBM PowerPC 603e 33
+IBM PowerPC 603e 66
+IBM PowerPC 603e 166
+IBM 486SLC
+Intel 386SX
+Intel 486SX
+Intel 486SL
+Intel DX4
+Intel 486SX
+IBM 486SLC2
+Intel 486DX2
+Intel 486DX4
+Intel Pentium 75
+Intel Pentium 90
+Intel Pentium 100
+Intel Pentium 120
+Intel Pentium 133
+Intel Pentium 150
+Intel Pentium MMX 133
+Intel Pentium MMX 150
+Intel Pentium MMX 166
+Intel Pentium MMX 200
+Intel Pentium MMX 233
+Intel Pentium MMX 266
+Intel Pentium MMX 300
+Intel Mobile Pentium II 233
+Intel Mobile Pentium II 266
+Intel Mobile Pentium II 300
+Intel Mobile Pentium II 333
+Intel Mobile Pentium II 366
+Intel Mobile Pentium II 400
+IBM Blue Lightning 486 BLX2
+Intel 386SL
+Cyrix Cx486DX4
+Cyrix 5x86
+Intel Core i7-720QM
+Intel Core i7-820QM
+Intel Core i7-920XM
+Intel Core i7-2920XM
+Intel Core i7-2760QM
+Intel Core 2 X9100
+Intel Core 2 Q9000
+Intel Core 2 QX9300
+Intel Pentium 4 3.0 GHz
+Intel Pentium 4 2.8 GHz
+Intel Pentium 4 2.6 GHz
+Intel Pentium 4 2.4 GHz
+Intel Pentium 4 2.2 GHz
+Intel Mobile Pentium 4 532
+Intel Mobile Pentium 4 538
+Intel Mobile Pentium 4 548
+Intel Mobile Pentium 4 552
+Intel Celeron D 320
+Intel Celeron D 325
+Intel Celeron D 330
+Intel Celeron D 335
+Intel Core Duo T2300E
+Intel Core Duo T2300
+Intel Core Duo T2400
+Intel Core Duo T2500
+Intel Celeron M 410
+Intel Celeron M 420
+Intel Celeron M 430
+Intel Core Solo T1300
+Intel Core Solo T1400
+Intel Core 2 Duo T5500
+Intel Core 2 Duo T5600
+Intel Core 2 Duo T7200
+
+

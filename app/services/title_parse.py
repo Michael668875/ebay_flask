@@ -145,7 +145,7 @@ def find_cpu_canon(title):
             return cpu
     return None
 
-    # possilbe filter logic
+    
 
 def find_cpu_pattern(title):
     title = normalize_title(title)
@@ -231,7 +231,7 @@ with app.app_context():
     known_models = {m.name for m in ThinkPadModel.query.all()}
 
     for title in title_list:
-        #find_model_near_thinkpad(title, known_models)
+        find_model_near_thinkpad(title, known_models)
         #candidates = find_model_by_pattern(title)
         #insert_temp_model(candidates, known_models)
         #find_model_by_pattern(title)
@@ -239,4 +239,4 @@ with app.app_context():
         #print(find_memory(title))
         #print(find_storage_type(title))
         #print(find_cpu_canon(title))
-        print(find_cpu_pattern(title))
+        #print(find_cpu_pattern(title))
