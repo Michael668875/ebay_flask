@@ -15,13 +15,6 @@ class ThinkPadModel(db.Model):
     # backref for models linked to this canonical model
     models = db.relationship("Model", back_populates="canon_model", cascade="all, delete-orphan")
 
-class TempModel(db.Model):
-    __tablename__ = "temp_models"
-
-    id = db.Column(db.Integer, primary_key=True)
-    temp_name = db.Column(db.String, unique=True)
-    seen_count = db.Column(db.Integer, nullable=False)
-
 
 # --------------------------
 # Parsed Model from eBay
@@ -40,15 +33,8 @@ class Model(db.Model):
 
     name = db.Column(db.String, nullable=True, index=True)  # final model name
 
-    raw_model = db.Column(db.String)
-    raw_mpn = db.Column(db.String)
-    parsed_aspect = db.Column(db.String)
-    parsed_title = db.Column(db.String)
-    parsed_mpn = db.Column(db.String)
-    model_source = db.Column(db.String) # source of final model name
-
     # Link to canonical model (optional, for browser display)
-    canon_model_id = db.Column(db.Integer, db.ForeignKey("model_list.id", ondelete="SET NULL"))
+    canon_model_id = db.Column(db.Integer, db.ForeignKey("model_list.id", ondelete="SET NULL"), index=True)
     canon_model = db.relationship("ThinkPadModel", back_populates="models", lazy="joined")
 
     # Listings associated with this model

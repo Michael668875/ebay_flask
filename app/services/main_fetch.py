@@ -26,13 +26,13 @@ os.makedirs(LOG_DIR, exist_ok=True)
 # -----------------------------
 # Prevent overlapping runs
 # -----------------------------
-if os.path.exists(LOCK_FILE):
-    print("Another main_fetch.py job is already running. Exiting.")
-    sys.exit(0)
+#if os.path.exists(LOCK_FILE):
+#    print("Another main_fetch.py job is already running. Exiting.")
+#    sys.exit(0)
 
 # Create lock file
-with open(LOCK_FILE, "w") as f:
-    f.write("")
+#with open(LOCK_FILE, "w") as f:
+#    f.write("")
 
 # -----------------------------
 # Main job
@@ -43,35 +43,35 @@ def main():
     try:
         with app.app_context():
             # truncate old data
-            truncate_temp_tables()
+            #truncate_temp_tables()
             # Fetch summaries
-            items = get_paginated_summaries()
-            clean_items = blacklist(items)
-            save_temp_summaries(clean_items)
-            print(f"Fetched and saved {len(items)} summaries")
+        #    items = get_paginated_summaries()
+        #    clean_items = blacklist(items)
+        #    save_temp_summaries(clean_items)
+        #    print(f"Fetched and saved {len(items)} summaries")
 
-            # Fetch new listings and details
-            listings = new_listings()
-            details = asyncio.run(fetch_item_details_async(listings))
-            save_temp_details(details)
-            print(f"Fetched and saved details for {len(details)} listings")
+         #   # Fetch new listings and details
+         #   listings = new_listings()
+         #   details = asyncio.run(fetch_item_details_async(listings))
+         #   save_temp_details(details)
+         #   print(f"Fetched and saved details for {len(details)} listings")
 
             # Run pipeline and parsing
             run_pipeline()
-            insert_storage_type()
-            normalize_specs_field("raw_ram", "ram", "ram_processed")
-            normalize_specs_field("raw_storage", "storage", "storage_processed")
-            parse_all_models()
-            print("Pipeline and parsing completed successfully")
+           # insert_storage_type()
+           # normalize_specs_field("raw_ram", "ram", "ram_processed")
+           # normalize_specs_field("raw_storage", "storage", "storage_processed")
+           # parse_all_models()
+           # print("Pipeline and parsing completed successfully")
 
     except Exception:
         print("Error occurred in main_fetch.py:")
         traceback.print_exc()
-    finally:
-        # Remove lock file
-        if os.path.exists(LOCK_FILE):
-            os.remove(LOCK_FILE)
-        print("Finished main_fetch.py job")
+    #finally:
+    #    # Remove lock file
+    #    if os.path.exists(LOCK_FILE):
+    #        os.remove(LOCK_FILE)
+    #    print("Finished main_fetch.py job")
 
 # -----------------------------
 # Entry point

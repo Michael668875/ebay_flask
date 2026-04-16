@@ -1,14 +1,13 @@
 # TITLE PARSING TO REPLACE DETAILED ITEM FETCH. EXPERIMENTAL DON'T USE YET
 
 import re
-from app.models import ThinkPadModel, TempModel, CPU
+from app.models import ThinkPadModel, CPU, Model, Listing
 from app import create_app, db
-from slugify import slugify
 from app.services.titles import titles
 
 app = create_app()
 
-title_list = titles
+title_list = titles # change this to title in temp_summaries or listings
 
 #title_list = ['Lenovo ThinkPad E16 G2 16 inch FHD+ Ryzen 7 7735HS 32GB DDR5  SSD WiFi 6E Win',
 #'Lenovo ThinkPad T14s Gen 1 Ryzen 7 PRO 4750U 16GB 512GB SSD Touch 14" Win11 Pro', '45gb 67tb', '71mb 389gb']
@@ -23,18 +22,26 @@ def find_model_near_thinkpad(title, known_models):
     title = normalize_title(title)
 
     if "thinkpad" not in title:
-        print("not thinkpad")
-        return None
+        #print("not thinkpad")
+        return None, None
 
     after = title.split("thinkpad", 1)[1].strip()
     window = " ".join(after.split()[:4])  # next 4 tokens
 
     for model in sorted(known_models, key=len, reverse=True):
         if re.search(rf"\b{re.escape(model.lower())}\b", window):
-            print(model)
-            return model
-    print("none found")
-    return None
+            canon_id = known_models[model]
+            #print(model)
+            return model, canon_id
+
+    # use pattern match if no canon model in title
+    # fallback regex
+    result = find_model_by_pattern(title)
+
+    if result:
+        return result, None
+
+    return None, None
 
 def simple_format(name):
     words = name.lower().split()
@@ -46,7 +53,7 @@ def find_model_by_pattern(title):
 
     # discard titles that don't contain "thinkpad"
     if not re.search(r"\bthinkpad\b", title):
-        print("not thinkpad")
+        #print("not thinkpad")
         return None
 
     patterns = [
@@ -86,10 +93,10 @@ def find_model_by_pattern(title):
 
             model_name = " ".join(parts)
 
-            print(name, model_name)
+            #print(name, model_name)
             return model_name
         
-    print("no match")
+    #print("no match")
     return None
         
 #    # return all matches
@@ -102,39 +109,37 @@ def find_model_by_pattern(title):
 #    print(matches)
 #    return matches
 
-# insert newly discovered model names into temp table    
-def insert_temp_model(model_name, known_models): 
 
-    if model_name not in known_models and model_name != None:
-        try:
-            existing = TempModel.query.filter_by(temp_name=model_name).first()
+def insert_model_from_title(session, listing, known_models):
+    model_name, canon_id = find_model_near_thinkpad(listing.title, known_models)
 
-            if not existing:
-                new_model = TempModel(
-                    temp_name=model_name,
-                    seen_count=1
-                )
-                db.session.add(new_model)
-                db.session.commit()
+    if not model_name:
+        return
 
-                print(f"Added new model: {model_name}")
-            else:
-                existing.seen_count += 1
-                db.session.commit()
-                #print(f"Already exists in TempModel: {model_name}")
+    if listing.model:
+        # update existing row
+        listing.model.name = model_name.strip()
+        listing.model.canon_model_id = canon_id
+    else:
+        # create new row
+        model = Model(
+            name=model_name.strip(),
+            canon_model_id=canon_id,
+            listing=listing,
+        )
+        session.add(model)
 
-        except Exception as e:
-            print(f"Error inserting {model_name}: {e}")
 
-   # else:
-   #     print(f"Already exists: {model_name}")
+def process_models():
+    known_models = {m.name: m.id for m in ThinkPadModel.query.all()}
 
+    for listing in Listing.query.yield_per(500):
+        insert_model_from_title(db.session, listing, known_models)
 
 
 # Parse title for CPU
 
-    # compare to canon list in db first
-
+# compare to canon list in db first
 def find_cpu_canon(title):
     title = normalize_title(title)
 
@@ -197,6 +202,7 @@ def find_memory(title):
         else:
             return None, val
     
+    # the smaller value is treated as ram and the larger as storage
     ram = values[0]
     storage = values[-1]
 
@@ -229,14 +235,19 @@ def find_storage_type(title):
 
 with app.app_context():
     known_models = {m.name for m in ThinkPadModel.query.all()}
-
-    for title in title_list:
-        find_model_near_thinkpad(title, known_models)
-        #candidates = find_model_by_pattern(title)
-        #insert_temp_model(candidates, known_models)
-        #find_model_by_pattern(title)
+    listings = Listing.query.all()
+    #for title in title_list:
+        #find_model_near_thinkpad(title, known_models)
         #find_memory(title)
         #print(find_memory(title))
         #print(find_storage_type(title))
         #print(find_cpu_canon(title))
         #print(find_cpu_pattern(title))
+
+    known_models = {m.name for m in ThinkPadModel.query.all()}
+    listings = Listing.query.all()
+
+    for listing in listings:
+        insert_model_from_title(db.session, listing, known_models)
+
+    db.session.commit()

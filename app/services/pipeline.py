@@ -1,8 +1,8 @@
 from app.extensions import db
 from sqlalchemy import text
-from app.services.parse import insert_storage_type
+from app.services.title_parse import process_models
     
-def insert_models():
+def insert_models(): # turn this off
     db.session.execute(text(r"""
         INSERT INTO models (listing_id, raw_model, raw_mpn)
         SELECT
@@ -20,7 +20,7 @@ def insert_models():
     """))
 
 # add detailed specs from temp to main table.
-def insert_specs():
+def insert_specs(): # turn this off
     """
     Insert specs from temp details
     """
@@ -269,7 +269,7 @@ def run_pipeline():
     Full ingestion pipeline.
     """
     insert_listings()
-    insert_models()
+    process_models() # get models from titles
     update_listing_prices()
     mark_sold_listings()
     update_seen_listings()
@@ -277,8 +277,8 @@ def run_pipeline():
     mark_ended_listings()
     insert_price_history()
     update_model_price_stats()
-    insert_specs()
-    insert_storage_type() # gets storage_type from raw_storage_type    
+    #insert_specs()
+    #insert_storage_type() # gets storage_type from raw_storage_type    
 
     db.session.commit()
 
