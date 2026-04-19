@@ -222,6 +222,7 @@ class CPU(db.Model):
     __tablename__ = "cpu"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
+    cpu_num = db.Column(db.Text)
 
 class RAM(db.Model):
     __tablename__ = "ram"

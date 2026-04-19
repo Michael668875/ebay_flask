@@ -7,7 +7,7 @@ from app.services.titles import titles
 
 app = create_app()
 
-title_list = titles # change this to title in temp_summaries or listings
+#title_list = titles # change this to title in temp_summaries or listings
 
 #title_list = ['Lenovo ThinkPad E16 G2 16 inch FHD+ Ryzen 7 7735HS 32GB DDR5  SSD WiFi 6E Win',
 #'Lenovo ThinkPad T14s Gen 1 Ryzen 7 PRO 4750U 16GB 512GB SSD Touch 14" Win11 Pro', '45gb 67tb', '71mb 389gb']
@@ -64,15 +64,11 @@ def find_model_by_pattern(title):
     ("odd_match", r"\bthinkpad\s*13(?=\s|$)"),
     ("numbers_match", r"\b\d{3}(?=\s|$)"),
     ]
-
     
     has_carbon = bool(re.search(r"\bcarbon\b", title))
     has_yoga = bool(re.search(r"\byoga\b", title))
     has_tablet = bool(re.search(r"\btablet\b", title))
-    has_2in1 = bool(re.search(r"\b2[\s-]?in[\s-]?1\b", title))
-    #new_model = re.search(r"\b(t14|t14s|t16|t16g|x13|x12|x1|x9|e14|e15|e16|l13|l14|l16|p1|p14s|p15v|p16|p16s|p16v|p17|thinkpad 13|11e)\b", title)  
-    #gen_match = re.search(r"\b(?:(\d{1,2})(?:st|nd|rd|th)\s*)?(?:gen|g)(?:\s*(\d{1,2}))?\b", title)
-    #has_gen = gen_match.group(1) or gen_match.group(2) if gen_match and new_model else None   
+    has_2in1 = bool(re.search(r"\b2[\s-]?in[\s-]?1\b", title))   
         
     # return first match only
     for name, pattern in patterns:
@@ -132,13 +128,15 @@ def insert_model_from_title(session, listing, known_models):
 
 def process_models():
     known_models = {m.name: m.id for m in ThinkPadModel.query.all()}
+    cpu_lookup = build_cpu_lookup()   
+    cpu_list = CPU.query.all()        
 
     for listing in Listing.query.yield_per(500):
         insert_model_from_title(db.session, listing, known_models)
 
         ram, storage = find_memory(listing.title)
         storage_type = find_storage_type(listing.title)
-        cpu = find_cpu_canon(listing.title)
+        cpu = cpu_match(listing.title, cpu_lookup, cpu_list)
 
         upsert_specs(listing, ram, storage, storage_type, cpu)
 
@@ -164,38 +162,104 @@ def upsert_specs(listing, ram, storage, storage_type, cpu):
 
 # Parse title for CPU
 
+def build_cpu_lookup():
+    cpus = CPU.query.filter(CPU.cpu_num.isnot(None)).all()
+    return {cpu.cpu_num.upper(): cpu for cpu in cpus}
+
+
+def build_cpu_name_list():
+    cpus = CPU.query.all()
+    return cpus
+
 # compare to canon list in db first
-def find_cpu_canon(title):
+def find_cpu_canon(title, cpu_list):
     title = normalize_title(title)
 
-    known_cpus = [c.name for c in CPU.query.all()]
+    for cpu in sorted(cpu_list, key=lambda x: len(x.name or ""), reverse=True):
+        if cpu.name and normalize_title(cpu.name) in title:
+            return cpu.name
 
-    for cpu in sorted(known_cpus, key=len, reverse=True):
-        if re.search(rf"\b{re.escape(cpu.lower())}\b", title):
-            return cpu
-    return find_cpu_pattern(title)
-
-    
+    return None    
 
 def find_cpu_pattern(title):
     title = normalize_title(title)
 
-    # Intel
-    intel = re.search(r"\bi[3579]\s?\d{4,5}[a-z]{0,2}\b", title)
+    # Intel full match (i7 1185G7 etc)
+    intel = re.search(r"\bi[3579][\s\-]?\d{4,5}[a-z]{1,3}\b", title, re.IGNORECASE)
     if intel:
-        return intel.group(0)
+        return format_cpu_match(intel.group(0))
 
-    # AMD
-    amd = re.search(r"\bryzen\s?[3579]\s?\d{4}[a-z]{0,2}\b", title)
+    # AMD full match (ryzen 5 5600U etc)
+    amd = re.search(r"\bryzen[\s\-]?[3579][\s\-]?(pro)?[\s\-]?\d{4}[a-z]{1,3}\b", title, re.IGNORECASE)
     if amd:
-        return amd.group(0)
+        return format_cpu_match(amd.group(0))
 
-    # Fallback
+    # Fallback (family only)
     fallback = re.search(r"\b(i3|i5|i7|i9|ryzen 3|ryzen 5|ryzen 7|ryzen 9)\b", title)
     if fallback:
-        return fallback.group(0)
+        return format_cpu_match(fallback.group(0))
 
     return None
+
+# format the cpu value after regex match so Ryzen is capitalised but i7 is not
+def format_cpu_match(value):
+    value = value.strip().upper()
+
+    if value.startswith("RYZEN"):
+        parts = value.split()
+        return "Ryzen " + " ".join(parts[1:])
+
+    if value.startswith("I"):
+        parts = value.split("I")
+        return "i" + "".join(parts[1:])
+
+    return value
+
+def extract_cpu_num(title):
+    if not title:
+        return None
+
+    title = title.upper()
+
+    match = re.search(r"\b(\d{3,5}[A-Z]{1,2}\d?)\b", title)
+    if match:
+        return match.group(1)
+
+    match = re.search(r"\b([A-Z]\d{3,5}[A-Z]?)\b", title)
+    if match:
+        return match.group(1)
+
+    return None
+
+
+def resolve_cpu_from_title(title, cpu_lookup):
+    cpu_num = extract_cpu_num(title)
+
+    if not cpu_num:
+        return None
+
+    return cpu_lookup.get(cpu_num.upper())
+
+
+def cpu_match(title, cpu_lookup, cpu_list):
+    # 1. Canonical match (string match against known CPUs)
+    found = find_cpu_canon(title, cpu_list)
+    if found:
+        return found
+
+    # 2. cpu_num lookup (fast dictionary)
+    cpu = resolve_cpu_from_title(title, cpu_lookup)
+    if cpu:
+        return cpu.name
+
+    # 3. pattern fallback
+    pattern = find_cpu_pattern(title)
+    if pattern:
+        return pattern
+
+    return None
+    
+
 
 # Parse title for RAM and Storage values
 
@@ -301,8 +365,7 @@ def find_storage_type(title):
 
 
 
-
-with app.app_context():
+"""with app.app_context():
     known_models = {m.name for m in ThinkPadModel.query.all()}
     listings = Listing.query.all()
     #for title in title_list:
@@ -322,4 +385,4 @@ with app.app_context():
         find_storage_type(listing)
         find_cpu_canon(listing)
 
-    db.session.commit()
+    db.session.commit()"""
