@@ -1,7 +1,7 @@
 # TITLE PARSING TO REPLACE DETAILED ITEM FETCH. EXPERIMENTAL DON'T USE YET
 
 import re
-from app.models import ThinkPadModel, CPU, Model, Listing
+from app.models import ThinkPadModel, CPU, Model, Listing, Specs
 from app import create_app, db
 from app.services.titles import titles
 
@@ -136,6 +136,31 @@ def process_models():
     for listing in Listing.query.yield_per(500):
         insert_model_from_title(db.session, listing, known_models)
 
+        ram, storage = find_memory(listing.title)
+        storage_type = find_storage_type(listing.title)
+        cpu = find_cpu_canon(listing.title)
+
+        upsert_specs(listing, ram, storage, storage_type, cpu)
+
+  
+
+
+def upsert_specs(listing, ram, storage, storage_type, cpu):
+    if not listing.specs:
+        listing.specs = Specs()
+
+    if ram is not None:
+        listing.specs.ram = ram
+
+    if storage is not None:
+        listing.specs.storage = storage
+
+    if storage_type:
+        listing.specs.storage_type = storage_type
+
+    if cpu:
+        listing.specs.cpu = cpu
+
 
 # Parse title for CPU
 
@@ -148,7 +173,7 @@ def find_cpu_canon(title):
     for cpu in sorted(known_cpus, key=len, reverse=True):
         if re.search(rf"\b{re.escape(cpu.lower())}\b", title):
             return cpu
-    return None
+    return find_cpu_pattern(title)
 
     
 
@@ -158,17 +183,17 @@ def find_cpu_pattern(title):
     # Intel
     intel = re.search(r"\bi[3579]\s?\d{4,5}[a-z]{0,2}\b", title)
     if intel:
-        return intel.group(0).upper()
+        return intel.group(0)
 
     # AMD
     amd = re.search(r"\bryzen\s?[3579]\s?\d{4}[a-z]{0,2}\b", title)
     if amd:
-        return amd.group(0).upper()
+        return amd.group(0)
 
     # Fallback
     fallback = re.search(r"\b(i3|i5|i7|i9|ryzen 3|ryzen 5|ryzen 7|ryzen 9)\b", title)
     if fallback:
-        return fallback.group(0).upper()
+        return fallback.group(0)
 
     return None
 
@@ -208,6 +233,47 @@ def find_memory(title):
 
     return ram, storage
 
+
+#def find_memory(title):
+#    title = normalize_title(title)
+#
+#    matches = list(re.finditer(r"\b(\d+)\s?(mb|gb|tb)\b", title))
+#    if not matches:
+#        return None, None
+#
+#    ram = None
+#    storage = None
+#
+#    for m in matches:
+#        num = int(m.group(1))
+#        unit = m.group(2)
+#
+#        if unit == "tb":
+#            num *= 1024
+#        elif unit == "mb":
+#            num /= 1024
+#
+#        span_text = title[max(0, m.start()-10):m.end()+10]
+#
+#        if any(k in span_text for k in ["ram", "ddr"]):
+#            ram = num
+#        elif any(k in span_text for k in ["ssd", "hdd", "nvme"]):
+#            storage = num
+#
+#    # fallback if unclear
+#    values = sorted([
+#        int(m.group(1)) * (1024 if m.group(2) == "tb" else 1)
+#        for m in matches
+#    ])
+#
+#    if ram is None and values:
+#        ram = values[0]
+#
+#    if storage is None and len(values) > 1:
+#        storage = values[-1]
+#
+#    return ram, storage
+
 # POSSIBLY, ADD A FILTER TO FIND VALUE NEAR SSD, HDD, NVME ETC TO GET STORAGE VALUE MORE ACCURATELY
 
 
@@ -233,6 +299,9 @@ def find_storage_type(title):
 
 
 
+
+
+
 with app.app_context():
     known_models = {m.name for m in ThinkPadModel.query.all()}
     listings = Listing.query.all()
@@ -249,5 +318,8 @@ with app.app_context():
 
     for listing in listings:
         insert_model_from_title(db.session, listing, known_models)
+        find_memory(listing)
+        find_storage_type(listing)
+        find_cpu_canon(listing)
 
     db.session.commit()
