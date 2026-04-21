@@ -2,10 +2,11 @@
 
 import re
 from app.models import ThinkPadModel, CPU, Model, Listing, Specs
-from app import create_app, db
+from app import db
+
 from app.services.titles import titles
 
-app = create_app()
+
 
 #title_list = titles # change this to title in temp_summaries or listings
 
@@ -18,7 +19,7 @@ def normalize_title(title):
     return title.strip()
 
 # find the model in the first four words after "thinkpad"
-def find_model_near_thinkpad(title, known_models):
+def find_model_near_thinkpad(title, known_models, sorted_models):
     title = normalize_title(title)
 
     if "thinkpad" not in title:
@@ -28,7 +29,7 @@ def find_model_near_thinkpad(title, known_models):
     after = title.split("thinkpad", 1)[1].strip()
     window = " ".join(after.split()[:4])  # next 4 tokens
 
-    for model in sorted(known_models, key=len, reverse=True):
+    for model in sorted_models:
         if re.search(rf"\b{re.escape(model.lower())}\b", window):
             canon_id = known_models[model]
             #print(model)
@@ -106,8 +107,8 @@ def find_model_by_pattern(title):
 #    return matches
 
 
-def insert_model_from_title(session, listing, known_models):
-    model_name, canon_id = find_model_near_thinkpad(listing.title, known_models)
+def insert_model_from_title(session, listing, known_models, sorted_models):
+    model_name, canon_id = find_model_near_thinkpad(listing.title, known_models, sorted_models)
 
     if not model_name:
         return
@@ -126,17 +127,19 @@ def insert_model_from_title(session, listing, known_models):
         session.add(model)
 
 
-def process_models():
+def process_title():
     known_models = {m.name: m.id for m in ThinkPadModel.query.all()}
-    cpu_lookup = build_cpu_lookup()   
-    cpu_list = CPU.query.all()        
 
+    sorted_models = sorted(known_models, key=len, reverse=True)
+
+    cpu_lookup = build_cpu_lookup()   
+    
     for listing in Listing.query.yield_per(500):
-        insert_model_from_title(db.session, listing, known_models)
+        insert_model_from_title(db.session, listing, known_models, sorted_models)
 
         ram, storage = find_memory(listing.title)
         storage_type = find_storage_type(listing.title)
-        cpu = cpu_match(listing.title, cpu_lookup, cpu_list)
+        cpu = cpu_match(listing.title, cpu_lookup)
 
         upsert_specs(listing, ram, storage, storage_type, cpu)
 
@@ -169,19 +172,9 @@ def build_cpu_lookup():
 
 def build_cpu_name_list():
     cpus = CPU.query.all()
-    return cpus
+    return cpus  
 
-# compare to canon list in db first
-def find_cpu_canon(title, cpu_list):
-    title = normalize_title(title)
-
-    for cpu in sorted(cpu_list, key=lambda x: len(x.name or ""), reverse=True):
-        if cpu.name and normalize_title(cpu.name) in title:
-            return cpu.name
-
-    return None    
-
-def find_cpu_pattern(title):
+def find_cpu_pattern(title): # THIS REGEX NEEDS TO BE IMPROVED
     title = normalize_title(title)
 
     # Intel full match (i7 1185G7 etc)
@@ -190,7 +183,7 @@ def find_cpu_pattern(title):
         return format_cpu_match(intel.group(0))
 
     # AMD full match (ryzen 5 5600U etc)
-    amd = re.search(r"\bryzen[\s\-]?[3579][\s\-]?(pro)?[\s\-]?\d{4}[a-z]{1,3}\b", title, re.IGNORECASE)
+    amd = re.search(r"\bryzen[\s\-]?[3579]?[\s\-]?(pro)?[\s\-]?(\d{1,2}(th|nd|st|rd)\sgen)?[\s\-]?\d{4}[a-z]{1,3}\b", title, re.IGNORECASE)
     if amd:
         return format_cpu_match(amd.group(0))
 
@@ -207,13 +200,16 @@ def format_cpu_match(value):
 
     if value.startswith("RYZEN"):
         parts = value.split()
-        return "Ryzen " + " ".join(parts[1:])
+        result = "Ryzen " + " ".join(parts[1:])
+    elif value.startswith("I"):
+        result = "i" + value[1:]
+    else:
+        result = value
 
-    if value.startswith("I"):
-        parts = value.split("I")
-        return "i" + "".join(parts[1:])
+    # fix PRO casing everywhere except start logic already handled
+    result = re.sub(r"\bPRO\b", "Pro", result)
 
-    return value
+    return result
 
 def extract_cpu_num(title):
     if not title:
@@ -234,31 +230,25 @@ def extract_cpu_num(title):
 
 def resolve_cpu_from_title(title, cpu_lookup):
     cpu_num = extract_cpu_num(title)
-
-    if not cpu_num:
-        return None
-
-    return cpu_lookup.get(cpu_num.upper())
+    if cpu_num and cpu_num in cpu_lookup:
+        return cpu_lookup[cpu_num]
 
 
-def cpu_match(title, cpu_lookup, cpu_list):
-    # 1. Canonical match (string match against known CPUs)
-    found = find_cpu_canon(title, cpu_list)
-    if found:
-        return found
-
-    # 2. cpu_num lookup (fast dictionary)
+def cpu_match(title, cpu_lookup):
+    # 1. cpu_num lookup (fast dictionary)
     cpu = resolve_cpu_from_title(title, cpu_lookup)
     if cpu:
+        print(f"cpu_num : {cpu.name} | {title}")
         return cpu.name
 
-    # 3. pattern fallback
+    # 2. regex pattern fallback
     pattern = find_cpu_pattern(title)
     if pattern:
-        return pattern
-
-    return None
+        print(f"regex :  {pattern} | {title}")
+        return pattern    
     
+    print("None found")
+    return None
 
 
 # Parse title for RAM and Storage values
@@ -297,50 +287,6 @@ def find_memory(title):
 
     return ram, storage
 
-
-#def find_memory(title):
-#    title = normalize_title(title)
-#
-#    matches = list(re.finditer(r"\b(\d+)\s?(mb|gb|tb)\b", title))
-#    if not matches:
-#        return None, None
-#
-#    ram = None
-#    storage = None
-#
-#    for m in matches:
-#        num = int(m.group(1))
-#        unit = m.group(2)
-#
-#        if unit == "tb":
-#            num *= 1024
-#        elif unit == "mb":
-#            num /= 1024
-#
-#        span_text = title[max(0, m.start()-10):m.end()+10]
-#
-#        if any(k in span_text for k in ["ram", "ddr"]):
-#            ram = num
-#        elif any(k in span_text for k in ["ssd", "hdd", "nvme"]):
-#            storage = num
-#
-#    # fallback if unclear
-#    values = sorted([
-#        int(m.group(1)) * (1024 if m.group(2) == "tb" else 1)
-#        for m in matches
-#    ])
-#
-#    if ram is None and values:
-#        ram = values[0]
-#
-#    if storage is None and len(values) > 1:
-#        storage = values[-1]
-#
-#    return ram, storage
-
-# POSSIBLY, ADD A FILTER TO FIND VALUE NEAR SSD, HDD, NVME ETC TO GET STORAGE VALUE MORE ACCURATELY
-
-
 # Parse title for STORAGE TYPE
 
 def find_storage_type(title):
@@ -350,39 +296,15 @@ def find_storage_type(title):
     if not match:
         return None
 
-    type = match.group(0)
+    storage_type = match.group(0)
     
-    if type == "hdd":
-        type = "HDD"
-    elif type == "ssd":
-        type = "SSD"
-    elif type == "nvme":
-        type = "NVMe"
+    if storage_type == "hdd":
+        storage_type = "HDD"
+    elif storage_type == "ssd":
+        storage_type = "SSD"
+    elif storage_type == "nvme":
+        storage_type = "NVMe"
 
-    return type
-
-
+    return storage_type
 
 
-
-"""with app.app_context():
-    known_models = {m.name for m in ThinkPadModel.query.all()}
-    listings = Listing.query.all()
-    #for title in title_list:
-        #find_model_near_thinkpad(title, known_models)
-        #find_memory(title)
-        #print(find_memory(title))
-        #print(find_storage_type(title))
-        #print(find_cpu_canon(title))
-        #print(find_cpu_pattern(title))
-
-    known_models = {m.name for m in ThinkPadModel.query.all()}
-    listings = Listing.query.all()
-
-    for listing in listings:
-        insert_model_from_title(db.session, listing, known_models)
-        find_memory(listing)
-        find_storage_type(listing)
-        find_cpu_canon(listing)
-
-    db.session.commit()"""

@@ -1,6 +1,6 @@
 from app.extensions import db
 from sqlalchemy import text
-from app.services.title_parse import process_models
+from app.services.title_parse import process_title
     
 def insert_models(): # turn this off
     db.session.execute(text(r"""
@@ -269,7 +269,7 @@ def run_pipeline():
     Full ingestion pipeline.
     """
     insert_listings()
-    process_models() # get models from titles
+    process_title() # get model and specs from titles
     update_listing_prices()
     mark_sold_listings()
     update_seen_listings()
