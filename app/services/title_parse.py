@@ -4,14 +4,8 @@ import re
 from app.models import ThinkPadModel, CPU, Model, Listing, Specs
 from app import db
 
-from app.services.titles import titles
 
 
-
-#title_list = titles # change this to title in temp_summaries or listings
-
-#title_list = ['Lenovo ThinkPad E16 G2 16 inch FHD+ Ryzen 7 7735HS 32GB DDR5  SSD WiFi 6E Win',
-#'Lenovo ThinkPad T14s Gen 1 Ryzen 7 PRO 4750U 16GB 512GB SSD Touch 14" Win11 Pro', '45gb 67tb', '71mb 389gb']
 
 def normalize_title(title):
     title = title.lower()
@@ -178,21 +172,45 @@ def find_cpu_pattern(title): # THIS REGEX NEEDS TO BE IMPROVED
     title = normalize_title(title)
 
     # Intel full match (i7 1185G7 etc)
-    intel = re.search(r"\bi[3579][\s\-]?\d{4,5}[a-z]{1,3}\b", title, re.IGNORECASE)
-    if intel:
-        return format_cpu_match(intel.group(0))
+    intel_match = re.search(r"\bi[3579][\s\-]?\d{4,5}[a-z]{1,3}\b", title, re.IGNORECASE)
+    if intel_match:
+        intel = format_cpu_match(intel_match.group(0))
+        return intel
 
     # AMD full match (ryzen 5 5600U etc)
-    amd = re.search(r"\bryzen[\s\-]?[3579]?[\s\-]?(pro)?[\s\-]?(\d{1,2}(th|nd|st|rd)\sgen)?[\s\-]?\d{4}[a-z]{1,3}\b", title, re.IGNORECASE)
-    if amd:
-        return format_cpu_match(amd.group(0))
+    amd_match = re.search(r"\b\d{4}[a-z]{1,3}\b", title, re.IGNORECASE)
+    ryzen_match = re.search(r"\bryzen\b", title, re.IGNORECASE)
+    if amd_match or ryzen_match:
+        return assemble_amd_name(title)
 
     # Fallback (family only)
-    fallback = re.search(r"\b(i3|i5|i7|i9|ryzen 3|ryzen 5|ryzen 7|ryzen 9)\b", title)
-    if fallback:
-        return format_cpu_match(fallback.group(0))
+    fallback_match = re.search(r"\b(i3|i5|i7|i9|ryzen 3|ryzen 5|ryzen 7|ryzen 9)\b", title)
+    if fallback_match:
+        fallback = format_cpu_match(fallback_match.group(0))
+        return fallback
 
     return None
+
+
+
+def assemble_amd_name(title):
+    title = normalize_title(title)
+
+    cpu_name = []
+
+    ryzen_match = re.search(r"\bryzen[\s\-]?(\d)\b", title, re.IGNORECASE)
+    if ryzen_match:
+        cpu_name.append(f"Ryzen {ryzen_match.group(1)}")
+
+    amd_match = re.search(r"\b\d{4}[a-z]{1,3}\b", title)
+    if amd_match:
+        cpu_name.append(amd_match.group(0).upper())
+
+    cpu_name = " ".join(cpu_name)
+
+    return cpu_name
+
+
 
 # format the cpu value after regex match so Ryzen is capitalised but i7 is not
 def format_cpu_match(value):
@@ -238,16 +256,13 @@ def cpu_match(title, cpu_lookup):
     # 1. cpu_num lookup (fast dictionary)
     cpu = resolve_cpu_from_title(title, cpu_lookup)
     if cpu:
-        print(f"cpu_num : {cpu.name} | {title}")
         return cpu.name
 
     # 2. regex pattern fallback
     pattern = find_cpu_pattern(title)
     if pattern:
-        print(f"regex :  {pattern} | {title}")
         return pattern    
     
-    print("None found")
     return None
 
 
