@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% import "macros.html" as macros %}
+
+{% block head %}
+<title>T480 vs T490 – Which ThinkPad is Better?</title>
+<meta name="description" content="Compare ThinkPad T480 vs T490 with specs, prices, and current listings.">
+{% endblock %}
+
+{% block content %}
+
+<h1>ThinkPad T480 vs T490</h1>
+
+<p>
+The T480 and T490 are two of the most popular used ThinkPads. Here’s how they compare.
+</p>
+
+<h2>Quick Verdict</h2>
+<ul>
+  <li><strong>Choose T480:</strong> upgradeable RAM, better value</li>
+  <li><strong>Choose T490:</strong> lighter, newer design</li>
+</ul>
+
+<h2>Key Differences</h2>
+
+<table class="table">
+<tr><th></th><th>T480</th><th>T490</th></tr>
+<tr><td>CPU</td><td>8th gen Intel</td><td>8th gen Intel (newer variants)</td></tr>
+<tr><td>RAM</td><td>Upgradeable</td><td>Soldered + slot</td></tr>
+<tr><td>Weight</td><td>~1.75kg</td><td>~1.55kg</td></tr>
+</table>
+
+---
+
+<h2>Best T480 Deals</h2>
+{{ macros.listings_table(listings_a, country, currency, show_model=False, show_last_updated=False) }}
+
+<h2>Best T490 Deals</h2>
+{{ macros.listings_table(listings_b, country, currency, show_model=False, show_last_updated=False) }}
+
+{% endblock %}

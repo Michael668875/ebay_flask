@@ -953,3 +953,45 @@ def best_under_300(country):
         currency=currency,
         country_flags=COUNTRY_FLAGS,
     )
+
+@bp.route("/<country>/compare/t480-vs-t490/")
+def compare_t480_t490(country):
+    country, marketplaces, currency = get_country_context_or_404(country)
+
+    model_a = get_model_by_slug("thinkpad-t480")
+    model_b = get_model_by_slug("thinkpad-t490")
+
+    if not model_a or not model_b:
+        abort(404)
+
+    # Reuse your existing helper
+    query_a = active_listings_query_for_model(model_a.id, marketplaces)
+    query_b = active_listings_query_for_model(model_b.id, marketplaces)
+
+    listings_a = query_a.order_by(Listing.price.asc()).limit(10).all()
+    listings_b = query_b.order_by(Listing.price.asc()).limit(10).all()
+
+    stats_a = canonical_model_stats(model_a.id, marketplaces)
+    stats_b = canonical_model_stats(model_b.id, marketplaces)
+
+    return render_template(
+        "compare.html",
+        model_a=model_a,
+        model_b=model_b,
+        listings_a=listings_a,
+        listings_b=listings_b,
+        stats_a=stats_a,
+        stats_b=stats_b,
+        country=country,
+        currency=currency,
+    )
+
+@bp.route("/<country>/guides/t-series-vs-x-series/")
+def guide_t_vs_x(country):
+    country, marketplaces, currency = get_country_context_or_404(country)
+
+    return render_template(
+        "guide_t_vs_x.html",
+        country=country,
+        currency=currency,
+    )
