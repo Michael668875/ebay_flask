@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% import "macros.html" as macros %}
+{% from "macros.html" import price_display %}
+
+{% block head %}
+<title>Best ThinkPads Under $300 (Updated Daily)</title>
+<meta name="description" content="Find the best used ThinkPads under $300 with live prices and top deals.">
+{% if pagination.page > 1 %}
+<meta name="robots" content="noindex, follow">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumbs">
+  <a href="/">Home</a> ›
+  <a href="/{{ country }}/">Deals</a> ›
+  <span>Under $300</span>
+</nav>
+
+<h1>Best ThinkPads Under $300</h1>
+
+<p>
+  Looking for a reliable ThinkPad under $300? This page shows the best current deals based on live listings.
+</p>
+
+<div class="summary-box">
+  <p><strong>Typical good price:</strong> $200–$300</p>
+  <p><strong>Best models:</strong> T480, T490, X1 Carbon Gen 6</p>
+</div>
+
+<h2>Top Deals Right Now</h2>
+
+<div class="featured-listings">
+  {% for item in listings[:10] %}
+    <div class="card">
+      <h3>{{ item.model.name }}</h3>
+      <p>{{ price_display(item.price, currency, show_code=False) }}</p>
+      <a href="{{ item.affiliate_url }}" target="_blank">View Deal</a>
+    </div>
+  {% endfor %}
+</div>
+
+<h2>All Listings Under $300</h2>
+
+<!-- 🔥 YOUR MACRO HERE -->
+{{ macros.listings_table(listings, country, currency, show_model=True, show_last_updated=False) }}
+
+<div class="pagination">
+  {% if pagination.has_prev %}
+    <a href="?page={{ pagination.prev_num }}">Previous</a>
+  {% endif %}
+
+  <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+
+  {% if pagination.has_next %}
+    <a href="?page={{ pagination.next_num }}">Next</a>
+  {% endif %}
+</div>
+
+<h3>Related Pages</h3>
+<ul>
+  <li><a href="/{{ country }}/best/under-400/">Best ThinkPads Under $400</a></li>
+  <li><a href="/{{ country }}/best/for-programming/">Best for Programming</a></li>
+</ul>
+
+{% endblock %}

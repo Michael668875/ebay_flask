@@ -906,3 +906,50 @@ def search_model():
         return render_template("search.html", query=query, country=country)
 
     return redirect(url_for("main.model_page", country=country, model_slug=model.slug))
+
+def deal_score(listing): # add this later
+    if listing.median_price:
+        return (listing.median_price - listing.price) / listing.median_price
+    return 0
+# .order_by(Listing.deal_score.desc())
+
+@bp.route("/<country>/best/under-300/")
+def best_under_300(country):
+    country, marketplaces, currency = get_country_context_or_404(country)
+    query = base_listing_query(marketplaces).filter(Listing.price <= 300)
+
+    sort = request.args.get("sort", "price")
+    direction = request.args.get("direction", "asc")
+
+    SORT_COLUMNS = {
+        "price": Listing.price,
+        "ram": Specs.ram,
+        "storage": Specs.storage,
+    }
+
+    order_col = SORT_COLUMNS.get(sort, Listing.price)
+
+    primary_sort = (
+        desc(order_col) if direction == "desc"
+        else asc(order_col)
+    ).nullslast()
+
+    query = query.order_by(primary_sort, Listing.price.asc())
+
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    listings = pagination.items
+
+    return render_template(
+        "best_under_300.html",  # reuse existing template
+        listings=listings,
+        pagination=pagination,
+        sort=sort,
+        direction=direction,
+        country=country,
+        filters={},  # can improve later
+        currency=currency,
+        country_flags=COUNTRY_FLAGS,
+    )

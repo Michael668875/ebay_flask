@@ -96,3 +96,16 @@ def canonical_model_stats(model_id, marketplaces):
         )
         .first()
     )
+
+def base_listing_query(marketplaces):
+    return (
+        Listing.query
+        .join(Listing.model)
+        .outerjoin(Listing.specs)
+        .options(joinedload(Listing.model), joinedload(Listing.specs))
+        .filter(
+            Model.canon_model_id.isnot(None),
+            Listing.status == "ACTIVE",
+            Listing.marketplace.in_(marketplaces),
+        )
+    )
