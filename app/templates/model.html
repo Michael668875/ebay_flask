@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
+
 
 {% block content %}
 
@@ -18,7 +20,7 @@
 
 {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False, show_model=False, show_back_button=True) }}
 {{ macros.cards(listings, country, currency=currency) }}
-{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
+{{ helpers.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
-{{ macros.price_disclaimer() }}
+{{ helpers.price_disclaimer() }}
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
 
 {% block title %}
 ThinkPad Models
@@ -11,7 +12,7 @@ ThinkPad Models
 
 {{ macros.thinkpad_models_table(grouped_models, series_order, country) }}
 
-{{ macros.price_disclaimer() }}
+{{ helpers.price_disclaimer() }}
 {% endblock %}
 
 

@@ -1,12 +1,14 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
+
 
 {% block content %}
 <h2>🔥 Recent Price Drops</h2>
 
 {{ macros.price_drops_table(rows, country, currency=currency) }}
 {{ macros.price_drops_cards(rows, country, currency=currency) }}
-{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
+{{ helpers.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
-{{ macros.price_disclaimer() }}
+{{ helpers.price_disclaimer() }}
 {% endblock %}

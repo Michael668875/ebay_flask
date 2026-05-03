@@ -1,335 +1,4 @@
-
-
-{% macro model_link(item, country) %}
-    {% if item.model and item.model.canon_model %}
-        <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
-            {{ item.model.name or "—" }}
-        </a>
-    {% else %}
-        {{ item.model.name if item.model else "—" }}
-    {% endif %}
-{% endmacro %}
-
-
-{% macro listing_link(item) %}
-    {% if item.item_url %}
-        <a href="{{ item.affiliate_url or item.item_url }}" target="_blank" rel="nofollow sponsored noopener">
-            {{ item.title or "—" }}
-        </a>
-    {% else %}
-        {{ item.title or "—" }}
-    {% endif %}
-{% endmacro %}
-
-
-{% macro spec(specs, field, use_capacity=False) %}
-    {% if specs %}
-        {% set value = specs|attr(field) %}
-        {% if value %}
-            {% if use_capacity %}
-                {{ value|format_capacity }}
-            {% else %}
-                {{ value }}
-            {% endif %}
-        {% else %}
-            —
-        {% endif %}
-    {% else %}
-        —
-    {% endif %}
-{% endmacro %}
-
-
-{% macro spec_pair(specs, field1, field2, use_capacity1=False, use_capacity2=False) %}
-    {% if specs %}
-        {% set v1 = specs|attr(field1) %}
-        {% set v2 = specs|attr(field2) %}
-
-        {% if v1 or v2 %}
-            {% if v1 %}
-                {% if use_capacity1 %}
-                    {{ v1|format_capacity }}
-                {% else %}
-                    {{ v1 }}
-                {% endif %}
-            {% endif %}
-
-            {% if v2 %}
-                {% if use_capacity2 %}
-                    {{ v2|format_capacity }}
-                {% else %}
-                    {{ v2 }}
-                {% endif %}
-            {% endif %}
-        {% else %}
-            —
-        {% endif %}
-    {% else %}
-        —
-    {% endif %}
-{% endmacro %}
-
-
-{% macro sort_link(label, sort_value) %}
-    {% set args = request.args.to_dict() %}
-    {% set current_sort = request.args.get('sort', 'price') %}
-    {% set current_dir = request.args.get('direction', 'asc') %}
-
-    {% if current_sort == sort_value %}
-        {% set next_dir = 'desc' if current_dir == 'asc' else 'asc' %}
-        {% set arrow = '▲' if current_dir == 'asc' else '▼' %}
-    {% else %}
-        {% set next_dir = 'asc' %}
-        {% set arrow = '↕' %}
-    {% endif %}
-
-    {% set _ = args.update({'sort': sort_value, 'direction': next_dir}) %}
-
-    <a href="{{ request.path }}?{{ args|urlencode }}"
-       class="text-decoration-none text-reset d-inline-flex align-items-center gap-1 text-nowrap">
-        <span>{{ label|safe }}</span>
-        <span class="sort-arrow">{{ arrow }}</span>
-    </a>
-{% endmacro %}
-
-
-{% macro spec_filter_label(name, value) %}
-    {% if name == "ram" %}
-        {{ value|format_capacity }}
-    {% elif name == "storage" %}
-        {{ value|format_capacity }}
-    {% else %}
-        {{ value }}
-    {% endif %}
-{% endmacro %}
-
-{% macro filter_width_class(name) %}
-    {% if name == "cpu" %}
-        min-w-cpu
-    {% elif name == "storage" %}
-        min-w-storage
-    {% elif name == "ram" %}
-        min-w-ram
-    {% else %}
-        min-w-default
-    {% endif %}
-{% endmacro %}
-
-
-{% macro render_pagination(pagination, extra_args=None) %}
-  {% if pagination and pagination.pages > 1 %}
-    {% set args = dict(request.view_args or {}) %}  {# includes 'country' from route #}
-        {% for k, v in request.args.items() %}
-        {% set _ = args.update({k: v}) %}
-        {% endfor %}
-
-        {# remove page to avoid conflict #}
-        {% set _ = args.pop('page', None) %}
-
-    <nav class="pagination">
-      {% if pagination.has_prev %}
-        <a
-          class="page-link prev-link"
-          href="{{ url_for(request.endpoint, page=pagination.prev_num, **args) }}"
-        >
-          ← Prev
-        </a>
-      {% endif %}
-
-      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-        {% if p %}
-          {% if p == pagination.page %}
-            <strong class="page-num current-page">{{ p }}</strong>
-          {% else %}
-            <a
-              class="page-num"
-              href="{{ url_for(request.endpoint, page=p, **args) }}"
-            >
-              {{ p }}
-            </a>
-          {% endif %}
-        {% else %}
-          <span class="page-ellipsis">…</span>
-        {% endif %}
-      {% endfor %}
-
-      {% if pagination.has_next %}
-        <a
-          class="page-link next-link"
-          href="{{ url_for(request.endpoint, page=pagination.next_num, **args) }}"
-        >
-          Next →
-        </a>
-      {% endif %}
-    </nav>
-  {% endif %}
-{% endmacro %}
-
-
-{% macro search_specs(filters) %}
-<div class="d-none d-md-block">
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1 mt-2">
-  <div class="container-fluid d-flex align-items-center">
-
-<form method="get" class="d-flex flex-wrap align-items-center gap-2 mb-0">
-
-    {# preserve current sort when applying filters #}
-    <input type="hidden" name="sort" value="{{ request.args.get('sort', 'price') }}">
-    <input type="hidden" name="direction" value="{{ request.args.get('direction', 'asc') }}">
-
-    {% for name, options in filters.items() %}
-        <div>
-            <select name="{{ name }}" class="form-select form-select-sm {{ filter_width_class(name) }}">
-                <option value="">{{ name|replace('_', ' ')|title }}</option>
-
-                {% for option in options %}
-                    {% set arg_val = request.args.get(name) %}
-                    {% if name in ['ram', 'storage'] %}
-                        {% set selected = arg_val is not none and arg_val|float == option.value %}
-                    {% else %}
-                        {% set selected = arg_val == option.value|string %}
-                    {% endif %}
-                    <option value="{{ option.value }}" {% if selected %}selected{% endif %}>
-                        {{ option.label }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-    {% endfor %}
-
-    <div class="col-md-auto">
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-        <a href="{{ request.path }}" class="btn btn-outline-secondary btn-sm">Reset</a>
-    </div>
-</form>
-  </div>
-</nav>
-</div>
-{% endmacro %}
-
-
-{% macro mobile_filter_chips(filters) %}
-<div class="d-md-none my-2">
-
-  <!-- Horizontal scrolling chips -->
-  <div class="mobile-filter-scroll d-flex gap-2 overflow-auto pb-1">
-    {% for name, options in filters.items() %}
-      {% set current_val = request.args.get(name) %}
-      <button
-        class="btn btn-sm {% if current_val %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill flex-shrink-0"
-        type="button"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#filterOffcanvas-{{ name }}"
-        aria-controls="filterOffcanvas-{{ name }}"
-      >
-        {{ name|replace('_', ' ')|title }}
-        {% if current_val %}✓{% endif %}
-      </button>
-    {% endfor %}
-  </div>
-
-  <!-- Offcanvas panels (one per filter) -->
-  {% for name, options in filters.items() %}
-    <div class="offcanvas offcanvas-bottom mobile-filter-sheet"
-         tabindex="-1"
-         id="filterOffcanvas-{{ name }}"
-         aria-labelledby="filterOffcanvasLabel-{{ name }}">
-
-      <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="filterOffcanvasLabel-{{ name }}">
-          {{ name|replace('_', ' ')|title }}
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-      </div>
-
-      <div class="offcanvas-body pt-1">
-        <form method="get" class="d-grid gap-1 mb-0">
-
-          {# preserve current sort + direction #}
-          <input type="hidden" name="sort" value="{{ request.args.get('sort', 'price') }}">
-          <input type="hidden" name="direction" value="{{ request.args.get('direction', 'asc') }}">
-
-          {# preserve all OTHER active filters #}
-          {% for other_name, other_options in filters.items() %}
-            {% if other_name != name %}
-              {% set other_val = request.args.get(other_name) %}
-              {% if other_val %}
-                <input type="hidden" name="{{ other_name }}" value="{{ other_val }}">
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-
-          <div>
-            <select name="{{ name }}" class="form-select">
-              <option value="">Any {{ name|replace('_', ' ')|title }}</option>
-
-              {% for option in options %}
-                {% set arg_val = request.args.get(name) %}
-                {% if name in ['ram', 'storage'] %}
-                  {% set selected = arg_val is not none and arg_val|float == option.value %}
-                {% else %}
-                  {% set selected = arg_val == option.value|string %}
-                {% endif %}
-                <option value="{{ option.value }}" {% if selected %}selected{% endif %}>
-                  {{ option.label }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-fill">Apply</button>
-
-            {# Clear just this one filter, preserve others #}
-            {% set remove_args = request.args.to_dict() %}
-            {% set _ = remove_args.pop(name, None) %}
-            <a href="{{ request.path }}?{{ remove_args|urlencode }}"
-               class="btn btn-outline-secondary flex-fill">
-              Clear
-            </a>
-          </div>
-        </form>
-      </div>
-    </div>
-  {% endfor %}
-
-</div>
-{% endmacro %}
-
-
-{% macro active_filters(filters) %}
-{% set ns = namespace(has_active_filters=false) %}
-
-<div class="my-2">
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-        {% for name, options in filters.items() %}
-            {% set value = request.args.get(name) %}
-            {% if value %}
-                {% set ns.has_active_filters = true %}
-
-                {% set remove_args = request.args.to_dict() %}
-                {% set _ = remove_args.pop(name, None) %}
-
-                <a href="{{ request.path }}?{{ remove_args|urlencode }}"
-                    class="badge rounded-pill text-bg-secondary text-decoration-none px-3 py-2">
-                    {% if name in ['ram', 'storage'] %}
-                        {{ name|replace('_', ' ')|title }}: {{ value|format_capacity }} ×
-                    {% else %}
-                        {{ name|replace('_', ' ')|title }}: {{ value }} ×
-                    {% endif %}
-                </a>
-            {% endif %}
-        {% endfor %}
-
-        {% if ns.has_active_filters %}
-            <a href="{{ request.path }}"
-                class="badge rounded-pill text-bg-danger text-decoration-none px-3 py-2">
-                Clear all
-            </a>
-        {% endif %}
-    </div>
-</div>
-{% endmacro %}
+{% import "macro_helpers.html" as helpers %}
 
 
 {% macro listings_table(listings, country, currency='', show_model=True, show_last_updated=True, show_back_button=False) %}
@@ -338,7 +7,7 @@
     <thead class="table-dark">
         <tr>
             {% if show_model %}
-                <th>{{ sort_link('Model', 'model') }}</th>
+                <th>{{ helpers.sort_link('Model', 'model') }}</th>
             {% endif %}
                 <th>
                     {% set price_label %}
@@ -349,11 +18,11 @@
                             {% endif %}
                         </span>
                     {% endset %}
-                    {{ sort_link(price_label|safe, 'price') }}
+                    {{ helpers.sort_link(price_label|safe, 'price') }}
                 </th>
-                <th>{{ sort_link('CPU', 'cpu') }}</th>
-                <th>{{ sort_link('RAM', 'ram') }}</th>
-                <th>{{ sort_link('Storage', 'storage') }}</th>
+                <th>{{ helpers.sort_link('CPU', 'cpu') }}</th>
+                <th>{{ helpers.sort_link('RAM', 'ram') }}</th>
+                <th>{{ helpers.sort_link('Storage', 'storage') }}</th>
                 <th>Condition</th>
                 <th>Listing on eBay</th>
             {% if show_last_updated %}
@@ -366,20 +35,20 @@
     {% for item in listings %}
     <tr>
         {% if show_model %}
-            <td>{{ model_link(item, country) }}</td>
+            <td>{{ helpers.model_link(item, country) }}</td>
         {% endif %}
         <td>
             {% if country|lower == 'all' %}
-                {{ price_display(item.price, item.currency) }}
+                {{ helpers.price_display(item.price, item.currency) }}
             {% else %}
-                {{ price_display(item.price, currency, show_code=False) }}
+                {{ helpers.price_display(item.price, currency, show_code=False) }}
             {% endif %}
         </td>
-        <td>{{ spec_pair(item.specs, "cpu", "cpu_freq") }}</td>
-        <td>{{ spec(item.specs, "ram", use_capacity=True) }}</td>
-        <td>{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</td>
+        <td>{{ helpers.spec_pair(item.specs, "cpu", "cpu_freq") }}</td>
+        <td>{{ helpers.spec(item.specs, "ram", use_capacity=True) }}</td>
+        <td>{{ helpers.spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</td>
         <td>{{ item.condition or "—" }}</td>
-        <td>{{ listing_link(item) }}</td>
+        <td>{{ helpers.listing_link(item) }}</td>
         {% if show_last_updated %}
             <td>{{ item.last_updated or "—" }}</td>
         {% endif %}
@@ -416,40 +85,18 @@
 <div class="listings-grid">
     {% for item in listings %}
     <div class="listing-card">        
-        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ model_link(item, country) if item.model else "—" }}</span></div>        
-        <div class="card-row"><span class="label">Price:</span> <span class="value">{{ price_display(item.price, item.currency) }}</span></div>
-        <div class="card-row"><span class="label">CPU:</span> <span class="value">{{ spec_pair(item.specs, "cpu", "cpu_freq") }}</span></div>
-        <div class="card-row"><span class="label">RAM:</span> <span class="value">{{ spec(item.specs, "ram", use_capacity=True) }}</span></div>
-        <div class="card-row"><span class="label">Storage:</span> <span class="value">{{ spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</span></div>
+        <div class="card-row"><span class="label">Model:</span> <span class="value">{{ helpers.model_link(item, country) if item.model else "—" }}</span></div>        
+        <div class="card-row"><span class="label">Price:</span> <span class="value">{{ helpers.price_display(item.price, item.currency) }}</span></div>
+        <div class="card-row"><span class="label">CPU:</span> <span class="value">{{ helpers.spec_pair(item.specs, "cpu", "cpu_freq") }}</span></div>
+        <div class="card-row"><span class="label">RAM:</span> <span class="value">{{ helpers.spec(item.specs, "ram", use_capacity=True) }}</span></div>
+        <div class="card-row"><span class="label">Storage:</span> <span class="value">{{ helpers.spec_pair(item.specs, "storage", "storage_type", use_capacity1=True) }}</span></div>
         <div class="card-row"><span class="label">Condition:</span> <span class="value">{{ item.condition or "—" }}</span></div>
-        <div class="card-row"><span class="label">Title:</span> <span class="value">{{ listing_link(item) }}</span></div>
+        <div class="card-row"><span class="label">Title:</span> <span class="value">{{ helpers.listing_link(item) }}</span></div>
     </div>
     {% endfor %}
 </div>
 {% endmacro %}
 
-{% macro price_display(price, currency, show_code=True) %}
-    {% set symbols = {'USD':'$', 'AUD':'$', 'EUR':'€', 'GBP':'£'} %}
-    {% set code = (currency or '').upper() %}
-    {% set symbol = symbols.get(code, '') %}
-
-    <span class="price-heading-wrap">
-        <span>{{ symbol }}{{ '%.2f'|format(price) }}</span>
-        {% if show_code and code %}
-            <span class="price-heading-code">{{ code }}</span>
-        {% endif %}
-    </span>
-{% endmacro %}
-
-{% macro price_heading(currency='') %}
-    {% set code = (currency or '').upper() %}
-    <span class="price-heading-wrap">
-        <span>Price</span>
-        {% if code %}
-            <span class="price-heading-code">{{ code }}</span>
-        {% endif %}
-    </span>
-{% endmacro %}
 
 {% macro deals_table(rows, country, currency='', best_deal_model_ids=None, price_drop_model_ids=None) %}
 {% set best_deal_model_ids = best_deal_model_ids or [] %}
@@ -457,9 +104,9 @@
 <table class="table table-dark table-hover mb-0 listings-table">
     <thead>
         <tr>
-            <th>{{ sort_link('Model', 'model_name') }}</th>
-            <th>{{ sort_link('Starting From', 'cheapest_item') }}</th>
-            <th>{{ sort_link('Number of Listings', 'listing_count') }}</th>
+            <th>{{ helpers.sort_link('Model', 'model_name') }}</th>
+            <th>{{ helpers.sort_link('Starting From', 'cheapest_item') }}</th>
+            <th>{{ helpers.sort_link('Number of Listings', 'listing_count') }}</th>
         </tr>
     </thead>
     <tbody>
@@ -477,7 +124,7 @@
             
             <td>
                 <div class="d-flex align-items-center">
-                    <strong>{{ price_display(row.cheapest_price, currency, show_code=False) }}</strong>
+                    <strong>{{ helpers.price_display(row.cheapest_price, currency, show_code=False) }}</strong>
                     {% if row.canon_model_id in best_deal_model_ids %}
                         <a href="{{ url_for('main.best_deals', country=country) }}"
                            class="badge text-bg-danger ms-2 text-decoration-none">
@@ -528,7 +175,7 @@
         <div class="card-row">
             <span class="label">From:</span>
             <span class="value">
-                <strong>{{ price_display(row.cheapest_price, currency, show_code=False) }}</strong>
+                <strong>{{ helpers.price_display(row.cheapest_price, currency, show_code=False) }}</strong>
                 {% if row.canon_model_id in best_deal_model_ids %}
                     <a href="{{ url_for('main.best_deals', country=country) }}"
                             class="badge text-bg-danger ms-1">
@@ -574,10 +221,10 @@
         <table class="table table-dark table-hover mb-0 listings-table">
             <thead>
                 <tr>
-                    <th>{{ sort_link('Model', 'model') }}</th>
-                    <th>{{ sort_link(price_heading(currency=currency), 'price') }}</th>
-                    <th>{{ sort_link('Market Avg', 'avg_price') }}</th>
-                    <th>{{ sort_link('Discount', 'discount') }}</th>
+                    <th>{{ helpers.sort_link('Model', 'model') }}</th>
+                    <th>{{ helpers.sort_link(helpers.price_heading(currency=currency), 'price') }}</th>
+                    <th>{{ helpers.sort_link('Market Avg', 'avg_price') }}</th>
+                    <th>{{ helpers.sort_link('Discount', 'discount') }}</th>
                     <th>Listing</th>
                 </tr>
             </thead>
@@ -589,8 +236,8 @@
                         {{ row.model_name }}
                         </a>
                     </td>
-                    <td><strong>{{ price_display(row.price, currency, show_code=False) }}</strong></td>
-                    <td>{{ price_display(row.avg_price, currency, show_code=False) }}</td>
+                    <td><strong>{{ helpers.price_display(row.price, currency, show_code=False) }}</strong></td>
+                    <td>{{ helpers.price_display(row.avg_price, currency, show_code=False) }}</td>
                     <td>
                         <div class="discount">-{{ row.discount_percent|round(0)|int }}%</div>
                     </td>
@@ -631,12 +278,12 @@
 
             <div class="card-row">
                 <span class="label">Deal Price:</span>
-                <span class="value"><strong>{{ price_display(row.price, currency, show_code=False) }}</strong></span>
+                <span class="value"><strong>{{ helpers.price_display(row.price, currency, show_code=False) }}</strong></span>
             </div>
 
             <div class="card-row">
                 <span class="label">Market Avg:</span>
-                <span class="value">{{ price_display(row.avg_price, currency, show_code=False) }}</span>
+                <span class="value">{{ helpers.price_display(row.avg_price, currency, show_code=False) }}</span>
             </div>
 
             <div class="card-row">
@@ -700,10 +347,10 @@
     <table class="table table-dark table-hover mb-0 listings-table">
         <thead>
             <tr>
-                <th>{{ sort_link('Model', 'model_name') }}</th>
-                <th>{{ sort_link('Old Price', 'old_price') }}</th>
-                <th>{{ sort_link('New Price', 'new_price') }}</th>
-                <th>{{ sort_link('Discount', 'discount_percent') }}</th>
+                <th>{{ helpers.sort_link('Model', 'model_name') }}</th>
+                <th>{{ helpers.sort_link('Old Price', 'old_price') }}</th>
+                <th>{{ helpers.sort_link('New Price', 'new_price') }}</th>
+                <th>{{ helpers.sort_link('Discount', 'discount_percent') }}</th>
                 <th>Listing Title</th>
             </tr>
         </thead>
@@ -711,8 +358,8 @@
         {% for row in rows %}
             <tr>
                 <td><a href="{{ url_for('main.model_page', country=country, model_slug=row.slug) }}">{{ row.model_name }}</a></td>
-                <td>{{ price_display(row.old_price, currency) }}</td>
-                <td>{{ price_display(row.new_price, currency) }}</td>
+                <td>{{ helpers.price_display(row.old_price, currency) }}</td>
+                <td>{{ helpers.price_display(row.new_price, currency) }}</td>
                 <td><div class="discount">{{ row.discount_percent|round(0)|int }}%</div></td>
                 <td>
                     {% if row.item_url %}
@@ -749,12 +396,12 @@
 
             <div class="card-row">
                 <span class="label">Old Price:</span>
-                <span class="value">{{ price_display(row.old_price, currency, show_code=False) }}</span>
+                <span class="value">{{ helpers.price_display(row.old_price, currency, show_code=False) }}</span>
             </div>
 
             <div class="card-row">
                 <span class="label">New Price:</span>
-                <span class="value"><strong>{{ price_display(row.new_price, currency, show_code=False) }}</strong></span>
+                <span class="value"><strong>{{ helpers.price_display(row.new_price, currency, show_code=False) }}</strong></span>
             </div>
 
             <div class="card-row">
@@ -793,7 +440,7 @@
                 <div class="stat-box">
                     <div class="stat-label">Lowest</div>
                     <div class="stat-value">
-                        {{ price_display(stats.lowest_price, currency=currency) }}
+                        {{ helpers.price_display(stats.lowest_price, currency=currency) }}
                     </div>
                 </div>
             </div>
@@ -802,7 +449,7 @@
                 <div class="stat-box">
                     <div class="stat-label">Average</div>
                     <div class="stat-value">
-                        {{ price_display(stats.avg_price|round, currency=currency) }}
+                        {{ helpers.price_display(stats.avg_price|round, currency=currency) }}
                     </div>
                 </div>
             </div>
@@ -811,7 +458,7 @@
                 <div class="stat-box">
                     <div class="stat-label">Highest</div>
                     <div class="stat-value">
-                        {{ price_display(stats.highest_price, currency=currency) }}
+                        {{ helpers.price_display(stats.highest_price, currency=currency) }}
                     </div>
                 </div>
             </div>
@@ -834,22 +481,3 @@
 </div>
 {% endmacro %}
 
-{% macro price_disclaimer() %}
-<div class="alert alert-secondary small mt-3">
-    Prices are estimates based on recent used listings and may vary depending on condition, battery health, included accessories, shipping, and seller location. Always review the full listing before buying.
-</div>
-{% endmacro %}
-
-{% macro affiliate_disclaimer() %}
-<div class=" text-secondary">
-    This site uses affiliate links. Purchases may earn a commission.
-</div>
-{% endmacro %}
-
-{% macro nothing_found(country) %}
-    <div class="alert alert-info text-center my-3">
-        Nothing found for that model.
-    </div>
-    <a href="{{ url_for('main.country_home', country=country) }}">Go to Home page</a>
-
-{% endmacro %}

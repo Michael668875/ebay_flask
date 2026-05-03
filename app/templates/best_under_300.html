@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 
 {% import "macros.html" as macros %}
-{% from "macros.html" import price_display %}
+{% import "macro_helpers.html" as helpers %}
+
 
 {% block head %}
 <title>Best ThinkPads Under $300 (Updated Daily)</title>
@@ -36,7 +37,7 @@
   {% for item in listings[:10] %}
     <div class="card">
       <h3>{{ item.model.name }}</h3>
-      <p>{{ price_display(item.price, currency, show_code=False) }}</p>
+      <p>{{ helpers.price_display(item.price, currency, show_code=False) }}</p>
       <a href="{{ item.affiliate_url }}" target="_blank">View Deal</a>
     </div>
   {% endfor %}

@@ -25,11 +25,12 @@
   </head>
  <body>
     {% import "macros.html" as macros %}
+    {% import "macro_helpers.html" as helpers %}
 
     <div class="page-header-row">
         <h1 class="page-title">Used ThinkPad Prices ({{ country|upper }})</h1>
         <div class="aff-disclaimer-wrap">
-            {{ macros.affiliate_disclaimer() }}
+            {{ helpers.affiliate_disclaimer() }}
         </div>
     </div>
 

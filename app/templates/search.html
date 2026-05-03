@@ -1,8 +1,9 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
 
 {% block content %}
 
-{{ macros.nothing_found(country) }}
+{{ helpers.nothing_found(country) }}
 
 {% endblock %}

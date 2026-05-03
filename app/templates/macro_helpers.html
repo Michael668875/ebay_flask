@@ -1,0 +1,394 @@
+
+
+<!-- LINKS -->
+
+{% macro model_link(item, country) %}
+    {% if item.model and item.model.canon_model %}
+        <a href="{{ url_for('main.model_page', country=country, model_slug=item.model.canon_model.slug) }}">
+            {{ item.model.name or "—" }}
+        </a>
+    {% else %}
+        {{ item.model.name if item.model else "—" }}
+    {% endif %}
+{% endmacro %}
+
+
+{% macro listing_link(item) %}
+    {% if item.item_url %}
+        <a href="{{ item.affiliate_url or item.item_url }}" target="_blank" rel="nofollow sponsored noopener">
+            {{ item.title or "—" }}
+        </a>
+    {% else %}
+        {{ item.title or "—" }}
+    {% endif %}
+{% endmacro %}
+
+
+<!-- SORTING -->
+
+{% macro sort_link(label, sort_value) %}
+    {% set args = request.args.to_dict() %}
+    {% set current_sort = request.args.get('sort', 'price') %}
+    {% set current_dir = request.args.get('direction', 'asc') %}
+
+    {% if current_sort == sort_value %}
+        {% set next_dir = 'desc' if current_dir == 'asc' else 'asc' %}
+        {% set arrow = '▲' if current_dir == 'asc' else '▼' %}
+    {% else %}
+        {% set next_dir = 'asc' %}
+        {% set arrow = '↕' %}
+    {% endif %}
+
+    {% set _ = args.update({'sort': sort_value, 'direction': next_dir}) %}
+
+    <a href="{{ request.path }}?{{ args|urlencode }}"
+       class="text-decoration-none text-reset d-inline-flex align-items-center gap-1 text-nowrap">
+        <span>{{ label|safe }}</span>
+        <span class="sort-arrow">{{ arrow }}</span>
+    </a>
+{% endmacro %}
+
+
+
+<!-- FILTERS -->
+
+{% macro spec(specs, field, use_capacity=False) %}
+    {% if specs %}
+        {% set value = specs|attr(field) %}
+        {% if value %}
+            {% if use_capacity %}
+                {{ value|format_capacity }}
+            {% else %}
+                {{ value }}
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    {% else %}
+        —
+    {% endif %}
+{% endmacro %}
+
+
+{% macro spec_pair(specs, field1, field2, use_capacity1=False, use_capacity2=False) %}
+    {% if specs %}
+        {% set v1 = specs|attr(field1) %}
+        {% set v2 = specs|attr(field2) %}
+
+        {% if v1 or v2 %}
+            {% if v1 %}
+                {% if use_capacity1 %}
+                    {{ v1|format_capacity }}
+                {% else %}
+                    {{ v1 }}
+                {% endif %}
+            {% endif %}
+
+            {% if v2 %}
+                {% if use_capacity2 %}
+                    {{ v2|format_capacity }}
+                {% else %}
+                    {{ v2 }}
+                {% endif %}
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    {% else %}
+        —
+    {% endif %}
+{% endmacro %}
+
+
+{% macro spec_filter_label(name, value) %} <!-- where is this used? -->
+    {% if name == "ram" %}
+        {{ value|format_capacity }}
+    {% elif name == "storage" %}
+        {{ value|format_capacity }}
+    {% else %}
+        {{ value }}
+    {% endif %}
+{% endmacro %}
+
+{% macro filter_width_class(name) %}
+    {% if name == "cpu" %}
+        min-w-cpu
+    {% elif name == "storage" %}
+        min-w-storage
+    {% elif name == "ram" %}
+        min-w-ram
+    {% else %}
+        min-w-default
+    {% endif %}
+{% endmacro %}
+
+
+{% macro search_specs(filters) %} 
+<div class="d-none d-md-block">
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom navbar-compact rounded my-1 mt-2">
+    <div class="container-fluid d-flex align-items-center">
+
+        <form method="get" class="d-flex flex-wrap align-items-center gap-2 mb-0">
+
+    {# preserve current sort when applying filters #}
+    <input type="hidden" name="sort" value="{{ request.args.get('sort', 'price') }}">
+    <input type="hidden" name="direction" value="{{ request.args.get('direction', 'asc') }}">
+    
+    {% for name, options in filters.items() %}
+    <div>
+            <select name="{{ name }}" class="form-select form-select-sm {{ filter_width_class(name) }}">
+                <option value="">{{ name|replace('_', ' ')|title }}</option>
+                
+                {% for option in options %}
+                    {% set arg_val = request.args.get(name) %}
+                    {% if name in ['ram', 'storage'] %}
+                        {% set selected = arg_val is not none and arg_val|float == option.value %}
+                    {% else %}
+                        {% set selected = arg_val == option.value|string %}
+                    {% endif %}
+                    <option value="{{ option.value }}" {% if selected %}selected{% endif %}>
+                        {{ option.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+</form>
+</div>
+</nav>
+</div>
+{% endmacro %}
+
+
+{% macro mobile_filter_chips(filters) %} 
+<div class="d-md-none my-2">
+
+    <!-- Horizontal scrolling chips -->
+  <div class="mobile-filter-scroll d-flex gap-2 overflow-auto pb-1">
+      {% for name, options in filters.items() %}
+      {% set current_val = request.args.get(name) %}
+      <button
+        class="btn btn-sm {% if current_val %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill flex-shrink-0"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#filterOffcanvas-{{ name }}"
+        aria-controls="filterOffcanvas-{{ name }}"
+        >
+        {{ name|replace('_', ' ')|title }}
+        {% if current_val %}✓{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  
+  <!-- Offcanvas panels (one per filter) -->
+  {% for name, options in filters.items() %}
+    <div class="offcanvas offcanvas-bottom mobile-filter-sheet"
+    tabindex="-1"
+         id="filterOffcanvas-{{ name }}"
+         aria-labelledby="filterOffcanvasLabel-{{ name }}">
+
+         <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="filterOffcanvasLabel-{{ name }}">
+          {{ name|replace('_', ' ')|title }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+      <div class="offcanvas-body pt-1">
+          <form method="get" class="d-grid gap-1 mb-0">
+
+          {# preserve current sort + direction #}
+          <input type="hidden" name="sort" value="{{ request.args.get('sort', 'price') }}">
+          <input type="hidden" name="direction" value="{{ request.args.get('direction', 'asc') }}">
+          
+          {# preserve all OTHER active filters #}
+          {% for other_name, other_options in filters.items() %}
+          {% if other_name != name %}
+          {% set other_val = request.args.get(other_name) %}
+              {% if other_val %}
+              <input type="hidden" name="{{ other_name }}" value="{{ other_val }}">
+              {% endif %}
+            {% endif %}
+            {% endfor %}
+
+            <div>
+            <select name="{{ name }}" class="form-select">
+              <option value="">Any {{ name|replace('_', ' ')|title }}</option>
+              
+              {% for option in options %}
+              {% set arg_val = request.args.get(name) %}
+              {% if name in ['ram', 'storage'] %}
+                  {% set selected = arg_val is not none and arg_val|float == option.value %}
+                {% else %}
+                  {% set selected = arg_val == option.value|string %}
+                {% endif %}
+                <option value="{{ option.value }}" {% if selected %}selected{% endif %}>
+                  {{ option.label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Apply</button>
+
+            {# Clear just this one filter, preserve others #}
+            {% set remove_args = request.args.to_dict() %}
+            {% set _ = remove_args.pop(name, None) %}
+            <a href="{{ request.path }}?{{ remove_args|urlencode }}"
+               class="btn btn-outline-secondary flex-fill">
+               Clear
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+
+</div>
+{% endmacro %}
+
+
+{% macro active_filters(filters) %} 
+{% set ns = namespace(has_active_filters=false) %}
+
+<div class="my-2">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        {% for name, options in filters.items() %}
+            {% set value = request.args.get(name) %}
+            {% if value %}
+                {% set ns.has_active_filters = true %}
+                
+                {% set remove_args = request.args.to_dict() %}
+                {% set _ = remove_args.pop(name, None) %}
+                
+                <a href="{{ request.path }}?{{ remove_args|urlencode }}"
+                    class="badge rounded-pill text-bg-secondary text-decoration-none px-3 py-2">
+                    {% if name in ['ram', 'storage'] %}
+                        {{ name|replace('_', ' ')|title }}: {{ value|format_capacity }} ×
+                    {% else %}
+                        {{ name|replace('_', ' ')|title }}: {{ value }} ×
+                    {% endif %}
+                </a>
+                {% endif %}
+        {% endfor %}
+
+        {% if ns.has_active_filters %}
+            <a href="{{ request.path }}"
+                class="badge rounded-pill text-bg-danger text-decoration-none px-3 py-2">
+                Clear all
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+
+<!-- APPEARANCE -->
+
+{% macro price_display(price, currency, show_code=True) %}
+    {% set symbols = {'USD':'$', 'AUD':'$', 'EUR':'€', 'GBP':'£'} %}
+    {% set code = (currency or '').upper() %}
+    {% set symbol = symbols.get(code, '') %}
+
+    <span class="price-heading-wrap">
+        <span>{{ symbol }}{{ '%.2f'|format(price) }}</span>
+        {% if show_code and code %}
+            <span class="price-heading-code">{{ code }}</span>
+        {% endif %}
+    </span>
+{% endmacro %}
+
+{% macro price_heading(currency='') %}
+{% set code = (currency or '').upper() %}
+<span class="price-heading-wrap">
+        <span>Price</span>
+        {% if code %}
+            <span class="price-heading-code">{{ code }}</span>
+            {% endif %}
+    </span>
+{% endmacro %}
+
+
+<!-- NOT FOUND MESSAGE -->
+    
+{% macro nothing_found(country) %}
+    <div class="alert alert-info text-center my-3">
+        Nothing found for that model.
+    </div>
+    <a href="{{ url_for('main.country_home', country=country) }}">Go to Home page</a>
+
+{% endmacro %}
+
+
+<!-- DISCLAIMERS -->
+
+{% macro price_disclaimer() %}
+<div class="alert alert-secondary small mt-3">
+    Prices are estimates based on recent used listings and may vary depending on condition, battery health, included accessories, shipping, and seller location. Always review the full listing before buying.
+</div>
+{% endmacro %}
+
+{% macro affiliate_disclaimer() %}
+<div class=" text-secondary">
+    This site uses affiliate links. Purchases may earn a commission.
+</div>
+{% endmacro %}
+
+
+<!-- PAGINATION -->
+
+{% macro render_pagination(pagination, extra_args=None) %} 
+    {% if pagination and pagination.pages > 1 %}
+    {% set args = dict(request.view_args or {}) %}  {# includes 'country' from route #}
+        {% for k, v in request.args.items() %}
+        {% set _ = args.update({k: v}) %}
+        {% endfor %}
+
+        {# remove page to avoid conflict #}
+        {% set _ = args.pop('page', None) %}
+
+    <nav class="pagination">
+        {% if pagination.has_prev %}
+        <a
+            class="page-link prev-link"
+            href="{{ url_for(request.endpoint, page=pagination.prev_num, **args) }}"
+        >
+            ← Prev
+        </a>
+        {% endif %}
+
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+            {% if p == pagination.page %}
+            <strong class="page-num current-page">{{ p }}</strong>
+            {% else %}
+            <a
+                class="page-num"
+                href="{{ url_for(request.endpoint, page=p, **args) }}"
+            >
+                {{ p }}
+            </a>
+            {% endif %}
+        {% else %}
+            <span class="page-ellipsis">…</span>
+        {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <a
+            class="page-link next-link"
+            href="{{ url_for(request.endpoint, page=pagination.next_num, **args) }}"
+        >
+            Next →
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+{% endmacro %}

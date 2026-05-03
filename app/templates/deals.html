@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
+
 
 {% block content %}
 
@@ -13,9 +15,9 @@ Find the lowest price by model. Click the model name to view all available listi
 {{ macros.deals_table(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids, price_drop_model_ids=price_drop_model_ids) }}
 
 {{ macros.deals_cards(rows, country, currency=currency, best_deal_model_ids=best_deal_model_ids, price_drop_model_ids=price_drop_model_ids) }}
-{{ macros.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
+{{ helpers.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
-{{ macros.price_disclaimer() }}
+{{ helpers.price_disclaimer() }}
 {% endblock %}
 
 

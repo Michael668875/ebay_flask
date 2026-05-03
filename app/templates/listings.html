@@ -1,13 +1,14 @@
 {% extends "layout.html" %}
 {% import "macros.html" as macros %}
+{% import "macro_helpers.html" as helpers %}
 
 {% block content %}
 
 
 {% if filters %}
-    {{ macros.mobile_filter_chips(filters) }}
-    {{ macros.search_specs(filters) }}
-    {{ macros.active_filters(filters) }}
+    {{ helpers.mobile_filter_chips(filters) }}
+    {{ helpers.search_specs(filters) }}
+    {{ helpers.active_filters(filters) }}
 {% endif %}
 
 
@@ -16,7 +17,7 @@
 {{ macros.listings_table(listings, country, currency=currency, show_last_updated=False) }}
 
 {% set current_args = request.args.to_dict() %}
-{{ macros.render_pagination(pagination, current_args) }}
+{{ helpers.render_pagination(pagination, current_args) }}
 
-{{ macros.price_disclaimer() }}
+{{ helpers.price_disclaimer() }}
 {% endblock %}
