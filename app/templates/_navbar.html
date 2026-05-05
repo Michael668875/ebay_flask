@@ -35,40 +35,79 @@
     <div class="d-none d-md-flex align-items-center">
       <ul class="navbar-nav flex-row gap-2 me-3">
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.country_home' %}active{% endif %}"
-             href="{{ url_for('main.country_home', country=nav_country) }}">
-            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Home</button>
+          <a class="btn btn-outline-secondary btn-sm top-menu-btn text-decoration-none"
+            href="{{ url_for('main.country_home', country=nav_country) }}">
+            Home
           </a>
         </li>
-
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.deals' %}active{% endif %}"
-             href="{{ url_for('main.deals', country=nav_country) }}">
-            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Market Overview</button>
+          <a class="btn btn-outline-secondary btn-sm top-menu-btn text-decoration-none"
+            href="{{ url_for('main.deals', country=nav_country) }}">
+            Market Overview
           </a>
         </li>
-
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.best_deals' %}active{% endif %}"
-             href="{{ url_for('main.best_deals', country=nav_country) }}">
-            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Best Deals</button>
+          <a class="btn btn-outline-secondary btn-sm top-menu-btn text-decoration-none"
+            href="{{ url_for('main.best_deals', country=nav_country) }}">
+            Best Deals
           </a>
         </li>
-
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.price_drops' %}active{% endif %}"
-             href="{{ url_for('main.price_drops', country=nav_country) }}">
-            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Price Drops</button>
+          <a class="btn btn-outline-secondary btn-sm top-menu-btn text-decoration-none"
+            href="{{ url_for('main.price_drops', country=nav_country) }}">
+            Price Drops
           </a>
         </li>
-
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'main.thinkpad_models' %}active{% endif %}"
-             href="{{ url_for('main.thinkpad_models', country=nav_country) }}">
-            <button class="btn btn-outline-secondary btn-sm top-menu-btn" type="button">Available Models</button>
+          <a class="btn btn-outline-secondary btn-sm top-menu-btn text-decoration-none"
+            href="{{ url_for('main.thinkpad_models', country=nav_country) }}">
+            Available Models
           </a>
         </li>
       </ul>
+    
+
+    
+
+    <!-- Dropdown button list for buyer's guide -->
+    <div class="dropdown">
+      <button class="btn btn-danger btn-sm dropdown-toggle" 
+        href="#" role="button" 
+        id="guideDropdown" 
+        data-bs-toggle="dropdown" 
+        aria-haspopup="true" 
+        aria-expanded="false">
+          Buyer Guide
+      </button>
+
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="guideDropdown">
+          <!-- BEST (filters) -->
+          <li><h6 class="dropdown-header">By Budget</h6></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/best/under-300/">Under $300</a></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/best/under-400/">Under $400</a></li>
+
+          <li><hr class="dropdown-divider"></li>
+
+          <!-- USE CASE -->
+          <li><h6 class="dropdown-header">By Use</h6></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/best/for-programming/">Programming</a></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/best/value/">Best Value</a></li>
+
+          <li><hr class="dropdown-divider"></li>
+
+          <!-- COMPARISONS -->
+          <li><h6 class="dropdown-header">Comparisons</h6></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/compare/t480-vs-t490/">T480 vs T490</a></li>
+
+          <li><hr class="dropdown-divider"></li>
+
+          <!-- GUIDES -->
+          <li><h6 class="dropdown-header">Guides</h6></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/guides/t-series-vs-x-series/">T vs X Series</a></li>
+          <li><a class="dropdown-item text-decoration-none" href="/{{ nav_country }}/guides/upgradeable-ram/">Upgradeable RAM</a></li>
+        </ul>
+        
+    </div>
     </div>
     </div>
 

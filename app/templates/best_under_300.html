@@ -33,32 +33,26 @@
 
 <h2>Top Deals Right Now</h2>
 
-<div class="featured-listings">
+<div class="model-grid">
   {% for item in listings[:10] %}
-    <div class="card">
-      <h3>{{ item.model.name }}</h3>
-      <p>{{ helpers.price_display(item.price, currency, show_code=False) }}</p>
-      <a href="{{ item.affiliate_url }}" target="_blank">View Deal</a>
+    <div class="card text-center">
+      <h4>{{ item.model.name }}</h4>
+      <div>{{ helpers.price_display(item.price, currency, show_code=False) }}</div>
+      <a href="{{ item.affiliate_url }}" target="_blank">See Listing</a>
     </div>
   {% endfor %}
 </div>
 
-<h2>All Listings Under $300</h2>
+<p><h2>All Listings Under $300</h2></p>
 
-<!-- 🔥 YOUR MACRO HERE -->
+
 {{ macros.listings_table(listings, country, currency, show_model=True, show_last_updated=False) }}
+{{ macros.cards(listings, country, currency=currency) }}
 
-<div class="pagination">
-  {% if pagination.has_prev %}
-    <a href="?page={{ pagination.prev_num }}">Previous</a>
-  {% endif %}
 
-  <span>Page {{ pagination.page }} of {{ pagination.pages }}</span>
+{{ helpers.render_pagination(pagination, {'sort': sort, 'direction': direction}) }}
 
-  {% if pagination.has_next %}
-    <a href="?page={{ pagination.next_num }}">Next</a>
-  {% endif %}
-</div>
+{{ helpers.price_disclaimer() }}
 
 <h3>Related Pages</h3>
 <ul>
@@ -67,3 +61,4 @@
 </ul>
 
 {% endblock %}
+

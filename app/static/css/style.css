@@ -192,6 +192,10 @@ button:hover {
 }
 
 /* ================= Navbar ================= */
+.navbar {
+  overflow: visible !important;
+}
+
 .navbar-compact {
   min-height: 42px;
   padding-top: 0;
@@ -212,7 +216,7 @@ button:hover {
 }
 
 .navbar-compact .navbar-nav {
-  align-items: left;
+  align-items: flex-start;
 }
 
 .navbar-compact .nav-link {
